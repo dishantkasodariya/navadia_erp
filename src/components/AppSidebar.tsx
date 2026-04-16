@@ -35,6 +35,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChat } from "@/contexts/ChatContext";
 
 function getNavItems(rolePrefix: string) {
   const mainItems = [
@@ -65,7 +66,7 @@ function getNavItems(rolePrefix: string) {
   const analyticsItems = [
     { title: "Reports", url: `/${rolePrefix}/reports`, icon: BarChart3 },
     { title: "Notifications", url: `/${rolePrefix}/notifications`, icon: Bell },
-    { title: "CRM", url: `/${rolePrefix}/crm`, icon: MessageSquare },
+    { title: "Messages", url: `/${rolePrefix}/messages`, icon: MessageSquare },
     { title: "Settings", url: `/${rolePrefix}/settings`, icon: Settings },
   ];
 
@@ -80,6 +81,8 @@ interface NavSectionProps {
 
 function NavSection({ label, items, collapsed }: NavSectionProps) {
   const location = useLocation();
+  const { unreadCountContext } = useChat();
+
   return (
     <SidebarGroup>
       {!collapsed && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
@@ -98,7 +101,15 @@ function NavSection({ label, items, collapsed }: NavSectionProps) {
                   activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                 >
                   <item.icon className="h-4 w-4" />
-                  {!collapsed && <span>{item.title}</span>}
+                  {!collapsed && <span className="flex-1">{item.title}</span>}
+                  {item.title === "Messages" && unreadCountContext > 0 && !collapsed && (
+                    <span className="bg-primary text-primary-foreground text-[10px] h-5 min-w-5 flex items-center justify-center rounded-full">
+                      {unreadCountContext}
+                    </span>
+                  )}
+                  {item.title === "Messages" && unreadCountContext > 0 && collapsed && (
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+                  )}
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

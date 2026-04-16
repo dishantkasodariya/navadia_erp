@@ -45,7 +45,7 @@ export default function Tasks() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
 
-  const [form, setForm] = useState({ title: "", description: "", assignedTo: "", priority: "medium" as Task["priority"], dueDate: today });
+  const [form, setForm] = useState({ title: "", description: "", role: "staff", assignedTo: "", priority: "medium" as Task["priority"], dueDate: today });
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -54,7 +54,8 @@ export default function Tasks() {
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
 
   const staffOptions = allUsers.filter((u) => u.role !== "admin");
-  const canAssign = user?.role === "dentist" || user?.role === "admin";
+  const targetUsers = form.role === "all" ? staffOptions : staffOptions.filter(u => u.role === form.role);
+  const canAssign = user?.role === "admin" || user?.role === "dentist";
 
   const filtered = tasks.filter((t) => {
     const matchSearch = t.title.toLowerCase().includes(search.toLowerCase()) || t.assignedToName.toLowerCase().includes(search.toLowerCase());
@@ -134,8 +135,9 @@ export default function Tasks() {
 
   const handleUpdate = () => {
     if (!editTask) return;
-    setTasks((prev) => prev.map((t) => t.id === editTask.id ? editTask : t));
+    setTasks((prev) => prev.map((t) => t.id === editTask.id ? { ...editTask, voiceNote: voiceNote !== null ? voiceNote : t.voiceNote } : t));
     setEditTask(null);
+    setVoiceNote(null);
     toast({ title: "Task Updated" });
   };
 
@@ -187,17 +189,30 @@ export default function Tasks() {
                   <Label>Description</Label>
                   <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Details..." rows={3} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Assign To</Label>
-                    <Select value={form.assignedTo} onValueChange={(v) => setForm({ ...form, assignedTo: v })}>
-                      <SelectTrigger><SelectValue placeholder="Select staff" /></SelectTrigger>
-                      <SelectContent>
-                        {staffOptions.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Select Role</Label>
+                      <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v, assignedTo: "" })}>
+                        <SelectTrigger><SelectValue placeholder="Role" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Roles</SelectItem>
+                          <SelectItem value="dentist">Dentist</SelectItem>
+                          <SelectItem value="staff">Staff</SelectItem>
+                          <SelectItem value="receptionist">Receptionist</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Assign To User</Label>
+                      <Select value={form.assignedTo} onValueChange={(v) => setForm({ ...form, assignedTo: v })}>
+                        <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
+                        <SelectContent>
+                          {targetUsers.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div>
                     <Label>Priority</Label>
@@ -211,7 +226,6 @@ export default function Tasks() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
                 <div>
                   <Label>Due Date</Label>
                   <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
@@ -365,6 +379,23 @@ export default function Tasks() {
                 <div>
                   <Label>Due Date</Label>
                   <Input type="date" value={editTask.dueDate} onChange={(e) => setEditTask({ ...editTask, dueDate: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Voice Note</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    {!isRecording ? (
+                      <Button type="button" variant="outline" size="sm" onClick={startRecording}>
+                        <Mic className="h-4 w-4 mr-1" /> Re-record Voice
+                      </Button>
+                    ) : (
+                      <Button type="button" variant="destructive" size="sm" onClick={stopRecording}>
+                        <Square className="h-4 w-4 mr-1" /> Stop
+                      </Button>
+                    )}
+                    {(voiceNote || editTask.voiceNote) && (
+                      <audio controls src={voiceNote || editTask.voiceNote} className="h-8 flex-1" />
+                    )}
+                  </div>
                 </div>
               </div>
               <Button onClick={handleUpdate} className="w-full">Update Task</Button>

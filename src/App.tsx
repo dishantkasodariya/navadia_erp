@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/AppLayout";
 import { AuthProvider, useAuth, UserRole } from "@/contexts/AuthContext";
+import { ChatProvider } from "@/contexts/ChatContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
@@ -25,6 +26,7 @@ import Attendance from "@/pages/Attendance";
 import Tasks from "@/pages/Tasks";
 import LeaveRequests from "@/pages/LeaveRequests";
 import Voicemail from "@/pages/Voicemail";
+import Messages from "@/pages/Messages";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "@/pages/NotFound";
 
@@ -61,6 +63,7 @@ const sharedRoutes = (
     <Route path="inventory" element={<PlaceholderPage title="Inventory" description="Stock management, purchase orders, and supplies" />} />
     <Route path="reports" element={<PlaceholderPage title="Reports & Analytics" description="Revenue trends, chair utilization, and custom reports" />} />
     <Route path="notifications" element={<PlaceholderPage title="Notifications" description="SMS, email, and WhatsApp reminders" />} />
+    <Route path="messages" element={<Messages />} />
     <Route path="crm" element={<PlaceholderPage title="CRM" description="Patient engagement, recall campaigns, and feedback" />} />
     <Route path="settings" element={<PlaceholderPage title="Settings" description="Clinic configuration, branches, and user roles" />} />
   </>
@@ -73,33 +76,35 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<RoleRedirect />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
+          <ChatProvider>
+            <Routes>
+              <Route path="/" element={<RoleRedirect />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
 
-            <Route path="/admin" element={<ProtectedLayout allowedRoles={["admin"]} />}>
-              <Route path="dashboard" element={<AdminDashboard />} />
-              {sharedRoutes}
-            </Route>
+              <Route path="/admin" element={<ProtectedLayout allowedRoles={["admin"]} />}>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                {sharedRoutes}
+              </Route>
 
-            <Route path="/dentist" element={<ProtectedLayout allowedRoles={["dentist"]} />}>
-              <Route path="dashboard" element={<DentistDashboard />} />
-              {sharedRoutes}
-            </Route>
+              <Route path="/dentist" element={<ProtectedLayout allowedRoles={["dentist"]} />}>
+                <Route path="dashboard" element={<DentistDashboard />} />
+                {sharedRoutes}
+              </Route>
 
-            <Route path="/reception" element={<ProtectedLayout allowedRoles={["receptionist"]} />}>
-              <Route path="dashboard" element={<ReceptionDashboard />} />
-              {sharedRoutes}
-            </Route>
+              <Route path="/reception" element={<ProtectedLayout allowedRoles={["receptionist"]} />}>
+                <Route path="dashboard" element={<ReceptionDashboard />} />
+                {sharedRoutes}
+              </Route>
 
-            <Route path="/staff" element={<ProtectedLayout allowedRoles={["staff"]} />}>
-              <Route path="dashboard" element={<ReceptionDashboard />} />
-              {sharedRoutes}
-            </Route>
+              <Route path="/staff" element={<ProtectedLayout allowedRoles={["staff"]} />}>
+                <Route path="dashboard" element={<ReceptionDashboard />} />
+                {sharedRoutes}
+              </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ChatProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
