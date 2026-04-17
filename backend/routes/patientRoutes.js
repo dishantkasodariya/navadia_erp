@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Patient = require('../models/Patient');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { verifyJWT, checkRole } = require('../middleware/authMiddleware');
 
 // Get all patients
-router.get('/', protect, async (req, res) => {
+router.get('/', verifyJWT, async (req, res) => {
   try {
     const patients = await Patient.find().sort({ createdAt: -1 });
     res.json(patients);
@@ -14,7 +14,7 @@ router.get('/', protect, async (req, res) => {
 });
 
 // Create a patient
-router.post('/', protect, authorize('admin', 'receptionist'), async (req, res) => {
+router.post('/', verifyJWT, checkRole('ADMIN', 'RECEPTIONIST'), async (req, res) => {
   const { name, phone, email, dob, gender, bloodGroup, status } = req.body;
   try {
     const mrnNum = await Patient.countDocuments() + 1;
@@ -31,7 +31,7 @@ router.post('/', protect, authorize('admin', 'receptionist'), async (req, res) =
 });
 
 // Update patient
-router.put('/:id', protect, authorize('admin', 'receptionist'), async (req, res) => {
+router.put('/:id', verifyJWT, checkRole('ADMIN', 'RECEPTIONIST'), async (req, res) => {
   try {
     const patient = await Patient.findById(req.params.id);
     if (patient) {
@@ -47,7 +47,7 @@ router.put('/:id', protect, authorize('admin', 'receptionist'), async (req, res)
 });
 
 // Delete patient
-router.delete('/:id', protect, authorize('admin'), async (req, res) => {
+router.delete('/:id', verifyJWT, checkRole('ADMIN'), async (req, res) => {
   try {
     const patient = await Patient.findById(req.params.id);
     if (patient) {

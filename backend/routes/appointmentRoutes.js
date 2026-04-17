@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Appointment = require('../models/Appointment');
-const { protect } = require('../middleware/authMiddleware');
+const { verifyJWT } = require('../middleware/authMiddleware');
 
 // Get appointments for a specific date
-router.get('/', protect, async (req, res) => {
+router.get('/', verifyJWT, async (req, res) => {
   const { date } = req.query;
   try {
     const query = date ? { date } : {};
@@ -16,7 +16,7 @@ router.get('/', protect, async (req, res) => {
 });
 
 // Create appointment
-router.post('/', protect, async (req, res) => {
+router.post('/', verifyJWT, async (req, res) => {
   try {
     const appointment = new Appointment(req.body);
     const created = await appointment.save();
@@ -27,7 +27,7 @@ router.post('/', protect, async (req, res) => {
 });
 
 // Update status
-router.patch('/:id/status', protect, async (req, res) => {
+router.patch('/:id/status', verifyJWT, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
     if (appointment) {
@@ -43,7 +43,7 @@ router.patch('/:id/status', protect, async (req, res) => {
 });
 
 // Delete appointment
-router.delete('/:id', protect, async (req, res) => {
+router.delete('/:id', verifyJWT, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
     if (appointment) {

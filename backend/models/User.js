@@ -17,12 +17,18 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'dentist', 'receptionist', 'staff'],
-    default: 'staff'
+    enum: ['ADMIN', 'DENTIST', 'RECEPTIONIST', 'STAFF'],
+    default: 'STAFF',
+    required: true
   },
-  phone: String,
-  specialization: String,
-  licenseNo: String,
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Branch'
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -13,7 +13,7 @@ const generateToken = (id) => {
 // @route   POST /api/auth/signup
 // @access  Public
 router.post('/signup', async (req, res) => {
-  const { name, email, password, role, phone, specialization, licenseNo } = req.body;
+  const { name, email, password, role, branch } = req.body;
 
   try {
     const userExists = await User.findOne({ email });
@@ -22,14 +22,14 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    const uppercaseRole = role ? role.toUpperCase() : 'STAFF';
+
     const user = await User.create({
       name,
       email,
       password,
-      role,
-      phone,
-      specialization,
-      licenseNo
+      role: uppercaseRole,
+      branch
     });
 
     if (user) {
@@ -38,6 +38,8 @@ router.post('/signup', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        branch: user.branch,
+        isActive: user.isActive,
         token: generateToken(user._id)
       });
     } else {
@@ -63,6 +65,8 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        branch: user.branch,
+        isActive: user.isActive,
         token: generateToken(user._id)
       });
     } else {

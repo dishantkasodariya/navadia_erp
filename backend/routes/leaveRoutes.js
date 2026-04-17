@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const LeaveRequest = require('../models/LeaveRequest');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { verifyJWT, checkRole } = require('../middleware/authMiddleware');
 
 // Get all leave requests
-router.get('/', protect, async (req, res) => {
+router.get('/', verifyJWT, async (req, res) => {
   try {
     const requests = await LeaveRequest.find().sort({ createdAt: -1 });
     res.json(requests);
@@ -14,7 +14,7 @@ router.get('/', protect, async (req, res) => {
 });
 
 // Create leave request
-router.post('/', protect, async (req, res) => {
+router.post('/', verifyJWT, async (req, res) => {
   try {
     const request = new LeaveRequest({
       ...req.body,
@@ -29,7 +29,7 @@ router.post('/', protect, async (req, res) => {
 });
 
 // Update status (Admin only)
-router.patch('/:id/status', protect, authorize('admin'), async (req, res) => {
+router.patch('/:id/status', verifyJWT, checkRole('ADMIN'), async (req, res) => {
   try {
     const request = await LeaveRequest.findById(req.params.id);
     if (request) {

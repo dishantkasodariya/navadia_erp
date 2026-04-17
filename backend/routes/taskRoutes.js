@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
-const { protect } = require('../middleware/authMiddleware');
+const { verifyJWT } = require('../middleware/authMiddleware');
 
 // Get all tasks
-router.get('/', protect, async (req, res) => {
+router.get('/', verifyJWT, async (req, res) => {
   try {
     const tasks = await Task.find().sort({ createdAt: -1 });
     res.json(tasks);
@@ -14,7 +14,7 @@ router.get('/', protect, async (req, res) => {
 });
 
 // Create task
-router.post('/', protect, async (req, res) => {
+router.post('/', verifyJWT, async (req, res) => {
   try {
     const task = new Task(req.body);
     const created = await task.save();
@@ -25,7 +25,7 @@ router.post('/', protect, async (req, res) => {
 });
 
 // Update task
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', verifyJWT, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (task) {
@@ -41,7 +41,7 @@ router.put('/:id', protect, async (req, res) => {
 });
 
 // Delete task
-router.delete('/:id', protect, async (req, res) => {
+router.delete('/:id', verifyJWT, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (task) {

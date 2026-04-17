@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Voicemail = require('../models/Voicemail');
-const { protect } = require('../middleware/authMiddleware');
+const { verifyJWT } = require('../middleware/authMiddleware');
 
 // Get all voicemails
-router.get('/', protect, async (req, res) => {
+router.get('/', verifyJWT, async (req, res) => {
   try {
     const voicemails = await Voicemail.find().sort({ createdAt: -1 });
     res.json(voicemails);
@@ -14,7 +14,7 @@ router.get('/', protect, async (req, res) => {
 });
 
 // Update status
-router.patch('/:id/status', protect, async (req, res) => {
+router.patch('/:id/status', verifyJWT, async (req, res) => {
   try {
     const voicemail = await Voicemail.findById(req.params.id);
     if (voicemail) {
@@ -30,7 +30,7 @@ router.patch('/:id/status', protect, async (req, res) => {
 });
 
 // Delete voicemail
-router.delete('/:id', protect, async (req, res) => {
+router.delete('/:id', verifyJWT, async (req, res) => {
   try {
     const voicemail = await Voicemail.findById(req.params.id);
     if (voicemail) {
