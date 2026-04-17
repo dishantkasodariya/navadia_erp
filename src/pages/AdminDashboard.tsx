@@ -1,6 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, CalendarDays, Users, TrendingUp, UserCog, Stethoscope } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DollarSign, CalendarDays, Users, TrendingUp, UserCog, Stethoscope, Megaphone, Mic, Square } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChat } from "@/contexts/ChatContext";
+import { useToast } from "@/hooks/use-toast";
 
 const stats = [
   { label: "Today's Revenue", value: "₹45,200", icon: DollarSign, change: "+12%" },
@@ -11,16 +17,98 @@ const stats = [
 
 export default function AdminDashboard() {
   const { user, allUsers } = useAuth();
+  const { sendBroadcast } = useChat();
+  const { toast } = useToast();
   const dentists = allUsers.filter((u) => u.role === "dentist");
   const staffCount = allUsers.filter((u) => u.role !== "admin").length;
+  
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastText, setBroadcastText] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [voiceNote, setVoiceNote] = useState<string | null>(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setVoiceNote(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+    } catch {
+      toast({ title: "Microphone access denied", variant: "destructive" });
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorder?.stop();
+    setIsRecording(false);
+    setMediaRecorder(null);
+  };
+
+  const handleBroadcast = () => {
+    if (!broadcastText.trim() && !voiceNote) return;
+    sendBroadcast(broadcastText, voiceNote || undefined);
+    setBroadcastText("");
+    setVoiceNote(null);
+    setBroadcastOpen(false);
+    toast({ title: "Broadcast Sent", description: "Message sent to all staff." });
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif">Admin Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Welcome back, {user?.name}. Full system overview.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-serif">Admin Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Welcome back, {user?.name}. Full system overview.
+          </p>
+        </div>
+        <Dialog open={broadcastOpen} onOpenChange={(o) => { setBroadcastOpen(o); if (!o) setVoiceNote(null); }}>
+          <DialogTrigger asChild>
+            <Button variant="default" className="gap-2">
+              <Megaphone className="h-4 w-4" /> Broadcast Options
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send Broadcast</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <Input 
+                placeholder="Type your message to everyone..." 
+                value={broadcastText}
+                onChange={(e) => setBroadcastText(e.target.value)}
+              />
+              <div className="flex items-center gap-2">
+                {!isRecording ? (
+                  <Button variant="outline" size="sm" onClick={startRecording}>
+                    <Mic className="h-4 w-4 mr-1" /> Record Voice Note
+                  </Button>
+                ) : (
+                  <Button variant="destructive" size="sm" onClick={stopRecording}>
+                    <Square className="h-4 w-4 mr-1" /> Stop Recording
+                  </Button>
+                )}
+                {voiceNote && <audio src={voiceNote} controls className="h-8 flex-1" />}
+              </div>
+              <Button onClick={handleBroadcast} className="w-full" disabled={!broadcastText && !voiceNote}>
+                Send to All Staff
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
