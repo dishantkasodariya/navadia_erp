@@ -23,7 +23,7 @@ export default function Login() {
     if (result.success) {
       toast({ title: "Welcome back!", description: result.message });
       // Redirect based on role - get from localStorage since state may not have updated yet
-      const stored = localStorage.getItem("dentaclinic_current_user");
+      const stored = localStorage.getItem("navadia_current_user");
       if (stored) {
         const user = JSON.parse(stored);
         const prefix = user.role === "receptionist" ? "reception" : user.role;
@@ -40,9 +40,9 @@ export default function Login() {
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">D</span>
+              <span className="text-lg font-bold text-primary-foreground">N</span>
             </div>
-            <h1 className="text-3xl font-serif text-foreground">DentaClinic</h1>
+            <h1 className="text-3xl font-serif text-foreground">Navadia</h1>
           </div>
           <p className="text-muted-foreground text-sm">Sign in to your account</p>
         </div>
@@ -55,7 +55,7 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@dentaclinic.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input id="email" type="email" placeholder="you@navadia.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
@@ -70,30 +70,27 @@ export default function Login() {
               <Link to="/signup" className="text-primary hover:underline font-medium">Sign up</Link>
             </div>
 
-            <div className="mt-6 border-t pt-4">
-              <p className="text-xs text-muted-foreground mb-2 font-medium">Demo Accounts:</p>
-              <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                <div className="rounded border p-2">
-                  <p className="font-medium text-foreground">Admin</p>
-                  <p>admin@dentaclinic.com</p>
-                  <p>admin123</p>
-                </div>
-                <div className="rounded border p-2">
-                  <p className="font-medium text-foreground">Dentist</p>
-                  <p>michael@dentaclinic.com</p>
-                  <p>dentist123</p>
-                </div>
-                <div className="rounded border p-2">
-                  <p className="font-medium text-foreground">Receptionist</p>
-                  <p>emily@dentaclinic.com</p>
-                  <p>reception123</p>
-                </div>
-                <div className="rounded border p-2">
-                  <p className="font-medium text-foreground">Staff</p>
-                  <p>james@dentaclinic.com</p>
-                  <p>staff123</p>
-                </div>
+            <div className="mt-8 space-y-3 pt-6 border-t border-dashed">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold text-center">Temporary Staff Access</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" className="text-[10px] h-auto py-2 flex-col gap-1 border-primary/20 hover:bg-primary/5" onClick={() => { setEmail("jatin@navadia.com"); setPassword("jatin"); }}>
+                  <span className="font-bold">Dr. Jatin</span>
+                  <span className="opacity-60 font-mono">Admin</span>
+                </Button>
+                <Button variant="outline" size="sm" className="text-[10px] h-auto py-2 flex-col gap-1 border-secondary/20 hover:bg-secondary/5" onClick={() => { setEmail("eva@navadia.com"); setPassword("eva"); }}>
+                  <span className="font-bold">Dr. Eva</span>
+                  <span className="opacity-60 font-mono">Dentist</span>
+                </Button>
+                <Button variant="outline" size="sm" className="text-[10px] h-auto py-2 flex-col gap-1 border-secondary/20 hover:bg-secondary/5" onClick={() => { setEmail("archita@navadia.com"); setPassword("archita"); }}>
+                  <span className="font-bold">Dr. Archita</span>
+                  <span className="opacity-60 font-mono">Dentist</span>
+                </Button>
+                <Button variant="outline" size="sm" className="text-[10px] h-auto py-2 flex-col gap-1 border-secondary/20 hover:bg-secondary/5" onClick={() => { setEmail("sejal@navadia.com"); setPassword("sejal"); }}>
+                  <span className="font-bold">Dr. Sejal</span>
+                  <span className="opacity-60 font-mono">Dentist</span>
+                </Button>
               </div>
+              <p className="text-[9px] text-center text-muted-foreground italic mt-2">Click to auto-fill. Password is the same as the name.</p>
             </div>
           </CardContent>
         </Card>

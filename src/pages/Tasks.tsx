@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, CheckCircle2, Circle, Clock, AlertTriangle, Trash2, Edit2, Mic, Square, Play } from "lucide-react";
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format, isToday, isTomorrow, parseISO } from "date-fns";
 
 interface Task {
   id: string;
@@ -29,11 +32,7 @@ interface Task {
 const today = new Date().toISOString().split("T")[0];
 const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
-const INITIAL_TASKS: Task[] = [
-  { id: "1", title: "Sterilize instruments for Room 2", description: "Complete sterilization cycle for afternoon procedures", assignedTo: "5", assignedToName: "James Wilson", assignedBy: "2", assignedByName: "Dr. Michael Ross", priority: "high", status: "pending", dueDate: today, createdAt: today },
-  { id: "2", title: "Prepare patient files for tomorrow", description: "Print and organize files for scheduled patients", assignedTo: "4", assignedToName: "Emily Carter", assignedBy: "2", assignedByName: "Dr. Michael Ross", priority: "medium", status: "in-progress", dueDate: today, createdAt: today },
-  { id: "3", title: "Order dental supplies", description: "Restock composite resin and bonding agent", assignedTo: "5", assignedToName: "James Wilson", assignedBy: "3", assignedByName: "Dr. Sofia Patel", priority: "low", status: "completed", dueDate: tomorrow, createdAt: today },
-];
+const INITIAL_TASKS: Task[] = [];
 
 export default function Tasks() {
   const { user, allUsers } = useAuth();
@@ -47,6 +46,10 @@ export default function Tasks() {
 
   const [form, setForm] = useState({ title: "", description: "", role: "staff", assignedTo: "", priority: "medium" as Task["priority"], dueDate: today });
 
+  const [activeTab, setActiveTab] = useState("all-tasks");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [userFilter, setUserFilter] = useState("all");
+
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -54,19 +57,39 @@ export default function Tasks() {
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
 
   const staffOptions = allUsers.filter((u) => u.role !== "admin");
+  const filteredUsersForFilter = roleFilter === "all" ? staffOptions : staffOptions.filter(u => u.role === roleFilter);
   const targetUsers = form.role === "all" ? staffOptions : staffOptions.filter(u => u.role === form.role);
-  const canAssign = user?.role === "admin" || user?.role === "dentist";
+  const isAdmin = !!(user && user.role === "admin");
+  const canAssign = isAdmin || user?.role === "dentist";
 
-  const filtered = tasks.filter((t) => {
-    const matchSearch = t.title.toLowerCase().includes(search.toLowerCase()) || t.assignedToName.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === "all" || t.status === filterStatus;
-    const matchPriority = filterPriority === "all" || t.priority === filterPriority;
-    // Staff/receptionist only see their own tasks
-    if (user?.role === "staff" || user?.role === "receptionist") {
-      return matchSearch && matchStatus && matchPriority && t.assignedTo === user.id;
-    }
-    return matchSearch && matchStatus && matchPriority;
-  });
+  const filtered = useMemo(() => {
+    return tasks.filter((t) => {
+      if (!t) return false;
+      const matchSearch = (t.title?.toLowerCase().includes(search.toLowerCase())) || 
+                         (t.assignedToName?.toLowerCase().includes(search.toLowerCase())) ||
+                         (t.assignedByName?.toLowerCase().includes(search.toLowerCase()));
+      const matchStatus = filterStatus === "all" || t.status === filterStatus;
+      const matchPriority = filterPriority === "all" || t.priority === filterPriority;
+      
+      // Role & User filters for Admin
+      const userObj = staffOptions.find(u => u.id === t.assignedTo);
+      const matchRole = roleFilter === "all" || userObj?.role === roleFilter;
+      const matchUser = userFilter === "all" || t.assignedTo === userFilter;
+
+      // Staff/receptionist only see their own tasks
+      if (user?.role === "staff" || user?.role === "receptionist") {
+        return matchSearch && matchStatus && matchPriority && t.assignedTo === user?.id;
+      }
+
+      // Filter by tab if admin
+      if (isAdmin && activeTab === "my-tasks") {
+        const isMine = t.assignedTo === user?.id || t.assignedBy === user?.id;
+        return matchSearch && matchStatus && matchPriority && isMine;
+      }
+
+      return matchSearch && matchStatus && matchPriority && matchRole && matchUser;
+    });
+  }, [tasks, search, filterStatus, filterPriority, roleFilter, userFilter, user, isAdmin, activeTab, staffOptions]);
 
   const startRecording = async () => {
     try {
@@ -163,6 +186,120 @@ export default function Tasks() {
   const pendingCount = tasks.filter((t) => t.status === "pending").length;
   const inProgressCount = tasks.filter((t) => t.status === "in-progress").length;
   const completedCount = tasks.filter((t) => t.status === "completed").length;
+
+  function renderTaskTable() {
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-left p-3 font-medium text-muted-foreground w-1/4">Task</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Assigned To</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Priority</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Due</th>
+                  <th className="text-right p-3 font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((t) => (
+                  <tr key={t.id} className="border-b last:border-0 hover:bg-muted/10">
+                    <td className="p-3">
+                      <p className="font-medium">{t.title}</p>
+                      {t.description && <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{t.description}</p>}
+                    </td>
+                    <td className="p-3">
+                      <p className="font-medium">{t.assignedToName}</p>
+                      <p className="text-[10px] text-muted-foreground">by {t.assignedByName}</p>
+                    </td>
+                    <td className="p-3">
+                      <Badge variant="outline" className={`text-[10px] ${priorityColor(t.priority)}`}>
+                        {t.priority}
+                      </Badge>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1.5 capitalize text-xs">
+                        {statusIcon(t.status)} {t.status}
+                      </div>
+                    </td>
+                    <td className="p-3 text-xs text-muted-foreground">{t.dueDate}</td>
+                    <td className="p-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => setEditTask(t)}><Edit2 className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No tasks matching filters</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  function renderTaskGrid() {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {filtered.map((t) => (
+          <Card key={t.id} className="hover:shadow-sm transition-shadow">
+            <CardContent className="p-4 flex flex-col h-full">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <button onClick={() => handleStatusChange(t.id, t.status === "completed" ? "pending" : "completed")} className="mt-1 shrink-0">
+                  {statusIcon(t.status)}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-semibold ${t.status === "completed" ? "line-through text-muted-foreground" : ""}`}>{t.title}</p>
+                </div>
+                <Badge variant="outline" className={`text-[10px] shrink-0 ${priorityColor(t.priority)}`}>
+                  {t.priority}
+                </Badge>
+              </div>
+              
+              {t.description && <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{t.description}</p>}
+              
+              <div className="mt-auto pt-3 border-t border-muted-foreground/10 space-y-2">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <p>Assigned To</p>
+                  <p className="font-medium text-foreground">{t.assignedToName}</p>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <p>Due Date</p>
+                  <p className="font-medium text-foreground">{t.dueDate}</p>
+                </div>
+                
+                {t.voiceNote && (
+                  <audio controls src={t.voiceNote} className="h-7 w-full mt-2" />
+                )}
+
+                <div className="flex items-center justify-end gap-1 mt-3">
+                  <Select value={t.status} onValueChange={(v: any) => handleStatusChange(t.id, v)}>
+                    <SelectTrigger className="h-7 text-[10px] w-[100px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="in-progress">In-Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {canAssign && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(t.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -276,25 +413,46 @@ export default function Tasks() {
         </Card>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input className="pl-9" placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
+        {isAdmin && activeTab === "all-tasks" && (
+          <>
+            <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v); setUserFilter("all"); }}>
+              <SelectTrigger className="w-full md:w-[130px] text-xs"><SelectValue placeholder="Role" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="dentist">Dentist</SelectItem>
+                <SelectItem value="staff">Staff</SelectItem>
+                <SelectItem value="receptionist">Receptionist</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={userFilter} onValueChange={setUserFilter}>
+              <SelectTrigger className="w-full md:w-[160px] text-xs"><SelectValue placeholder="User" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All People</SelectItem>
+                {filteredUsersForFilter.map(u => (
+                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full md:w-[130px] text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="all">Statuses</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in-progress">In Progress</SelectItem>
+            <SelectItem value="in-progress">In-Progress</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>
-          <SelectTrigger className="w-full sm:w-[140px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full md:w-[130px] text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Priority</SelectItem>
+            <SelectItem value="all">Priorities</SelectItem>
             <SelectItem value="low">Low</SelectItem>
             <SelectItem value="medium">Medium</SelectItem>
             <SelectItem value="high">High</SelectItem>
@@ -303,57 +461,24 @@ export default function Tasks() {
         </Select>
       </div>
 
-      <div className="space-y-3">
-        {filtered.map((t) => (
-          <Card key={t.id} className="hover:shadow-sm transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <button onClick={() => handleStatusChange(t.id, t.status === "completed" ? "pending" : "completed")} className="mt-0.5 shrink-0">
-                    {statusIcon(t.status)}
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <p className={`text-sm font-medium ${t.status === "completed" ? "line-through text-muted-foreground" : ""}`}>{t.title}</p>
-                    {t.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{t.description}</p>}
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full border ${priorityColor(t.priority)}`}>{t.priority}</span>
-                      <span className="text-[10px] text-muted-foreground">→ {t.assignedToName}</span>
-                      <span className="text-[10px] text-muted-foreground">by {t.assignedByName}</span>
-                      <span className="text-[10px] text-muted-foreground">Due: {t.dueDate}</span>
-                      {t.voiceNote && (
-                        <Badge variant="outline" className="text-[10px] gap-1"><Mic className="h-2.5 w-2.5" />Voice</Badge>
-                      )}
-                    </div>
-                    {t.voiceNote && (
-                      <audio controls src={t.voiceNote} className="mt-2 h-7 w-full max-w-xs" />
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Select value={t.status} onValueChange={(v: any) => handleStatusChange(t.id, v)}>
-                    <SelectTrigger className="h-8 text-xs w-[120px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {canAssign && (
-                    <>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditTask(t)}><Edit2 className="h-3.5 w-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {filtered.length === 0 && (
-          <Card><CardContent className="p-8 text-center text-muted-foreground">No tasks found</CardContent></Card>
-        )}
-      </div>
+      {isAdmin ? (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="all-tasks" className="gap-2">All Staff Tasks</TabsTrigger>
+            <TabsTrigger value="my-tasks" className="gap-2">My Tasks</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="all-tasks" className="space-y-4">
+            {renderTaskTable()}
+          </TabsContent>
+          
+          <TabsContent value="my-tasks" className="space-y-4">
+            {renderTaskGrid()}
+          </TabsContent>
+        </Tabs>
+      ) : (
+        renderTaskGrid()
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={!!editTask} onOpenChange={(o) => !o && setEditTask(null)}>

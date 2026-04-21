@@ -77,7 +77,7 @@ export default function StaffManagement() {
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input type="email" placeholder="john@dentaclinic.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input type="email" placeholder="john@navadia.com" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Phone</Label>

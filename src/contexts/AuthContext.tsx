@@ -36,22 +36,33 @@ interface SignupData {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const DEFAULT_USERS: (User & { password: string })[] = [
-  { id: "1", name: "Dr. Admin", email: "admin@dentaclinic.com", password: "admin123", role: "admin", phone: "+1 555-0100" },
-  { id: "2", name: "Dr. Michael Ross", email: "michael@dentaclinic.com", password: "dentist123", role: "dentist", phone: "+1 555-0101", specialization: "Endodontics", licenseNo: "DEN-2024-001" },
-  { id: "3", name: "Dr. Sofia Patel", email: "sofia@dentaclinic.com", password: "dentist123", role: "dentist", phone: "+1 555-0102", specialization: "Orthodontics", licenseNo: "DEN-2024-002" },
-  { id: "4", name: "Emily Carter", email: "emily@dentaclinic.com", password: "reception123", role: "receptionist", phone: "+1 555-0103" },
-  { id: "5", name: "James Wilson", email: "james@dentaclinic.com", password: "staff123", role: "staff", phone: "+1 555-0104" },
+  { id: "1", name: "Dr. Jatin Navadia", email: "jatin@navadia.com", password: "jatin", role: "admin", phone: "+91 98765 43210" },
+  { id: "admin-2", name: "Dr. Dimpal Navadia", email: "dimpal@navadia.com", password: "dimpal", role: "admin", phone: "+91 98765 43211" },
+  { id: "dentist-eva", name: "Dr. Eva", email: "eva@navadia.com", password: "eva", role: "dentist", phone: "+91 00000 00001" },
+  { id: "dentist-archita", name: "Dr. Archita", email: "archita@navadia.com", password: "archita", role: "dentist", phone: "+91 00000 00002" },
+  { id: "dentist-sejal", name: "Dr. Sejal", email: "sejal@navadia.com", password: "sejal", role: "dentist", phone: "+91 00000 00003" },
+  { id: "dentist-shruti", name: "Dr. Shruti", email: "shruti@navadia.com", password: "shruti", role: "dentist", phone: "+91 00000 00004" },
+  { id: "dentist-pooja", name: "Dr. Pooja", email: "pooja@navadia.com", password: "pooja", role: "dentist", phone: "+91 00000 00005" },
+  { id: "dentist-mosam", name: "Dr. Mosam", email: "mosam@navadia.com", password: "mosam", role: "dentist", phone: "+91 00000 00006" },
 ];
 
 function getStoredUsers(): (User & { password: string })[] {
-  const stored = localStorage.getItem("dentaclinic_users");
-  if (stored) return JSON.parse(stored);
-  localStorage.setItem("dentaclinic_users", JSON.stringify(DEFAULT_USERS));
+  const stored = localStorage.getItem("navadia_users");
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    // Force refresh if the first user email doesn't match current DEFAULT (simple check for dev)
+    if (parsed[0]?.email !== "jatin@navadia.com") {
+       localStorage.setItem("navadia_users", JSON.stringify(DEFAULT_USERS));
+       return DEFAULT_USERS;
+    }
+    return parsed;
+  }
+  localStorage.setItem("navadia_users", JSON.stringify(DEFAULT_USERS));
   return DEFAULT_USERS;
 }
 
 function saveUsers(users: (User & { password: string })[]) {
-  localStorage.setItem("dentaclinic_users", JSON.stringify(users));
+  localStorage.setItem("navadia_users", JSON.stringify(users));
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -59,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<(User & { password: string })[]>(getStoredUsers);
 
   useEffect(() => {
-    const stored = localStorage.getItem("dentaclinic_current_user");
+    const stored = localStorage.getItem("navadia_current_user");
     if (stored) {
       setUser(JSON.parse(stored));
     }
@@ -70,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!found) return { success: false, message: "Invalid email or password" };
     const { password: _, ...userData } = found;
     setUser(userData);
-    localStorage.setItem("dentaclinic_current_user", JSON.stringify(userData));
+    localStorage.setItem("navadia_current_user", JSON.stringify(userData));
     return { success: true, message: "Login successful" };
   };
 
@@ -92,22 +103,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveUsers(updated);
     const { password: _, ...userData } = newUser;
     setUser(userData);
-    localStorage.setItem("dentaclinic_current_user", JSON.stringify(userData));
+    localStorage.setItem("navadia_current_user", JSON.stringify(userData));
     return { success: true, message: "Account created successfully" };
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("dentaclinic_current_user");
+    localStorage.removeItem("navadia_current_user");
   };
 
   const allUsers: User[] = users.map(({ password: _, ...u }) => u);
 
   const addStaffMember = (data: Omit<User, "id">) => {
+    const password = data.name.split(" ").pop()?.toLowerCase() || "password123"; // Using last name or similar logic
     const newUser: User & { password: string } = {
       id: crypto.randomUUID(),
       ...data,
-      password: "changeme123",
+      password: password,
     };
     const updated = [...users, newUser];
     setUsers(updated);

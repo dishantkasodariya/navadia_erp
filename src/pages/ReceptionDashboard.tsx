@@ -21,8 +21,8 @@ export default function ReceptionDashboard() {
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-serif">18</div>
-            <p className="text-xs text-muted-foreground mt-1">5 checked in</p>
+            <div className="text-2xl font-bold font-serif">0</div>
+            <p className="text-xs text-muted-foreground mt-1">0 checked in</p>
           </CardContent>
         </Card>
         <Card>
@@ -31,8 +31,8 @@ export default function ReceptionDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-serif">3</div>
-            <p className="text-xs text-muted-foreground mt-1">Avg wait: 12 min</p>
+            <div className="text-2xl font-bold font-serif">0</div>
+            <p className="text-xs text-muted-foreground mt-1">Avg wait: —</p>
           </CardContent>
         </Card>
         <Card>
@@ -41,7 +41,7 @@ export default function ReceptionDashboard() {
             <Phone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-serif">7</div>
+            <div className="text-2xl font-bold font-serif">0</div>
             <p className="text-xs text-muted-foreground mt-1">Reminders & follow-ups</p>
           </CardContent>
         </Card>
@@ -51,8 +51,8 @@ export default function ReceptionDashboard() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-serif">10:30</div>
-            <p className="text-xs text-muted-foreground mt-1">Mike Chen</p>
+            <div className="text-2xl font-bold font-serif">—</div>
+            <p className="text-xs text-muted-foreground mt-1">No upcoming</p>
           </CardContent>
         </Card>
       </div>
@@ -63,12 +63,7 @@ export default function ReceptionDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {[
-              { time: "10:30", patient: "Mike Chen", procedure: "Checkup", dentist: "Dr. Sofia", status: "Arrived" },
-              { time: "11:00", patient: "Emily Davis", procedure: "Crown Fitting", dentist: "Dr. Michael", status: "En Route" },
-              { time: "14:00", patient: "Raj Patel", procedure: "Extraction", dentist: "Dr. Pratt", status: "Confirmed" },
-              { time: "14:30", patient: "Priya Sharma", procedure: "Whitening", dentist: "Dr. Sofia", status: "Confirmed" },
-            ].map((apt) => (
+            {[].map((apt: any) => (
               <div key={apt.time} className="flex items-center justify-between rounded-lg border p-3">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-mono text-muted-foreground w-12">{apt.time}</span>
@@ -84,6 +79,7 @@ export default function ReceptionDashboard() {
                 }`}>{apt.status}</span>
               </div>
             ))}
+            {[].length === 0 && <p className="text-center text-muted-foreground py-4 text-sm">No upcoming check-ins.</p>}
           </div>
         </CardContent>
       </Card>

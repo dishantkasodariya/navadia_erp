@@ -24,10 +24,7 @@ interface VoicemailMessage {
   isTaskRelated: boolean;
 }
 
-const INITIAL_MESSAGES: VoicemailMessage[] = [
-  { id: "1", fromId: "2", fromName: "Dr. Michael Ross", toId: "5", toName: "James Wilson", audioUrl: "", duration: 15, subject: "Prepare Room 3 instruments", isRead: false, createdAt: new Date().toISOString(), isTaskRelated: true },
-  { id: "2", fromId: "3", fromName: "Dr. Sofia Patel", toId: "4", toName: "Emily Carter", audioUrl: "", duration: 8, subject: "Reschedule Mr. Patel's appointment", isRead: true, createdAt: new Date(Date.now() - 3600000).toISOString(), isTaskRelated: true },
-];
+const INITIAL_MESSAGES: VoicemailMessage[] = [];
 
 export default function Voicemail() {
   const { user, allUsers } = useAuth();
