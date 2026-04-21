@@ -2,10 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, CalendarDays, Users, TrendingUp } from "lucide-react";
 
 const stats = [
-  { label: "Today's Revenue", value: "₹45,200", icon: DollarSign, change: "+12%" },
-  { label: "Appointments", value: "18", icon: CalendarDays, change: "3 remaining" },
-  { label: "New Patients", value: "4", icon: Users, change: "+2 this week" },
-  { label: "Collection Rate", value: "87%", icon: TrendingUp, change: "+3% vs last month" },
+  { label: "Today's Revenue", value: "₹0", icon: DollarSign, change: "0%" },
+  { label: "Appointments", value: "0", icon: CalendarDays, change: "0 remaining" },
+  { label: "New Patients", value: "0", icon: Users, change: "0 this week" },
+  { label: "Collection Rate", value: "0%", icon: TrendingUp, change: "0% vs last month" },
 ];
 
 export default function Dashboard() {
@@ -42,12 +42,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {[
-                { time: "09:00", patient: "Sarah Johnson", procedure: "Root Canal", status: "In Chair" },
-                { time: "10:30", patient: "Mike Chen", procedure: "Checkup", status: "Confirmed" },
-                { time: "11:00", patient: "Emily Davis", procedure: "Crown Fitting", status: "Scheduled" },
-                { time: "14:00", patient: "Raj Patel", procedure: "Extraction", status: "Confirmed" },
-              ].map((apt) => (
+              {[].map((apt: any) => (
                 <div key={apt.time} className="flex items-center justify-between rounded-lg border p-3">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-mono text-muted-foreground w-12">{apt.time}</span>
@@ -67,6 +62,7 @@ export default function Dashboard() {
                   </span>
                 </div>
               ))}
+              {[].length === 0 && <p className="text-center text-muted-foreground py-4 text-sm">No appointments scheduled.</p>}
             </div>
           </CardContent>
         </Card>
@@ -77,12 +73,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                { action: "Payment received", detail: "Sarah Johnson — ₹3,500", time: "2 min ago" },
-                { action: "New patient registered", detail: "Priya Sharma — PT-2025-0148", time: "15 min ago" },
-                { action: "Appointment cancelled", detail: "John Lee — No show", time: "1 hr ago" },
-                { action: "Prescription sent", detail: "Dr. Sofia — Mike Chen", time: "2 hrs ago" },
-              ].map((item, i) => (
+              {[].map((item: any, i) => (
                 <div key={i} className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-medium">{item.action}</p>
@@ -91,6 +82,7 @@ export default function Dashboard() {
                   <span className="text-xs text-muted-foreground whitespace-nowrap">{item.time}</span>
                 </div>
               ))}
+              {[].length === 0 && <p className="text-center text-muted-foreground py-4 text-sm">No recent activity.</p>}
             </div>
           </CardContent>
         </Card>

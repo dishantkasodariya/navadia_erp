@@ -24,23 +24,17 @@ interface Patient {
   balance: string;
 }
 
-const initialPatients: Patient[] = [
-  { id: "1", mrn: "PT-2025-0847", name: "Sarah Johnson", phone: "+1 (555) 123-4567", email: "sarah@email.com", dob: "1990-03-15", gender: "Female", bloodGroup: "A+", lastVisit: "Oct 12, 2025", status: "Active", balance: "$570" },
-  { id: "2", mrn: "PT-2025-0846", name: "Mike Chen", phone: "+1 (555) 234-5678", email: "mike@email.com", dob: "1985-07-22", gender: "Male", bloodGroup: "O+", lastVisit: "Oct 10, 2025", status: "Active", balance: "$0" },
-  { id: "3", mrn: "PT-2025-0845", name: "Emily Davis", phone: "+1 (555) 345-6789", email: "emily@email.com", dob: "1992-11-08", gender: "Female", bloodGroup: "B+", lastVisit: "Sep 28, 2025", status: "Active", balance: "$200" },
-  { id: "4", mrn: "PT-2025-0844", name: "Raj Patel", phone: "+1 (555) 456-7890", email: "raj@email.com", dob: "1978-01-30", gender: "Male", bloodGroup: "AB+", lastVisit: "Sep 15, 2025", status: "Inactive", balance: "$0" },
-  { id: "5", mrn: "PT-2025-0843", name: "Priya Sharma", phone: "+1 (555) 567-8901", email: "priya@email.com", dob: "1995-06-14", gender: "Female", bloodGroup: "O-", lastVisit: "Oct 11, 2025", status: "Active", balance: "$150" },
-];
+const initialPatients: Patient[] = [];
 
 function getStoredPatients(): Patient[] {
-  const stored = localStorage.getItem("dentaclinic_patients");
+  const stored = localStorage.getItem("navadia_patients");
   if (stored) return JSON.parse(stored);
-  localStorage.setItem("dentaclinic_patients", JSON.stringify(initialPatients));
+  localStorage.setItem("navadia_patients", JSON.stringify(initialPatients));
   return initialPatients;
 }
 
 function savePatients(patients: Patient[]) {
-  localStorage.setItem("dentaclinic_patients", JSON.stringify(patients));
+  localStorage.setItem("navadia_patients", JSON.stringify(patients));
 }
 
 export default function Patients() {
@@ -137,7 +131,7 @@ export default function Patients() {
               <DialogHeader><DialogTitle>Register New Patient</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-2">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Full Name *</Label><Input placeholder="Sarah Johnson" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Full Name *</Label><Input placeholder="Patient Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
                   <div className="space-y-2"><Label>Phone *</Label><Input placeholder="+1 555-0100" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

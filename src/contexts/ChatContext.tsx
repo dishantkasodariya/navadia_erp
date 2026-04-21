@@ -27,13 +27,13 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 function getStoredMessages(): ChatMessage[] {
-  const stored = localStorage.getItem("dentaclinic_chat_messages");
+  const stored = localStorage.getItem("navadia_chat_messages");
   if (stored) return JSON.parse(stored);
   return [];
 }
 
 function saveMessages(messages: ChatMessage[]) {
-  localStorage.setItem("dentaclinic_chat_messages", JSON.stringify(messages));
+  localStorage.setItem("navadia_chat_messages", JSON.stringify(messages));
 }
 
 export function ChatProvider({ children }: { children: ReactNode }) {

@@ -20,13 +20,7 @@ interface Appointment {
   chair: number;
 }
 
-const initialAppointments: Appointment[] = [
-  { id: "1", time: "09:00", duration: 2, patient: "Sarah Johnson", procedure: "Root Canal", dentist: "Dr. Michael", status: "inChair", chair: 1 },
-  { id: "2", time: "10:00", duration: 1, patient: "Mike Chen", procedure: "Checkup", dentist: "Dr. Sofia", status: "confirmed", chair: 2 },
-  { id: "3", time: "10:30", duration: 2, patient: "Emily Davis", procedure: "Crown Fitting", dentist: "Dr. Michael", status: "scheduled", chair: 1 },
-  { id: "4", time: "14:00", duration: 1, patient: "Raj Patel", procedure: "Extraction", dentist: "Dr. Pratt", status: "confirmed", chair: 3 },
-  { id: "5", time: "14:30", duration: 2, patient: "Priya Sharma", procedure: "Teeth Whitening", dentist: "Dr. Sofia", status: "scheduled", chair: 2 },
-];
+const initialAppointments: Appointment[] = [];
 
 const timeSlots = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "14:00", "14:30", "15:00", "15:30", "16:00"];
 
@@ -47,21 +41,24 @@ const statusLabels: Record<string, string> = {
 };
 
 function getStoredAppointments(): Appointment[] {
-  const stored = localStorage.getItem("dentaclinic_appointments");
+  const stored = localStorage.getItem("navadia_appointments");
   if (stored) return JSON.parse(stored);
-  localStorage.setItem("dentaclinic_appointments", JSON.stringify(initialAppointments));
+  localStorage.setItem("navadia_appointments", JSON.stringify(initialAppointments));
   return initialAppointments;
 }
 
 function saveAppointments(appointments: Appointment[]) {
-  localStorage.setItem("dentaclinic_appointments", JSON.stringify(appointments));
+  localStorage.setItem("navadia_appointments", JSON.stringify(appointments));
 }
 
 export default function Appointments() {
+  const { user, allUsers } = useAuth();
+  const dentists = allUsers.filter(u => u.role === "dentist");
   const [appointments, setAppointments] = useState<Appointment[]>(getStoredAppointments);
+
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [form, setForm] = useState({ patient: "", procedure: "", dentist: "Dr. Michael", time: "09:00", chair: "1", status: "scheduled" });
+  const [form, setForm] = useState({ patient: "", procedure: "", dentist: dentists[0]?.name || "", time: "09:00", chair: "1", status: "scheduled" });
   const { toast } = useToast();
 
   const handleAdd = () => {
@@ -89,7 +86,7 @@ export default function Appointments() {
     setAppointments(updated);
     saveAppointments(updated);
     toast({ title: "Appointment added", description: `${form.patient} at ${form.time}` });
-    setForm({ patient: "", procedure: "", dentist: "Dr. Michael", time: "09:00", chair: "1", status: "scheduled" });
+    setForm({ patient: "", procedure: "", dentist: dentists[0]?.name || "", time: "09:00", chair: "1", status: "scheduled" });
     setOpen(false);
   };
 
@@ -133,12 +130,19 @@ export default function Appointments() {
             <DialogContent>
               <DialogHeader><DialogTitle>Schedule Appointment</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-2">
-                <div className="space-y-2"><Label>Patient Name *</Label><Input placeholder="Sarah Johnson" value={form.patient} onChange={(e) => setForm({ ...form, patient: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Procedure *</Label><Input placeholder="Root Canal" value={form.procedure} onChange={(e) => setForm({ ...form, procedure: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Patient Name *</Label><Input placeholder="Patient Name" value={form.patient} onChange={(e) => setForm({ ...form, patient: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Procedure *</Label><Input placeholder="e.g. Root Canal" value={form.procedure} onChange={(e) => setForm({ ...form, procedure: e.target.value })} /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Dentist</Label>
-                    <Select value={form.dentist} onValueChange={(v) => setForm({ ...form, dentist: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Dr. Michael">Dr. Michael</SelectItem><SelectItem value="Dr. Sofia">Dr. Sofia</SelectItem><SelectItem value="Dr. Pratt">Dr. Pratt</SelectItem></SelectContent></Select>
+                    <Select value={form.dentist} onValueChange={(v) => setForm({ ...form, dentist: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select Dentist" /></SelectTrigger>
+                      <SelectContent>
+                        {dentists.map((d) => (
+                          <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Time</Label>

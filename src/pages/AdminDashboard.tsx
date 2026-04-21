@@ -9,10 +9,10 @@ import { useChat } from "@/contexts/ChatContext";
 import { useToast } from "@/hooks/use-toast";
 
 const stats = [
-  { label: "Today's Revenue", value: "₹45,200", icon: DollarSign, change: "+12%" },
-  { label: "Appointments", value: "18", icon: CalendarDays, change: "3 remaining" },
-  { label: "New Patients", value: "4", icon: Users, change: "+2 this week" },
-  { label: "Collection Rate", value: "87%", icon: TrendingUp, change: "+3% vs last month" },
+  { label: "Today's Revenue", value: "₹0", icon: DollarSign, change: "0%" },
+  { label: "Appointments", value: "0", icon: CalendarDays, change: "0 remaining" },
+  { label: "New Patients", value: "0", icon: Users, change: "0 this week" },
+  { label: "Collection Rate", value: "0%", icon: TrendingUp, change: "0% vs last month" },
 ];
 
 export default function AdminDashboard() {
@@ -180,12 +180,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {[
-                { time: "09:00", patient: "Sarah Johnson", procedure: "Root Canal", dentist: "Dr. Michael", status: "In Chair" },
-                { time: "10:30", patient: "Mike Chen", procedure: "Checkup", dentist: "Dr. Sofia", status: "Confirmed" },
-                { time: "11:00", patient: "Emily Davis", procedure: "Crown Fitting", dentist: "Dr. Michael", status: "Scheduled" },
-                { time: "14:00", patient: "Raj Patel", procedure: "Extraction", dentist: "Dr. Pratt", status: "Confirmed" },
-              ].map((apt) => (
+              {[].map((apt: any) => (
                 <div key={apt.time} className="flex items-center justify-between rounded-lg border p-3">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-mono text-muted-foreground w-12">{apt.time}</span>
@@ -201,6 +196,7 @@ export default function AdminDashboard() {
                   }`}>{apt.status}</span>
                 </div>
               ))}
+              {[].length === 0 && <p className="text-center text-muted-foreground py-4 text-sm">No appointments scheduled for today.</p>}
             </div>
           </CardContent>
         </Card>

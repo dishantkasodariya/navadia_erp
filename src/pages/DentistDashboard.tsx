@@ -5,12 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function DentistDashboard() {
   const { user } = useAuth();
 
-  const myAppointments = [
-    { time: "09:00", patient: "Sarah Johnson", procedure: "Root Canal", status: "In Chair" },
-    { time: "10:30", patient: "Emily Davis", procedure: "Crown Fitting", status: "Scheduled" },
-    { time: "14:00", patient: "Raj Patel", procedure: "Extraction", status: "Confirmed" },
-    { time: "15:30", patient: "Priya Sharma", procedure: "Teeth Whitening", status: "Scheduled" },
-  ];
+  const myAppointments: any[] = [];
 
   return (
     <div className="space-y-6">
@@ -38,8 +33,8 @@ export default function DentistDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-serif">1</div>
-            <p className="text-xs text-muted-foreground mt-1">3 remaining</p>
+            <div className="text-2xl font-bold font-serif">0</div>
+            <p className="text-xs text-muted-foreground mt-1">0 remaining</p>
           </CardContent>
         </Card>
         <Card>
@@ -48,8 +43,8 @@ export default function DentistDashboard() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-serif">10:30</div>
-            <p className="text-xs text-muted-foreground mt-1">Emily Davis</p>
+            <div className="text-2xl font-bold font-serif">—</div>
+            <p className="text-xs text-muted-foreground mt-1">No upcoming</p>
           </CardContent>
         </Card>
         <Card>
@@ -86,6 +81,7 @@ export default function DentistDashboard() {
                 }`}>{apt.status}</span>
               </div>
             ))}
+            {myAppointments.length === 0 && <p className="text-center text-muted-foreground py-4 text-sm">No appointments scheduled for today.</p>}
           </div>
         </CardContent>
       </Card>

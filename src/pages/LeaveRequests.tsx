@@ -26,11 +26,7 @@ interface LeaveRequest {
 
 const today = new Date().toISOString().split("T")[0];
 
-const INITIAL_REQUESTS: LeaveRequest[] = [
-  { id: "1", staffId: "5", staffName: "James Wilson", role: "staff", leaveType: "sick", startDate: today, endDate: today, reason: "Not feeling well, fever", status: "pending", appliedOn: today },
-  { id: "2", staffId: "4", staffName: "Emily Carter", role: "receptionist", leaveType: "casual", startDate: "2026-04-20", endDate: "2026-04-21", reason: "Family function", status: "approved", appliedOn: "2026-04-10", approvedBy: "Dr. Admin" },
-  { id: "3", staffId: "3", staffName: "Dr. Sofia Patel", role: "dentist", leaveType: "earned", startDate: "2026-04-25", endDate: "2026-04-28", reason: "Conference travel", status: "pending", appliedOn: "2026-04-12" },
-];
+const INITIAL_REQUESTS: LeaveRequest[] = [];
 
 export default function LeaveRequests() {
   const { user, allUsers } = useAuth();

@@ -1,17 +1,9 @@
 import {
   LayoutDashboard,
-  Users,
-  CalendarDays,
-  Stethoscope,
-  ClipboardList,
-  Receipt,
-  ScanLine,
-  Package,
   UserCog,
-  BarChart3,
-  Settings,
   Bell,
   MessageSquare,
+  Settings,
   LogOut,
   Clock,
   CheckSquare,
@@ -40,14 +32,6 @@ import { useChat } from "@/contexts/ChatContext";
 function getNavItems(rolePrefix: string) {
   const mainItems = [
     { title: "Dashboard", url: `/${rolePrefix}/dashboard`, icon: LayoutDashboard },
-    { title: "Patients", url: `/${rolePrefix}/patients`, icon: Users },
-    { title: "Appointments", url: `/${rolePrefix}/appointments`, icon: CalendarDays },
-  ];
-
-  const clinicalItems = [
-    { title: "Clinical Records", url: `/${rolePrefix}/clinical`, icon: Stethoscope },
-    { title: "Treatment Plans", url: `/${rolePrefix}/treatment-plans`, icon: ClipboardList },
-    { title: "Imaging", url: `/${rolePrefix}/imaging`, icon: ScanLine },
   ];
 
   const hrItems = [
@@ -58,19 +42,16 @@ function getNavItems(rolePrefix: string) {
   ];
 
   const businessItems = [
-    { title: "Billing", url: `/${rolePrefix}/billing`, icon: Receipt },
-    { title: "Inventory", url: `/${rolePrefix}/inventory`, icon: Package },
     { title: "Staff & HR", url: `/${rolePrefix}/staff`, icon: UserCog },
   ];
 
   const analyticsItems = [
-    { title: "Reports", url: `/${rolePrefix}/reports`, icon: BarChart3 },
     { title: "Notifications", url: `/${rolePrefix}/notifications`, icon: Bell },
     { title: "Messages", url: `/${rolePrefix}/messages`, icon: MessageSquare },
     { title: "Settings", url: `/${rolePrefix}/settings`, icon: Settings },
   ];
 
-  return { mainItems, clinicalItems, hrItems, businessItems, analyticsItems };
+  return { mainItems, hrItems, businessItems, analyticsItems };
 }
 
 interface NavSectionProps {
@@ -126,7 +107,7 @@ export function AppSidebar() {
   const { user, logout } = useAuth();
 
   const rolePrefix = user?.role === "receptionist" ? "reception" : user?.role || "admin";
-  const { mainItems, clinicalItems, hrItems, businessItems, analyticsItems } = getNavItems(rolePrefix);
+  const { mainItems, hrItems, businessItems, analyticsItems } = getNavItems(rolePrefix);
 
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -136,21 +117,20 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <div className="flex items-center gap-2 px-4 py-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-          <span className="text-sm font-bold text-primary-foreground">D</span>
+          <span className="text-sm font-bold text-primary-foreground">N</span>
         </div>
         {!collapsed && (
           <span className="text-lg font-serif font-bold text-foreground">
-            DentaClinic
+            Navadia
           </span>
         )}
       </div>
 
       <SidebarContent>
         <NavSection label="Main" items={mainItems} collapsed={collapsed} />
-        <NavSection label="Clinical" items={clinicalItems} collapsed={collapsed} />
         <NavSection label="HR & Tasks" items={hrItems} collapsed={collapsed} />
-        <NavSection label="Business" items={businessItems} collapsed={collapsed} />
-        <NavSection label="Analytics" items={analyticsItems} collapsed={collapsed} />
+        <NavSection label="Management" items={businessItems} collapsed={collapsed} />
+        <NavSection label="System" items={analyticsItems} collapsed={collapsed} />
       </SidebarContent>
 
       <SidebarFooter>

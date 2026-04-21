@@ -45,9 +45,9 @@ export default function Signup() {
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">D</span>
+              <span className="text-lg font-bold text-primary-foreground">N</span>
             </div>
-            <h1 className="text-3xl font-serif text-foreground">DentaClinic</h1>
+            <h1 className="text-3xl font-serif text-foreground">Navadia</h1>
           </div>
           <p className="text-muted-foreground text-sm">Create your account</p>
         </div>
@@ -64,7 +64,7 @@ export default function Signup() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@dentaclinic.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input id="email" type="email" placeholder="you@navadia.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
