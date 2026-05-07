@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginType, setLoginType] = useState<"STAFF" | "DENTIST">("STAFF");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -18,11 +20,11 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const result = await login(email, password);
+    const result = await login(email, password, loginType);
     setLoading(false);
     if (result.success) {
       toast({ title: "Welcome back!", description: result.message });
-      // Redirect based on role - get from localStorage since state may not have updated yet
+      // Redirect based on role
       const stored = localStorage.getItem("navadia_current_user");
       if (stored) {
         const user = JSON.parse(stored);
@@ -39,58 +41,90 @@ export default function Login() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">N</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
+              <span className="text-xl font-bold text-primary-foreground">N</span>
             </div>
-            <h1 className="text-3xl font-serif text-foreground">Navadia</h1>
+            <h1 className="text-4xl font-serif text-foreground tracking-tight">Navadia</h1>
           </div>
-          <p className="text-muted-foreground text-sm">Sign in to your account</p>
+          <p className="text-muted-foreground text-sm">Welcome back! Please enter your details.</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-sans">Login</CardTitle>
+        {/* Toggle Section Outside Card */}
+        <div className="flex items-center justify-center pt-2">
+          <div className="bg-muted p-1 rounded-md flex relative w-full h-[52px] border border-muted-foreground/10">
+            {/* Animated Slider */}
+            <div 
+              className={cn(
+                "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-background rounded-sm shadow-md transition-all duration-300 ease-in-out",
+                loginType === "STAFF" ? "left-1" : "left-[calc(50%+2px)]"
+              )}
+            />
+            <button 
+              type="button"
+              className={cn(
+                "flex-1 relative z-10 text-sm font-bold transition-colors duration-200",
+                loginType === "STAFF" ? "text-primary" : "text-muted-foreground"
+              )}
+              onClick={() => setLoginType("STAFF")}
+            >
+              Staff
+            </button>
+            <button 
+              type="button"
+              className={cn(
+                "flex-1 relative z-10 text-sm font-bold transition-colors duration-200",
+                loginType === "DENTIST" ? "text-primary" : "text-muted-foreground"
+              )}
+              onClick={() => setLoginType("DENTIST")}
+            >
+              Dentist
+            </button>
+          </div>
+        </div>
+
+
+        <Card className="border-none shadow-md bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-2xl font-sans text-center">Login</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="mb-6 border-t border-dashed border-muted-foreground/20"></div>
+
+            <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@navadia.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="you@navadia.com" 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    required 
+                    className="h-11 bg-background/50"
+                    autoComplete="off"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <Input 
+                    id="password" 
+                    type="password" 
+                    placeholder="Enter your password" 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    required 
+                    className="h-11 bg-background/50"
+                    autoComplete="off"
+                />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full h-11 text-base font-semibold shadow-lg shadow-primary/20 transition-all active:scale-[0.98]" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-            <div className="mt-4 text-center text-sm text-muted-foreground">
+            
+            <div className="mt-6 text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Link to="/signup" className="text-primary hover:underline font-medium">Sign up</Link>
-            </div>
-
-            <div className="mt-8 space-y-3 pt-6 border-t border-dashed">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold text-center">Temporary Staff Access</p>
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm" className="text-[10px] h-auto py-2 flex-col gap-1 border-primary/20 hover:bg-primary/5" onClick={() => { setEmail("jatin@navadia.com"); setPassword("jatin"); }}>
-                  <span className="font-bold">Dr. Jatin</span>
-                  <span className="opacity-60 font-mono">Admin</span>
-                </Button>
-                <Button variant="outline" size="sm" className="text-[10px] h-auto py-2 flex-col gap-1 border-secondary/20 hover:bg-secondary/5" onClick={() => { setEmail("eva@navadia.com"); setPassword("eva"); }}>
-                  <span className="font-bold">Dr. Eva</span>
-                  <span className="opacity-60 font-mono">Dentist</span>
-                </Button>
-                <Button variant="outline" size="sm" className="text-[10px] h-auto py-2 flex-col gap-1 border-secondary/20 hover:bg-secondary/5" onClick={() => { setEmail("archita@navadia.com"); setPassword("archita"); }}>
-                  <span className="font-bold">Dr. Archita</span>
-                  <span className="opacity-60 font-mono">Dentist</span>
-                </Button>
-                <Button variant="outline" size="sm" className="text-[10px] h-auto py-2 flex-col gap-1 border-secondary/20 hover:bg-secondary/5" onClick={() => { setEmail("sejal@navadia.com"); setPassword("sejal"); }}>
-                  <span className="font-bold">Dr. Sejal</span>
-                  <span className="opacity-60 font-mono">Dentist</span>
-                </Button>
-              </div>
-              <p className="text-[9px] text-center text-muted-foreground italic mt-2">Click to auto-fill. Password is the same as the name.</p>
+              <Link to="/signup" className="text-primary hover:underline font-bold transition-colors">Sign up</Link>
             </div>
           </CardContent>
         </Card>
@@ -98,3 +132,7 @@ export default function Login() {
     </div>
   );
 }
+
+
+
+

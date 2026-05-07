@@ -52,8 +52,8 @@ function getStoredUsers(): (User & { password: string })[] {
     const parsed = JSON.parse(stored);
     // Force refresh if the first user email doesn't match current DEFAULT (simple check for dev)
     if (parsed[0]?.email !== "jatin@navadia.com") {
-       localStorage.setItem("navadia_users", JSON.stringify(DEFAULT_USERS));
-       return DEFAULT_USERS;
+      localStorage.setItem("navadia_users", JSON.stringify(DEFAULT_USERS));
+      return DEFAULT_USERS;
     }
     return parsed;
   }
