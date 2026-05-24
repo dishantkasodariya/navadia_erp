@@ -17,9 +17,18 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['ADMIN', 'DENTIST', 'RECEPTIONIST', 'STAFF'],
-    default: 'STAFF',
+    enum: ['Admin', 'Dentist', 'Staff'],
+    default: 'Staff',
     required: true
+  },
+  phone: {
+    type: String
+  },
+  specialization: {
+    type: String
+  },
+  licenseNo: {
+    type: String
   },
   branch: {
     type: mongoose.Schema.Types.ObjectId,
@@ -36,11 +45,10 @@ const UserSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+UserSchema.pre('save', async function() {
+  if (!this.isModified('password')) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
 // Compare password

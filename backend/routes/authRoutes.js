@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { verifyJWT } = require('../middleware/authMiddleware');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'smileflow_secret', {
@@ -9,24 +10,11 @@ const generateToken = (id) => {
   });
 };
 
-// Constant lists based on requirements
-const ALLOWED_STAFF = [
-  "Naynaben", "Daxaben", "Gheshiben", "Sapna", "Sangitaben", 
-  "Archanaben", "Urmila", "Unnati", "Shruti", "Chetna", 
-  "Nikita", "Samir", "Shiwani", "Rekha", 
-  "Dr. Jatin", "Dr. Dimpal"
-];
+const ADMIN_NAMES = ["Dr. Jatin", "Dr. Dimpal", "Super Admin"];
 
-const ALLOWED_DENTISTS = [
-  "Dr. Jatin", "Dr. Dimpal", "Dr. Eva", "Dr. Archita", 
-  "Dr. Sejal", "Dr. Shruti", "Dr. Pooja", "Dr. Mosam"
-];
-
-const ADMIN_NAMES = ["Dr. Jatin", "Dr. Dimpal"];
-
-// @desc    Register a new user
+// @desc    Register a new Admin user
 router.post('/signup', async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password } = req.body;
 
   try {
     const userExists = await User.findOne({ email });
@@ -35,35 +23,17 @@ router.post('/signup', async (req, res) => {
     }
 
     const trimmedName = name.trim();
-    let finalRole = role ? role.toUpperCase() : 'STAFF';
-
-    // Validation Logic
-    const isStaffName = ALLOWED_STAFF.some(n => n.toLowerCase() === trimmedName.toLowerCase());
-    const isDentistName = ALLOWED_DENTISTS.some(n => n.toLowerCase() === trimmedName.toLowerCase());
     const isAdminName = ADMIN_NAMES.some(n => n.toLowerCase() === trimmedName.toLowerCase());
 
-    // Prevent anyone else from becoming Admin
-    if (finalRole === 'ADMIN' && !isAdminName) {
-      return res.status(403).json({ message: 'Only authorized administrators can sign up as Admin.' });
-    }
-
-    // Assign ADMIN if it's Jatin or Dimpal
-    if (isAdminName) {
-      finalRole = 'ADMIN';
-    } else {
-      // General restrictions
-      if (finalRole === 'STAFF' || finalRole === 'RECEPTIONIST') {
-        if (!isStaffName) return res.status(403).json({ message: 'Name not authorized for Staff signup.' });
-      } else if (finalRole === 'DENTIST') {
-        if (!isDentistName) return res.status(403).json({ message: 'Name not authorized for Dentist signup.' });
-      }
+    if (!isAdminName) {
+      return res.status(403).json({ message: 'Only authorized administrators can sign up.' });
     }
 
     const user = await User.create({
       name: trimmedName,
       email,
       password,
-      role: finalRole,
+      role: 'Admin',
     });
 
     if (user) {
@@ -82,31 +52,14 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-// @desc    Auth user & get token
+// @desc    Auth user & get token (unified login)
 router.post('/login', async (req, res) => {
-  const { email, password, portalRole } = req.body;
+  const { email, password } = req.body;
 
   try {
     const user = await User.findOne({ email });
 
     if (user && (await user.comparePassword(password))) {
-      const userRole = user.role.toUpperCase();
-      const portalType = portalRole ? portalRole.toUpperCase() : 'STAFF';
-
-      // Restriction: Only Staff members are allowed to log in? 
-      // User said: "Only Staff members are allowed to log in." 
-      // But also: "Dentists should not be able to log in through the staff login system."
-      // And: "For the Dentist section, only the following names are allowed..."
-      
-      // I'll interpret "Only staff allowed to login" as portal-specific enforcement
-      if (portalType === 'STAFF' && userRole === 'DENTIST') {
-        return res.status(403).json({ message: 'Dentists cannot log in via the Staff portal.' });
-      }
-
-      if (portalType === 'DENTIST' && userRole !== 'DENTIST' && userRole !== 'ADMIN') {
-         return res.status(403).json({ message: 'Only Dentists can log in via this portal.' });
-      }
-
       res.json({
         _id: user._id,
         name: user.name,
@@ -122,5 +75,39 @@ router.post('/login', async (req, res) => {
   }
 });
 
-module.exports = router;
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+router.put('/profile', verifyJWT, async (req, res) => {
+  const { name, phone, password, specialization, licenseNo } = req.body;
+  try {
+    const user = await User.findById(req.user._id);
+    if (user) {
+      user.name = name || user.name;
+      if (phone !== undefined) user.phone = phone;
+      if (specialization !== undefined) user.specialization = specialization;
+      if (licenseNo !== undefined) user.licenseNo = licenseNo;
 
+      if (password) {
+        user.password = password;
+      }
+
+      const updatedUser = await user.save();
+      res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        phone: updatedUser.phone,
+        specialization: updatedUser.specialization,
+        licenseNo: updatedUser.licenseNo,
+        token: generateToken(updatedUser._id)
+      });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+module.exports = router;

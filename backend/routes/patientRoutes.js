@@ -14,7 +14,7 @@ router.get('/', verifyJWT, async (req, res) => {
 });
 
 // Create a patient
-router.post('/', verifyJWT, checkRole('ADMIN', 'RECEPTIONIST'), async (req, res) => {
+router.post('/', verifyJWT, checkRole('Admin', 'Staff'), async (req, res) => {
   const { name, phone, email, dob, gender, bloodGroup, status } = req.body;
   try {
     const mrnNum = await Patient.countDocuments() + 1;
@@ -31,7 +31,7 @@ router.post('/', verifyJWT, checkRole('ADMIN', 'RECEPTIONIST'), async (req, res)
 });
 
 // Update patient
-router.put('/:id', verifyJWT, checkRole('ADMIN', 'RECEPTIONIST'), async (req, res) => {
+router.put('/:id', verifyJWT, checkRole('Admin', 'Staff'), async (req, res) => {
   try {
     const patient = await Patient.findById(req.params.id);
     if (patient) {
@@ -47,7 +47,7 @@ router.put('/:id', verifyJWT, checkRole('ADMIN', 'RECEPTIONIST'), async (req, re
 });
 
 // Delete patient
-router.delete('/:id', verifyJWT, checkRole('ADMIN'), async (req, res) => {
+router.delete('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
   try {
     const patient = await Patient.findById(req.params.id);
     if (patient) {

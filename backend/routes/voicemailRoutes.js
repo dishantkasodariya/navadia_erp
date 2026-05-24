@@ -1,29 +1,34 @@
 const express = require('express');
 const router = express.Router();
 const Voicemail = require('../models/Voicemail');
-const { verifyJWT } = require('../middleware/authMiddleware');
+const { verifyJWT, checkRole } = require('../middleware/authMiddleware');
 
-// Get all voicemails
+// Get all voicemails (filtered by user if not Admin)
 router.get('/', verifyJWT, async (req, res) => {
   try {
-    const voicemails = await Voicemail.find().sort({ createdAt: -1 });
+    let query = {};
+    if (req.user.role.toLowerCase() !== 'admin') {
+      query = { assignedTo: req.user._id.toString() };
+    }
+    const voicemails = await Voicemail.find(query).sort({ createdAt: -1 });
     res.json(voicemails);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Update status
-router.patch('/:id/status', verifyJWT, async (req, res) => {
+// Create voicemail (Admin only)
+router.post('/', verifyJWT, checkRole('Admin'), async (req, res) => {
+  const { audioFile, assignedTo, message, createdBy } = req.body;
   try {
-    const voicemail = await Voicemail.findById(req.params.id);
-    if (voicemail) {
-      voicemail.status = req.body.status;
-      await voicemail.save();
-      res.json(voicemail);
-    } else {
-      res.status(404).json({ message: 'Voicemail not found' });
-    }
+    const voicemail = new Voicemail({
+      audioFile,
+      assignedTo,
+      message,
+      createdBy: createdBy || req.user.name
+    });
+    const created = await voicemail.save();
+    res.status(201).json(created);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

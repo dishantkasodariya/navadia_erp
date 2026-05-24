@@ -9,20 +9,22 @@ const verifyJWT = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'smileflow_secret');
       req.user = await User.findById(decoded.id).select('-password');
+      if (!req.user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
       next();
     } catch (error) {
-      res.status(401).json({ message: 'Not authorized, token failed' });
+      return res.status(401).json({ message: 'Not authorized, token failed' });
     }
-  }
-
-  if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
+  } else {
+    return res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
 
-const checkRole = (roles) => {
+const checkRole = (...roles) => {
+  const allowedRoles = roles.flat().map(r => r.toLowerCase());
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user || !allowedRoles.includes(req.user.role.toLowerCase())) {
       return res.status(403).json({ 
         message: `Role ${req.user ? req.user.role : 'Unknown'} is not authorized to access this route` 
       });

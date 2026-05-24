@@ -3,8 +3,8 @@ const router = express.Router();
 const User = require('../models/User');
 const { verifyJWT, checkRole } = require('../middleware/authMiddleware');
 
-// Get all staff (Admin only)
-router.get('/', verifyJWT, checkRole('ADMIN'), async (req, res) => {
+// Get all staff (Admins, Dentists, and Staff for chat directory)
+router.get('/', verifyJWT, checkRole('Admin', 'Dentist', 'Staff'), async (req, res) => {
   try {
     const staff = await User.find().select('-password').sort({ name: 1 });
     res.json(staff);
@@ -13,14 +13,58 @@ router.get('/', verifyJWT, checkRole('ADMIN'), async (req, res) => {
   }
 });
 
-// Update staff member
-router.put('/:id', verifyJWT, checkRole('ADMIN'), async (req, res) => {
+// Create a new staff or dentist member (Admin only)
+router.post('/', verifyJWT, checkRole('Admin'), async (req, res) => {
+  const { name, email, password, role, phone, specialization, licenseNo } = req.body;
+
+  try {
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Capitalize role to match Mongoose enum ('Admin', 'Dentist', 'Staff')
+    let finalRole = 'Staff';
+    if (role) {
+      const lower = role.toLowerCase();
+      if (lower === 'admin') finalRole = 'Admin';
+      else if (lower === 'dentist') finalRole = 'Dentist';
+    }
+
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: finalRole,
+      phone,
+      specialization: finalRole === 'Dentist' ? specialization : undefined,
+      licenseNo: finalRole === 'Dentist' ? licenseNo : undefined
+    });
+
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Update staff member (Admin only)
+router.put('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (user) {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
-      user.role = req.body.role || user.role;
+      if (req.body.role) {
+        const lower = req.body.role.toLowerCase();
+        if (lower === 'admin') user.role = 'Admin';
+        else if (lower === 'dentist') user.role = 'Dentist';
+        else user.role = 'Staff';
+      }
       user.phone = req.body.phone || user.phone;
       user.specialization = req.body.specialization || user.specialization;
       user.licenseNo = req.body.licenseNo || user.licenseNo;
@@ -40,8 +84,8 @@ router.put('/:id', verifyJWT, checkRole('ADMIN'), async (req, res) => {
   }
 });
 
-// Delete staff member
-router.delete('/:id', verifyJWT, checkRole('ADMIN'), async (req, res) => {
+// Delete staff member (Admin only)
+router.delete('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (user) {

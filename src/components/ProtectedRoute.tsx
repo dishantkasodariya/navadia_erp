@@ -7,14 +7,20 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div className="h-screen w-screen flex items-center justify-center font-sans">Loading...</div>;
+  }
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    const rolePrefix = user.role === "receptionist" ? "reception" : user.role;
+  const userRoleLower = user.role.toLowerCase();
+
+  if (allowedRoles && !allowedRoles.some(r => r.toLowerCase() === userRoleLower)) {
+    const rolePrefix = userRoleLower === "receptionist" ? "reception" : userRoleLower;
     return <Navigate to={`/${rolePrefix}/dashboard`} replace />;
   }
 

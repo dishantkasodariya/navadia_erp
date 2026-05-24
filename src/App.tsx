@@ -27,15 +27,21 @@ import Tasks from "@/pages/Tasks";
 import LeaveRequests from "@/pages/LeaveRequests";
 import Voicemail from "@/pages/Voicemail";
 import Messages from "@/pages/Messages";
+import Clinical from "@/pages/Clinical";
+import Settings from "@/pages/Settings";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
 function RoleRedirect() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) return null;
+  
   if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
-  const prefix = user.role === "receptionist" ? "reception" : user.role;
+  const userRoleLower = user.role.toLowerCase();
+  const prefix = userRoleLower === "receptionist" ? "reception" : userRoleLower;
   return <Navigate to={`/${prefix}/dashboard`} replace />;
 }
 
@@ -49,14 +55,14 @@ function ProtectedLayout({ allowedRoles }: { allowedRoles: UserRole[] }) {
 
 const sharedRoutes = (
   <>
-    <Route path="patients" element={<Patients />} />
     <Route path="appointments" element={<Appointments />} />
+    <Route path="patients" element={<Patients />} />
     <Route path="staff" element={<StaffManagement />} />
     <Route path="attendance" element={<Attendance />} />
     <Route path="tasks" element={<Tasks />} />
     <Route path="leave-requests" element={<LeaveRequests />} />
     <Route path="voicemail" element={<Voicemail />} />
-    <Route path="clinical" element={<PlaceholderPage title="Clinical Records" description="EMR, tooth charts, and SOAP notes" />} />
+    <Route path="clinical" element={<Clinical />} />
     <Route path="treatment-plans" element={<PlaceholderPage title="Treatment Plans" description="Phase-based treatment planning with cost estimates" />} />
     <Route path="imaging" element={<PlaceholderPage title="Imaging" description="X-rays, intraoral photos, and document vault" />} />
     <Route path="billing" element={<PlaceholderPage title="Billing & Insurance" description="Invoices, payments, and insurance claims" />} />
@@ -65,7 +71,7 @@ const sharedRoutes = (
     <Route path="notifications" element={<PlaceholderPage title="Notifications" description="SMS, email, and WhatsApp reminders" />} />
     <Route path="messages" element={<Messages />} />
     <Route path="crm" element={<PlaceholderPage title="CRM" description="Patient engagement, recall campaigns, and feedback" />} />
-    <Route path="settings" element={<PlaceholderPage title="Settings" description="Clinic configuration, branches, and user roles" />} />
+    <Route path="settings" element={<Settings />} />
   </>
 );
 
@@ -82,22 +88,27 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
 
-              <Route path="/admin" element={<ProtectedLayout allowedRoles={["admin"]} />}>
+              <Route path="/superadmin" element={<ProtectedLayout allowedRoles={["Admin"]} />}>
                 <Route path="dashboard" element={<AdminDashboard />} />
                 {sharedRoutes}
               </Route>
 
-              <Route path="/dentist" element={<ProtectedLayout allowedRoles={["dentist"]} />}>
+              <Route path="/admin" element={<ProtectedLayout allowedRoles={["Admin"]} />}>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                {sharedRoutes}
+              </Route>
+
+              <Route path="/dentist" element={<ProtectedLayout allowedRoles={["Dentist"]} />}>
                 <Route path="dashboard" element={<DentistDashboard />} />
                 {sharedRoutes}
               </Route>
 
-              <Route path="/reception" element={<ProtectedLayout allowedRoles={["receptionist"]} />}>
+              <Route path="/reception" element={<ProtectedLayout allowedRoles={["Staff"]} />}>
                 <Route path="dashboard" element={<ReceptionDashboard />} />
                 {sharedRoutes}
               </Route>
 
-              <Route path="/staff" element={<ProtectedLayout allowedRoles={["staff"]} />}>
+              <Route path="/staff" element={<ProtectedLayout allowedRoles={["Staff"]} />}>
                 <Route path="dashboard" element={<ReceptionDashboard />} />
                 {sharedRoutes}
               </Route>

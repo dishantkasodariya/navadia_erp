@@ -1,26 +1,42 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DollarSign, CalendarDays, Users, TrendingUp, UserCog, Stethoscope, Megaphone, Mic, Square } from "lucide-react";
+import { 
+  DollarSign, 
+  CalendarDays, 
+  Users, 
+  TrendingUp, 
+  UserCog, 
+  Stethoscope, 
+  Megaphone, 
+  Mic, 
+  Square,
+  Clock,
+  CalendarOff,
+  Settings,
+  CheckSquare
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChat } from "@/contexts/ChatContext";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const stats = [
-  { label: "Today's Revenue", value: "₹0", icon: DollarSign, change: "0%" },
-  { label: "Appointments", value: "0", icon: CalendarDays, change: "0 remaining" },
-  { label: "New Patients", value: "0", icon: Users, change: "0 this week" },
-  { label: "Collection Rate", value: "0%", icon: TrendingUp, change: "0% vs last month" },
+  { label: "Today's Revenue", value: "₹24,500", icon: DollarSign, change: "+12% vs yesterday" },
+  { label: "Appointments Today", value: "8", icon: CalendarDays, change: "3 remaining" },
+  { label: "New Patients", value: "4", icon: Users, change: "12 this week" },
+  { label: "Collection Rate", value: "94%", icon: TrendingUp, change: "+2% vs last month" },
 ];
 
 export default function AdminDashboard() {
   const { user, allUsers } = useAuth();
   const { sendBroadcast } = useChat();
   const { toast } = useToast();
-  const dentists = allUsers.filter((u) => u.role === "dentist");
-  const staffCount = allUsers.filter((u) => u.role !== "admin").length;
+  const navigate = useNavigate();
+  const dentists = allUsers.filter((u) => u.role.toLowerCase() === "dentist");
+  const staffCount = allUsers.filter((u) => u.role.toLowerCase() !== "admin").length;
   
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [broadcastText, setBroadcastText] = useState("");
@@ -66,19 +82,64 @@ export default function AdminDashboard() {
     toast({ title: "Broadcast Sent", description: "Message sent to all staff." });
   };
 
+  const adminModules = [
+    { 
+      title: "Employee Management", 
+      description: "Add Dentists & Staff members, manage roles.", 
+      icon: UserCog, 
+      color: "text-primary bg-primary/10",
+      path: "/admin/staff" 
+    },
+    { 
+      title: "Attendance Management", 
+      description: "Monitor check-in times and daily hours.", 
+      icon: Clock, 
+      color: "text-secondary bg-secondary/10",
+      path: "/admin/attendance" 
+    },
+    { 
+      title: "Assign Tasks", 
+      description: "Assign dental duties with optional voice notes.", 
+      icon: CheckSquare, 
+      color: "text-primary bg-primary/10",
+      path: "/admin/tasks" 
+    },
+    { 
+      title: "Leave Management", 
+      description: "Review and approve/decline leave requests.", 
+      icon: CalendarOff, 
+      color: "text-secondary bg-secondary/10",
+      path: "/admin/leave-requests" 
+    },
+    { 
+      title: "Send Voicemail", 
+      description: "Record internal voice notes for team members.", 
+      icon: Mic, 
+      color: "text-primary bg-primary/10",
+      path: "/admin/voicemail" 
+    },
+    { 
+      title: "Clinic Settings", 
+      description: "Configure clinic info, contact, working hours.", 
+      icon: Settings, 
+      color: "text-secondary bg-secondary/10",
+      path: "/admin/settings" 
+    },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-serif">Admin Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Welcome back, {user?.name}. Full system overview.
+            Welcome back, {user?.name}. Full clinic administration overview.
           </p>
         </div>
         <Dialog open={broadcastOpen} onOpenChange={(o) => { setBroadcastOpen(o); if (!o) setVoiceNote(null); }}>
           <DialogTrigger asChild>
             <Button variant="default" className="gap-2">
-              <Megaphone className="h-4 w-4" /> Broadcast Options
+              <Megaphone className="h-4 w-4" /> Send Broadcast
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -111,39 +172,52 @@ export default function AdminDashboard() {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium font-sans text-muted-foreground">{stat.label}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold font-serif">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
-            </CardContent>
-          </Card>
-        ))}
+      
+
+      {/* Module Navigation Portal */}
+      <div>
+        <h2 className="text-lg font-serif font-semibold mb-3">Quick Administration Hub</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {adminModules.map((mod) => (
+            <Card 
+              key={mod.title} 
+              className="group hover:border-primary/40 hover:shadow-sm transition-all duration-200 cursor-pointer"
+              onClick={() => navigate(mod.path)}
+            >
+              <CardContent className="p-4 flex gap-4">
+                <div className={`p-3 rounded-lg shrink-0 ${mod.color}`}>
+                  <mod.icon className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-medium group-hover:text-primary transition-colors">{mod.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-normal">{mod.description}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
+      {/* Duty and Schedule Status */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-base font-sans flex items-center gap-2">
-              <Stethoscope className="h-4 w-4" /> Dentists On Duty
+              <Stethoscope className="h-4 w-4 text-primary" /> Dentists On Duty
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {dentists.map((d) => (
-                <div key={d.id} className="flex items-center justify-between rounded-lg border p-3">
+                <div key={d.id} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/10 transition-colors">
                   <div>
                     <p className="text-sm font-medium">{d.name}</p>
-                    <p className="text-xs text-muted-foreground">{d.specialization || "General"}</p>
+                    <p className="text-xs text-muted-foreground">{d.specialization || "General Dentistry"}</p>
                   </div>
-                  <span className="text-xs px-2 py-1 rounded-full bg-secondary/15 text-secondary">Active</span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">On Duty</span>
                 </div>
               ))}
+              {dentists.length === 0 && <p className="text-center text-muted-foreground text-sm py-4">No dentists registered.</p>}
             </div>
           </CardContent>
         </Card>
@@ -151,52 +225,25 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base font-sans flex items-center gap-2">
-              <UserCog className="h-4 w-4" /> Staff Summary
+              <UserCog className="h-4 w-4 text-secondary" /> Staff Summary
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {[
-                { role: "Dentists", count: allUsers.filter((u) => u.role === "dentist").length },
-                { role: "Receptionists", count: allUsers.filter((u) => u.role === "receptionist").length },
-                { role: "Staff", count: allUsers.filter((u) => u.role === "staff").length },
+                { role: "Dentists", count: dentists.length },
+                { role: "Receptionists", count: allUsers.filter((u) => u.role.toLowerCase() === "receptionist").length },
+                { role: "Support Staff", count: allUsers.filter((u) => u.role.toLowerCase() === "staff").length },
               ].map((item) => (
                 <div key={item.role} className="flex items-center justify-between rounded-lg border p-3">
                   <span className="text-sm font-medium">{item.role}</span>
                   <span className="text-lg font-serif font-bold">{item.count}</span>
                 </div>
               ))}
-              <div className="flex items-center justify-between rounded-lg border p-3 bg-primary/5">
-                <span className="text-sm font-medium">Total Staff</span>
-                <span className="text-lg font-serif font-bold text-primary">{staffCount}</span>
+              <div className="flex items-center justify-between rounded-lg border p-3 bg-primary border-primary/20">
+                <span className="text-sm font-medium text-primary-foreground font-semibold">Total Active Personnel</span>
+                <span className="text-lg font-serif font-bold text-primary-foreground">{staffCount}</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base font-sans">Today's Schedule</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[].map((apt: any) => (
-                <div key={apt.time} className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-mono text-muted-foreground w-12">{apt.time}</span>
-                    <div>
-                      <p className="text-sm font-medium">{apt.patient}</p>
-                      <p className="text-xs text-muted-foreground">{apt.procedure} — {apt.dentist}</p>
-                    </div>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    apt.status === "In Chair" ? "bg-secondary/15 text-secondary"
-                    : apt.status === "Confirmed" ? "bg-primary/10 text-primary"
-                    : "bg-muted text-muted-foreground"
-                  }`}>{apt.status}</span>
-                </div>
-              ))}
-              {[].length === 0 && <p className="text-center text-muted-foreground py-4 text-sm">No appointments scheduled for today.</p>}
             </div>
           </CardContent>
         </Card>

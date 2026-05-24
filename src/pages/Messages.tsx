@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Mic, Square, Edit2, Check, X, Megaphone, Trash2 } from "lucide-react";
+import { Send, Mic, Square, Edit2, Check, X, Megaphone, Trash2, MessageSquare } from "lucide-react";
 
 export default function Messages() {
   const { user, allUsers } = useAuth();

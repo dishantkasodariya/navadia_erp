@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,6 @@ interface VoicemailMessage {
   subject: string;
   isRead: boolean;
   createdAt: string;
-  isTaskRelated: boolean;
 }
 
 const INITIAL_MESSAGES: VoicemailMessage[] = [];
@@ -43,10 +42,42 @@ export default function Voicemail() {
 
   const [form, setForm] = useState({ toId: "", subject: "" });
 
-  const staffOptions = allUsers.filter((u) => u.id !== user?.id);
+  const staffOptions = allUsers.filter((u) => u.id !== user?.id && u.role.toLowerCase() !== "admin");
+
+  // Sync with Live Express/MongoDB Backend in real-time
+  const fetchVoicemails = async () => {
+    const token = localStorage.getItem("navadia_token");
+    try {
+      const res = await fetch("http://localhost:5000/api/voicemails", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = data.map((v: any) => ({
+          id: v._id,
+          fromId: "admin-1",
+          fromName: v.createdBy || "Admin",
+          toId: v.assignedTo,
+          toName: allUsers.find(u => u.id === v.assignedTo)?.name || v.assignedTo,
+          audioUrl: v.audioFile || "",
+          duration: 0,
+          subject: v.message || "Voice Note Attachment",
+          isRead: false,
+          createdAt: v.createdAt || new Date().toISOString()
+        }));
+        setMessages(mapped);
+      }
+    } catch (e) {
+      console.warn("Backend offline, fallback loading local storage messages:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchVoicemails();
+  }, [allUsers]);
 
   const myMessages = messages.filter((m) => {
-    const isRelevant = m.toId === user?.id || m.fromId === user?.id;
+    const isRelevant = user?.role.toLowerCase() === "admin" ? true : m.toId === user?.id;
     const matchSearch = m.subject.toLowerCase().includes(search.toLowerCase()) || m.fromName.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === "all" || (filter === "unread" && !m.isRead) || (filter === "sent" && m.fromId === user?.id) || (filter === "received" && m.toId === user?.id);
     return isRelevant && matchSearch && matchFilter;
@@ -83,9 +114,40 @@ export default function Voicemail() {
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const to = allUsers.find((u) => u.id === form.toId);
     if (!to || !user || (!recordedAudio && !form.subject)) return;
+
+    const token = localStorage.getItem("navadia_token");
+    if (token) {
+      try {
+        const res = await fetch("http://localhost:5000/api/voicemails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            audioFile: recordedAudio || "sample-note-audio",
+            assignedTo: to.id,
+            message: form.subject,
+            createdBy: user.name
+          })
+        });
+        if (res.ok) {
+          fetchVoicemails();
+          setDialogOpen(false);
+          setForm({ toId: "", subject: "" });
+          setRecordedAudio(null);
+          setRecordingDuration(0);
+          toast({ title: "Voicemail Sent", description: `Message sent to ${to.name}` });
+          return;
+        }
+      } catch (e) {
+        console.warn("Backend offline, fallback voicemail creation:", e);
+      }
+    }
+
     const msg: VoicemailMessage = {
       id: crypto.randomUUID(),
       fromId: user.id,
@@ -97,7 +159,6 @@ export default function Voicemail() {
       subject: form.subject,
       isRead: false,
       createdAt: new Date().toISOString(),
-      isTaskRelated: true,
     };
     setMessages((prev) => [msg, ...prev]);
     setDialogOpen(false);
@@ -111,7 +172,24 @@ export default function Voicemail() {
     setMessages((prev) => prev.map((m) => m.id === id ? { ...m, isRead: true } : m));
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    const token = localStorage.getItem("navadia_token");
+    if (token && id.length > 20) {
+      try {
+        const res = await fetch(`http://localhost:5000/api/voicemails/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          fetchVoicemails();
+          toast({ title: "Message Deleted", variant: "destructive" });
+          return;
+        }
+      } catch (e) {
+        console.warn("Backend offline, fallback message deletion:", e);
+      }
+    }
+
     setMessages((prev) => prev.filter((m) => m.id !== id));
     toast({ title: "Message Deleted", variant: "destructive" });
   };
@@ -128,72 +206,74 @@ export default function Voicemail() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-serif">Voicemail</h1>
           <p className="text-muted-foreground text-sm mt-1">Send and receive voice messages for task assignments</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setRecordedAudio(null); setRecordingDuration(0); } }}>
-          <DialogTrigger asChild>
-            <Button><Mic className="h-4 w-4 mr-2" />New Voicemail</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Record Voicemail</DialogTitle></DialogHeader>
-            <div className="space-y-4 mt-2">
-              <div>
-                <Label>Send To</Label>
-                <Select value={form.toId} onValueChange={(v) => setForm({ ...form, toId: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select recipient" /></SelectTrigger>
-                  <SelectContent>
-                    {staffOptions.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name} ({s.role})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Subject</Label>
-                <Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Brief subject" />
-              </div>
-              <div>
-                <Label>Voice Message</Label>
-                <div className="mt-2 flex flex-col items-center gap-3 p-4 border rounded-lg bg-muted/30">
-                  {!isRecording && !recordedAudio && (
-                    <Button type="button" size="lg" className="rounded-full h-16 w-16" onClick={startRecording}>
-                      <Mic className="h-6 w-6" />
-                    </Button>
-                  )}
-                  {isRecording && (
-                    <div className="text-center">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
-                        <span className="text-sm font-mono">{formatTime(recordingDuration)}</span>
-                      </div>
-                      <Button type="button" variant="destructive" size="lg" className="rounded-full h-16 w-16" onClick={stopRecording}>
-                        <Square className="h-6 w-6" />
-                      </Button>
-                    </div>
-                  )}
-                  {recordedAudio && (
-                    <div className="w-full space-y-2">
-                      <audio controls src={recordedAudio} className="w-full h-10" />
-                      <div className="flex gap-2">
-                        <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => { setRecordedAudio(null); setRecordingDuration(0); }}>Re-record</Button>
-                      </div>
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    {isRecording ? "Recording... Click stop when done" : recordedAudio ? "Preview your message" : "Tap to start recording"}
-                  </p>
+        {user?.role.toLowerCase() === "admin" && (
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setRecordedAudio(null); setRecordingDuration(0); } }}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Mic className="h-4 w-4 mr-2" />New Voicemail</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Record Voicemail</DialogTitle></DialogHeader>
+              <div className="space-y-4 mt-2">
+                <div>
+                  <Label>Send To</Label>
+                  <Select value={form.toId} onValueChange={(v) => setForm({ ...form, toId: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select recipient" /></SelectTrigger>
+                    <SelectContent>
+                      {staffOptions.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.name} ({s.role})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                <div>
+                  <Label>Subject</Label>
+                  <Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Brief subject" />
+                </div>
+                <div>
+                  <Label>Voice Message</Label>
+                  <div className="mt-2 flex flex-col items-center gap-3 p-4 border rounded-lg bg-muted/30">
+                    {!isRecording && !recordedAudio && (
+                      <Button type="button" size="lg" className="rounded-full h-16 w-16" onClick={startRecording}>
+                        <Mic className="h-6 w-6" />
+                      </Button>
+                    )}
+                    {isRecording && (
+                      <div className="text-center">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
+                          <span className="text-sm font-mono">{formatTime(recordingDuration)}</span>
+                        </div>
+                        <Button type="button" variant="destructive" size="lg" className="rounded-full h-16 w-16" onClick={stopRecording}>
+                          <Square className="h-6 w-6" />
+                        </Button>
+                      </div>
+                    )}
+                    {recordedAudio && (
+                      <div className="w-full space-y-2">
+                        <audio controls src={recordedAudio} className="w-full h-10" />
+                        <div className="flex gap-2">
+                          <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => { setRecordedAudio(null); setRecordingDuration(0); }}>Re-record</Button>
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {isRecording ? "Recording... Click stop when done" : recordedAudio ? "Preview your message" : "Tap to start recording"}
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={handleSend} className="w-full" disabled={!form.toId || !form.subject}>
+                  <Send className="h-4 w-4 mr-2" />Send Voicemail
+                </Button>
               </div>
-              <Button onClick={handleSend} className="w-full" disabled={!form.toId || !form.subject}>
-                <Send className="h-4 w-4 mr-2" />Send Voicemail
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
@@ -245,7 +325,6 @@ export default function Voicemail() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium">{m.subject}</p>
                     {!m.isRead && m.toId === user?.id && <Badge className="text-[10px] h-4">New</Badge>}
-                    {m.isTaskRelated && <Badge variant="outline" className="text-[10px]">Task</Badge>}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
                     <span>{m.fromId === user?.id ? `To: ${m.toName}` : `From: ${m.fromName}`}</span>

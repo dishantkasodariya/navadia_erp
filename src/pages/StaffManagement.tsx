@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, UserCog, Stethoscope, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -16,37 +16,56 @@ const roleBadgeVariant: Record<string, "default" | "secondary" | "outline"> = {
   receptionist: "secondary",
   staff: "outline",
   admin: "default",
+  Dentist: "default",
+  Staff: "outline",
+  Admin: "default"
 };
 
 const roleIcons: Record<string, React.ReactNode> = {
   dentist: <Stethoscope className="h-3 w-3" />,
+  Dentist: <Stethoscope className="h-3 w-3" />,
   receptionist: <UserCog className="h-3 w-3" />,
   staff: <Users className="h-3 w-3" />,
+  Staff: <Users className="h-3 w-3" />,
 };
 
 export default function StaffManagement() {
-  const { allUsers, addStaffMember, removeStaffMember, user } = useAuth();
+  const { allUsers, addStaffMember, removeStaffMember } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState<UserRole>("staff");
+  const [role, setRole] = useState<UserRole>("Staff");
+  const [password, setPassword] = useState("");
   const [specialization, setSpecialization] = useState("");
   const [licenseNo, setLicenseNo] = useState("");
   const [filter, setFilter] = useState<string>("all");
 
-  const staffMembers = allUsers.filter((u) => u.role !== "admin");
-  const filtered = filter === "all" ? staffMembers : staffMembers.filter((u) => u.role === filter);
+  const staffMembers = allUsers.filter((u) => u.role.toLowerCase() !== "admin");
+  const filtered = filter === "all" ? staffMembers : staffMembers.filter((u) => u.role.toLowerCase() === filter.toLowerCase());
+
+  const handleOpenAddDialog = (selectedRole: UserRole) => {
+    setRole(selectedRole);
+    setOpen(true);
+  };
 
   const handleAdd = () => {
-    if (!name || !email) {
-      toast({ title: "Error", description: "Name and email are required", variant: "destructive" });
+    if (!name || !email || !password) {
+      toast({ title: "Error", description: "Name, email, and password are required", variant: "destructive" });
       return;
     }
-    addStaffMember({ name, email, role, phone, specialization: role === "dentist" ? specialization : undefined, licenseNo: role === "dentist" ? licenseNo : undefined });
+    addStaffMember({ 
+      name, 
+      email, 
+      role, 
+      phone, 
+      password, 
+      specialization: role.toLowerCase() === "dentist" ? specialization : undefined, 
+      licenseNo: role.toLowerCase() === "dentist" ? licenseNo : undefined 
+    });
     toast({ title: "Staff added", description: `${name} has been added as ${role}` });
-    setName(""); setEmail(""); setPhone(""); setRole("staff"); setSpecialization(""); setLicenseNo("");
+    setName(""); setEmail(""); setPhone(""); setRole("Staff"); setPassword(""); setSpecialization(""); setLicenseNo("");
     setOpen(false);
   };
 
@@ -56,85 +75,86 @@ export default function StaffManagement() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-serif">Staff & HR</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage team members and roles</p>
+          <h1 className="text-2xl font-serif">Employee Management</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage team members, Dentists, and support Staff roles</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Staff</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Staff Member</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-2">
-              <div className="space-y-2">
-                <Label>Full Name</Label>
-                <Input placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" placeholder="john@navadia.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Phone</Label>
-                <Input placeholder="+1 555-0100" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dentist">Dentist</SelectItem>
-                    <SelectItem value="receptionist">Receptionist</SelectItem>
-                    <SelectItem value="staff">Staff</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {role === "dentist" && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Specialization</Label>
-                    <Input placeholder="e.g. Endodontics" value={specialization} onChange={(e) => setSpecialization(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>License No.</Label>
-                    <Input placeholder="DEN-2024-XXX" value={licenseNo} onChange={(e) => setLicenseNo(e.target.value)} />
-                  </div>
-                </>
-              )}
-              <Button onClick={handleAdd} className="w-full">Add Staff Member</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="default" className="gap-1.5" onClick={() => handleOpenAddDialog("Dentist")}>
+            <Stethoscope className="h-4 w-4" /> Add Dentist
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => handleOpenAddDialog("Staff")}>
+            <Plus className="h-4 w-4" /> Add Staff
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New {role}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input type="email" placeholder="john@navadia.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Password</Label>
+              <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Dentist">Dentist</SelectItem>
+                  <SelectItem value="Staff">Staff</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {role.toLowerCase() === "dentist" && (
+              <>
+                <div className="space-y-2">
+                  <Label>Specialization</Label>
+                  <Input placeholder="e.g. Endodontics" value={specialization} onChange={(e) => setSpecialization(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>License No.</Label>
+                  <Input placeholder="DEN-2026-XXX" value={licenseNo} onChange={(e) => setLicenseNo(e.target.value)} />
+                </div>
+              </>
+            )}
+            <Button onClick={handleAdd} className="w-full">Confirm Add {role}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-sans text-muted-foreground">Dentists</CardTitle>
+            <CardTitle className="text-sm font-sans text-muted-foreground">Dentists Registered</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-serif">{staffMembers.filter((u) => u.role === "dentist").length}</div>
+            <div className="text-2xl font-bold font-serif text-primary">{staffMembers.filter((u) => u.role.toLowerCase() === "dentist").length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-sans text-muted-foreground">Receptionists</CardTitle>
+            <CardTitle className="text-sm font-sans text-muted-foreground">Staff & Support Registered</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-serif">{staffMembers.filter((u) => u.role === "receptionist").length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-sans text-muted-foreground">Staff</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-serif">{staffMembers.filter((u) => u.role === "staff").length}</div>
+            <div className="text-2xl font-bold font-serif text-secondary">{staffMembers.filter((u) => u.role.toLowerCase() === "staff").length}</div>
           </CardContent>
         </Card>
       </div>
@@ -149,7 +169,6 @@ export default function StaffManagement() {
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="dentist">Dentists</SelectItem>
-                <SelectItem value="receptionist">Receptionists</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
               </SelectContent>
             </Select>
