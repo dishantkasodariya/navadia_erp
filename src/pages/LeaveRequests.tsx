@@ -241,10 +241,10 @@ export default function LeaveRequests() {
 
   return (
     <div className="space-y-6 font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row md:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-serif">Leave Management</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-xl sm:text-2xl font-serif">Leave Management</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
             {canApprove ? "Manage and review staff leave applications" : "Apply for leaves and track approval status"}
           </p>
         </div>
@@ -256,11 +256,11 @@ export default function LeaveRequests() {
             <DialogContent>
               <DialogHeader><DialogTitle>Apply for Leave</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <Label>Leave Type</Label>
+                    <Label className="text-xs sm:text-sm">Leave Type</Label>
                     <Select value={form.leaveType} onValueChange={(v: any) => setForm({ ...form, leaveType: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="casual">Casual Leave</SelectItem>
                         <SelectItem value="sick">Sick Leave</SelectItem>
@@ -271,7 +271,7 @@ export default function LeaveRequests() {
                     </Select>
                   </div>
                   <div>
-                    <Label className="block mb-1.5">Leave Date</Label>
+                    <Label className="block mb-1.5 text-xs sm:text-sm">Leave Date</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -315,37 +315,37 @@ export default function LeaveRequests() {
         )}
       </div>
 
-      <div className="grid gap-4 grid-cols-3">
+      <div className="grid gap-2 sm:gap-3 sm:grid-cols-3">
         <Card>
-          <CardContent className="pt-4 text-center">
-            <Clock className="h-5 w-5 mx-auto text-accent mb-1" />
-            <p className="text-2xl font-bold font-serif text-accent">{pendingCount}</p>
-            <p className="text-xs text-muted-foreground">Pending</p>
+          <CardContent className="pt-3 sm:pt-4 text-center">
+            <Clock className="h-4 sm:h-5 w-4 sm:w-5 mx-auto text-accent mb-1" />
+            <p className="text-lg sm:text-2xl font-bold font-serif text-accent">{pendingCount}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Pending</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4 text-center">
-            <CheckCircle className="h-5 w-5 mx-auto text-secondary mb-1" />
-            <p className="text-2xl font-bold font-serif text-secondary">{approvedCount}</p>
-            <p className="text-xs text-muted-foreground">Approved</p>
+          <CardContent className="pt-3 sm:pt-4 text-center">
+            <CheckCircle className="h-4 sm:h-5 w-4 sm:w-5 mx-auto text-secondary mb-1" />
+            <p className="text-lg sm:text-2xl font-bold font-serif text-secondary">{approvedCount}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Approved</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4 text-center">
-            <XCircle className="h-5 w-5 mx-auto text-destructive mb-1" />
-            <p className="text-2xl font-bold font-serif text-destructive">{rejectedCount}</p>
-            <p className="text-xs text-muted-foreground">Rejected</p>
+          <CardContent className="pt-3 sm:pt-4 text-center">
+            <XCircle className="h-4 sm:h-5 w-4 sm:w-5 mx-auto text-destructive mb-1" />
+            <p className="text-lg sm:text-2xl font-bold font-serif text-destructive">{rejectedCount}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Rejected</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input className="pl-9 text-sm" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[150px] text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
@@ -355,34 +355,34 @@ export default function LeaveRequests() {
         </Select>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {filtered.map((r) => (
           <Card key={r.id}>
-            <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-medium">{r.staffName}</p>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted capitalize">{r.role}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${statusColor(r.status)}`}>{r.status}</span>
+                    <p className="text-xs sm:text-sm font-medium">{r.staffName}</p>
+                    <span className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-muted capitalize">{r.role}</span>
+                    <span className={`text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full capitalize ${statusColor(r.status)}`}>{r.status}</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5 text-[10px] sm:text-xs text-muted-foreground">
                     <span className="capitalize">{r.leaveType} Leave</span>
-                    <span>
+                    <span className="break-words">
                       {r.startDate === r.endDate ? r.startDate : `${r.startDate} → ${r.endDate}`} ({getDays(r.startDate, r.endDate)} day{getDays(r.startDate, r.endDate) > 1 ? "s" : ""})
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{r.reason}</p>
-                  {r.approvedBy && <p className="text-[10px] text-muted-foreground mt-1">Reviewed by: {r.approvedBy}</p>}
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 line-clamp-2">{r.reason}</p>
+                  {r.approvedBy && <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-1">Reviewed by: {r.approvedBy}</p>}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   {canApprove && r.status === "pending" && (
                     <>
-                      <Button size="sm" variant="outline" className="text-secondary border-secondary/30 h-8" onClick={() => handleApprove(r.id)}>
-                        <CheckCircle className="h-3.5 w-3.5 mr-1" />Approve
+                      <Button size="sm" variant="outline" className="text-secondary border-secondary/30 h-7 sm:h-8 text-xs" onClick={() => handleApprove(r.id)}>
+                        <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />Approve
                       </Button>
-                      <Button size="sm" variant="outline" className="text-destructive border-destructive/30 h-8" onClick={() => handleReject(r.id)}>
-                        <XCircle className="h-3.5 w-3.5 mr-1" />Reject
+                      <Button size="sm" variant="outline" className="text-destructive border-destructive/30 h-7 sm:h-8 text-xs" onClick={() => handleReject(r.id)}>
+                        <XCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />Reject
                       </Button>
                     </>
                   )}
@@ -392,7 +392,7 @@ export default function LeaveRequests() {
           </Card>
         ))}
         {filtered.length === 0 && (
-          <Card><CardContent className="p-8 text-center text-muted-foreground">No leave requests found</CardContent></Card>
+          <Card><CardContent className="p-4 sm:p-8 text-center text-muted-foreground text-xs sm:text-sm">No leave requests found</CardContent></Card>
         )}
       </div>
     </div>

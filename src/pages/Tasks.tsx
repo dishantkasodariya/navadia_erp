@@ -360,49 +360,49 @@ export default function Tasks() {
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs sm:text-sm">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="text-left p-3 font-medium text-muted-foreground w-1/4">Task</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Assigned To</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Priority</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Due</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Actions</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground text-xs sm:text-sm">Task</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground hidden sm:table-cell text-xs sm:text-sm">Assigned To</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground text-xs sm:text-sm">Priority</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground hidden md:table-cell text-xs sm:text-sm">Status</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground hidden lg:table-cell text-xs sm:text-sm">Due</th>
+                  <th className="text-right p-2 sm:p-3 font-medium text-muted-foreground text-xs sm:text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((t) => (
                   <tr key={t.id} className="border-b last:border-0 hover:bg-muted/10">
-                    <td className="p-3">
-                      <p className="font-medium">{t.title}</p>
-                      {t.description && <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{t.description}</p>}
+                    <td className="p-2 sm:p-3">
+                      <p className="font-medium text-xs sm:text-sm">{t.title}</p>
+                      {t.description && <p className="text-[9px] sm:text-[10px] text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{t.description}</p>}
                     </td>
-                    <td className="p-3">
-                      <p className="font-medium">{t.assignedToName}</p>
-                      <p className="text-[10px] text-muted-foreground">by {t.assignedByName}</p>
+                    <td className="p-2 sm:p-3 hidden sm:table-cell">
+                      <p className="font-medium text-xs">{t.assignedToName}</p>
+                      <p className="text-[9px] text-muted-foreground">by {t.assignedByName}</p>
                     </td>
-                    <td className="p-3">
-                      <Badge variant="outline" className={`text-[10px] ${priorityColor(t.priority)}`}>
+                    <td className="p-2 sm:p-3">
+                      <Badge variant="outline" className={`text-[8px] sm:text-[10px] ${priorityColor(t.priority)}`}>
                         {t.priority}
                       </Badge>
                     </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-1.5 capitalize text-xs">
+                    <td className="p-2 sm:p-3 hidden md:table-cell">
+                      <div className="flex items-center gap-1 capitalize text-xs">
                         {statusIcon(t.status)} {t.status}
                       </div>
                     </td>
-                    <td className="p-3 text-xs text-muted-foreground">{t.dueDate}</td>
-                    <td className="p-3 text-right">
+                    <td className="p-2 sm:p-3 text-xs text-muted-foreground hidden lg:table-cell">{t.dueDate}</td>
+                    <td className="p-2 sm:p-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleStartEdit(t)}><Edit2 className="h-3.5 w-3.5" /></Button>
-                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0" onClick={() => handleStartEdit(t)}><Edit2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
                       </div>
                     </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No tasks matching filters</td></tr>
+                  <tr><td colSpan={6} className="p-4 sm:p-8 text-center text-muted-foreground text-xs sm:text-sm">No tasks matching filters</td></tr>
                 )}
               </tbody>
             </table>
@@ -414,43 +414,43 @@ export default function Tasks() {
 
   function renderTaskGrid() {
     return (
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((t) => (
           <Card key={t.id} className="hover:shadow-sm transition-shadow">
-            <CardContent className="p-4 flex flex-col h-full">
-              <div className="flex items-start justify-between gap-3 mb-3">
+            <CardContent className="p-3 sm:p-4 flex flex-col h-full">
+              <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2 sm:mb-3">
                 <button onClick={() => handleStatusChange(t.id, t.status === "completed" ? "pending" : "completed")} className="mt-1 shrink-0">
                   {statusIcon(t.status)}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium leading-none mb-1">{t.title}</p>
-                  <p className="text-xs text-muted-foreground">Due: {t.dueDate}</p>
+                  <p className="font-medium leading-none mb-1 text-xs sm:text-sm">{t.title}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Due: {t.dueDate}</p>
                 </div>
-                <Badge variant="outline" className={`text-[10px] shrink-0 ${priorityColor(t.priority)}`}>
+                <Badge variant="outline" className={`text-[8px] sm:text-[10px] shrink-0 ${priorityColor(t.priority)}`}>
                   {t.priority}
                 </Badge>
               </div>
 
-              {t.description && <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{t.description}</p>}
+              {t.description && <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 line-clamp-2">{t.description}</p>}
 
               {t.voiceNote && (
-                <div className="mb-4 bg-muted/40 p-2 rounded-lg">
-                  <audio src={t.voiceNote} className="h-6 w-full max-w-xs" controls />
+                <div className="mb-3 sm:mb-4 bg-muted/40 p-2 rounded-lg">
+                  <audio src={t.voiceNote} className="h-5 sm:h-6 w-full" controls />
                 </div>
               )}
 
-              <div className="mt-auto pt-3 border-t flex items-center justify-between text-xs text-muted-foreground">
-                <span>To: {t.assignedToName}</span>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleStartEdit(t)}><Edit2 className="h-3 w-3" /></Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3 w-3" /></Button>
+              <div className="mt-auto pt-2 sm:pt-3 border-t flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
+                <span className="truncate">To: {t.assignedToName}</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 p-0" onClick={() => handleStartEdit(t)}><Edit2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 p-0 text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
         {filtered.length === 0 && (
-          <Card className="col-span-full"><CardContent className="p-8 text-center text-muted-foreground">No tasks matching filters</CardContent></Card>
+          <Card className="col-span-full"><CardContent className="p-4 sm:p-8 text-center text-muted-foreground text-xs sm:text-sm">No tasks matching filters</CardContent></Card>
         )}
       </div>
     );
@@ -458,10 +458,10 @@ export default function Tasks() {
 
   return (
     <div className="space-y-6 font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row md:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-serif">Tasks</h1>
-          <p className="text-sm text-muted-foreground mt-1">Assign and coordinate duties</p>
+          <h1 className="text-xl sm:text-2xl font-serif">Tasks</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Assign and coordinate duties</p>
         </div>
         {canAssign && (
           <div className="flex items-center">
@@ -594,18 +594,18 @@ export default function Tasks() {
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card><CardContent className="pt-4 text-center">
-          <p className="text-2xl font-bold font-serif text-accent">{pendingCount}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Pending</p>
+      <div className="grid gap-2 sm:gap-3 sm:grid-cols-3">
+        <Card><CardContent className="pt-3 sm:pt-4 text-center">
+          <p className="text-lg sm:text-2xl font-bold font-serif text-accent">{pendingCount}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Pending</p>
         </CardContent></Card>
-        <Card><CardContent className="pt-4 text-center">
-          <p className="text-2xl font-bold font-serif text-primary">{inProgressCount}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">In Progress</p>
+        <Card><CardContent className="pt-3 sm:pt-4 text-center">
+          <p className="text-lg sm:text-2xl font-bold font-serif text-primary">{inProgressCount}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">In Progress</p>
         </CardContent></Card>
-        <Card><CardContent className="pt-4 text-center">
-          <p className="text-2xl font-bold font-serif text-secondary">{completedCount}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Completed</p>
+        <Card><CardContent className="pt-3 sm:pt-4 text-center">
+          <p className="text-lg sm:text-2xl font-bold font-serif text-secondary">{completedCount}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Completed</p>
         </CardContent></Card>
       </div>
 
@@ -617,15 +617,40 @@ export default function Tasks() {
           </TabsList>
         </div>
 
-        <div className="mt-4 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
+        <div className="mt-4 space-y-3 sm:space-y-4">
+          {/* Search and Filters Row */}
+          <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-4">
+            {/* Search - Left on tablet+ */}
+            <div className="relative flex-1 order-2 md:order-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input className="pl-9 text-sm" placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-            <div className="flex gap-2 flex-wrap items-center">
+
+            {/* Filters and Toggle - Right on tablet+ */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-wrap items-start sm:items-center order-1 md:order-2 md:justify-end">
+              {/* Grid/Table Toggle - Primary on mobile */}
+              <div className="flex md:hidden items-center gap-1 border rounded-lg p-0.5 bg-muted/20 w-full">
+                <Button
+                  variant={viewMode === "grid" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="h-7 w-7 flex-1 rounded-md text-xs"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5 mr-1" /> Grid
+                </Button>
+                <Button
+                  variant={viewMode === "table" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="h-7 w-7 flex-1 rounded-md text-xs"
+                  onClick={() => setViewMode("table")}
+                >
+                  <List className="h-3.5 w-3.5 mr-1" /> Table
+                </Button>
+              </div>
+
+              {/* Status & Priority Filters - Always visible */}
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[110px] md:w-auto text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
@@ -635,7 +660,7 @@ export default function Tasks() {
                 </SelectContent>
               </Select>
               <Select value={filterPriority} onValueChange={setFilterPriority}>
-                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Priority" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[110px] md:w-auto text-sm"><SelectValue placeholder="Priority" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Priority</SelectItem>
                   <SelectItem value="low">Low</SelectItem>
@@ -644,10 +669,12 @@ export default function Tasks() {
                   <SelectItem value="urgent">Urgent</SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Admin-only Filters */}
               {isAdmin && (
                 <>
                   <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v); setUserFilter("all"); }}>
-                    <SelectTrigger className="w-[120px]"><SelectValue placeholder="Role" /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-[110px] md:w-auto text-sm"><SelectValue placeholder="Role" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Roles</SelectItem>
                       <SelectItem value="Dentist">Dentist</SelectItem>
@@ -655,7 +682,7 @@ export default function Tasks() {
                     </SelectContent>
                   </Select>
                   <Select value={userFilter} onValueChange={setUserFilter}>
-                    <SelectTrigger className="w-[140px]"><SelectValue placeholder="Assignee" /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-[130px] md:w-auto text-sm"><SelectValue placeholder="Assignee" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Users</SelectItem>
                       {filteredUsersForFilter.map((s) => (
@@ -666,22 +693,23 @@ export default function Tasks() {
                 </>
               )}
               
-              <div className="flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
+              {/* Grid/Table Toggle - Hidden on mobile, shown on tablet+ */}
+              <div className="hidden md:flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
                 <Button
                   variant={viewMode === "grid" ? "secondary" : "ghost"}
                   size="icon"
-                  className="h-8 w-8 rounded-md"
+                  className="h-7 sm:h-8 w-7 sm:w-8 rounded-md"
                   onClick={() => setViewMode("grid")}
                 >
-                  <LayoutGrid className="h-4 w-4" />
+                  <LayoutGrid className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                 </Button>
                 <Button
                   variant={viewMode === "table" ? "secondary" : "ghost"}
                   size="icon"
-                  className="h-8 w-8 rounded-md"
+                  className="h-7 sm:h-8 w-7 sm:w-8 rounded-md"
                   onClick={() => setViewMode("table")}
                 >
-                  <List className="h-4 w-4" />
+                  <List className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                 </Button>
               </div>
             </div>

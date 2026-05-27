@@ -94,6 +94,32 @@ export default function Attendance() {
     }
   }, [user, records]);
 
+  // Sync with DentistDashboard - listen for check-in/check-out events from Dashboard
+  useEffect(() => {
+    const handleAttendanceSync = (e: Event) => {
+      if (e instanceof CustomEvent && e.detail?.type === 'check-in') {
+        // Dashboard checked in, refetch attendance to show updated records
+        setTimeout(() => fetchAttendance(), 500);
+      } else if (e instanceof CustomEvent && e.detail?.type === 'check-out') {
+        // Dashboard checked out, refetch attendance to show updated records
+        setTimeout(() => fetchAttendance(), 500);
+      }
+    };
+    window.addEventListener('attendance-synced', handleAttendanceSync);
+    
+    // Also listen for storage changes from other tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key?.includes('navadia_dentist_shift') && e.newValue) {
+        setTimeout(() => fetchAttendance(), 500);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('attendance-synced', handleAttendanceSync);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   const filtered = records.filter((r) => {
     const matchSearch = r.staffName.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "all" || r.status === filterStatus;
@@ -160,6 +186,13 @@ export default function Attendance() {
 
     setRecords((prev) => prev.map((r) => r.id === recordId ? { ...r, checkIn: nowTime, status: isLate ? "late" : "present" } : r));
     toast({ title: "Checked In", description: `Check-in recorded at ${nowTime}` });
+    
+    // Broadcast to DentistDashboard
+    if (user && user.id) {
+      window.dispatchEvent(new CustomEvent('attendance-synced', {
+        detail: { type: 'check-in', shift: { status: "active", checkInTimestamp: Date.now(), date: record.date } }
+      }));
+    }
   };
 
   const handleCheckOut = async (recordId: string) => {
@@ -220,14 +253,22 @@ export default function Attendance() {
 
     setRecords((prev) => prev.map((r) => r.id === recordId ? { ...r, checkOut: nowTime } : r));
     toast({ title: "Checked Out", description: `Check-out recorded at ${nowTime}` });
+    
+    // Broadcast to DentistDashboard
+    if (user && user.id) {
+      window.dispatchEvent(new CustomEvent('attendance-synced', {
+        detail: { type: 'check-out', shift: { status: "checked_out", checkOutTimestamp: Date.now(), date: record.date } }
+      }));
+    }
   };
 
   const handleAdd = async () => {
-    const staff = allUsers.find((u) => u.id === formData.staffId);
+    if (!formData.staffId) return;
+    const staff = allUsers.find(u => u.id === formData.staffId);
     if (!staff) return;
 
-    const formattedStatus = formData.status === "on-leave" ? "On Leave" : formData.status.charAt(0).toUpperCase() + formData.status.slice(1);
-
+    const formattedStatus = formData.status === "present" ? "Present" : formData.status === "absent" ? "Absent" : formData.status === "half-day" ? "Half Day" : "On Leave";
+    const nowTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
@@ -241,7 +282,7 @@ export default function Attendance() {
             userId: staff.id,
             userName: staff.name,
             date: selectedDate,
-            checkIn: formData.status === "present" ? new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : null,
+            checkIn: formData.status === "present" ? nowTime : null,
             status: formattedStatus
           })
         });
@@ -263,7 +304,7 @@ export default function Attendance() {
       staffName: staff.name,
       role: staff.role,
       date: selectedDate,
-      checkIn: formData.status === "present" ? new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : null,
+      checkIn: formData.status === "present" ? nowTime : null,
       checkOut: null,
       status: formData.status,
       notes: formData.notes,
@@ -347,10 +388,10 @@ export default function Attendance() {
 
   return (
     <div className="space-y-6 font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-serif">Attendance Management</h1>
-          <p className="text-muted-foreground text-sm mt-1">Track and manage daily check-ins and hours</p>
+          <h1 className="text-xl sm:text-2xl font-serif">Attendance Management</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Track and manage daily check-ins and hours</p>
         </div>
         {isAdmin && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -403,39 +444,39 @@ export default function Attendance() {
           </TabsList>
           
           <TabsContent value="overview">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
+            <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 mb-6">
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Active Personnel</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Active Personnel</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{staffOptions.length} Staff</div>
+                  <div className="text-xl sm:text-2xl font-bold">{staffOptions.length} Staff</div>
                   <p className="text-xs text-muted-foreground mt-1">Clock-in and payroll operational</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Monthly Hours Worked</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Total Monthly Hours Worked</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  <div className="text-xl sm:text-2xl font-bold">
                     {formatDuration(staffSummary.reduce((acc, s) => acc + s.monthlyHours, 0))}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Accumulated hours</p>
                 </CardContent>
               </Card>
-              <Card className="bg-primary/5 border-primary/20">
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Active Period</CardTitle></CardHeader>
+              <Card className="bg-primary/5 border-primary/20 sm:col-span-2 xl:col-span-1">
+                <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Active Period</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="text-lg font-semibold">{format(new Date(), "MMMM yyyy")}</div>
+                  <div className="text-lg sm:text-xl font-semibold">{format(new Date(), "MMMM yyyy")}</div>
                   <p className="text-xs text-muted-foreground mt-1">Payroll Cycle</p>
                 </CardContent>
               </Card>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-9" placeholder="Search staff..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                <Input className="pl-9 text-sm" placeholder="Search staff..." value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All Roles" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[140px] text-sm"><SelectValue placeholder="All Roles" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="dentist">Dentists</SelectItem>
@@ -444,10 +485,10 @@ export default function Attendance() {
               </Select>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-3 sm:gap-4">
               {staffSummary.map((staff) => (
                 <Card key={staff.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
                         {staff.name?.charAt(0) || "?"}
@@ -457,17 +498,17 @@ export default function Attendance() {
                         <p className="text-xs text-muted-foreground capitalize">{staff.role}</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:flex items-center gap-4 sm:gap-8 text-center sm:text-right">
+                    <div className="grid grid-cols-3 sm:flex items-center gap-2 sm:gap-6 text-center sm:text-right w-full">
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Today</p>
-                        <p className="text-sm font-semibold">{formatDuration(staff.todayHours)}</p>
+                        <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">Today</p>
+                        <p className="text-xs sm:text-sm font-semibold">{formatDuration(staff.todayHours)}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">This Month</p>
-                        <p className="text-sm font-semibold text-primary">{formatDuration(staff.monthlyHours)}</p>
+                        <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">This Month</p>
+                        <p className="text-xs sm:text-sm font-semibold text-primary">{formatDuration(staff.monthlyHours)}</p>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => setViewStaffId(staff.id)} className="col-span-2 sm:col-auto gap-1">
-                        <History className="h-3.5 w-3.5" /> History
+                      <Button variant="outline" size="sm" onClick={() => setViewStaffId(staff.id)} className="col-span-1 sm:col-auto gap-1 h-8 text-xs">
+                        <History className="h-3 w-3" /> History
                       </Button>
                     </div>
                   </CardContent>
@@ -507,21 +548,21 @@ export default function Attendance() {
                   </div>
                   
                   {/* Statistics & Actions */}
-                  <div className="grid grid-cols-2 sm:flex items-center gap-4 sm:gap-8 text-center sm:text-right">
+                  <div className="grid grid-cols-3 sm:flex items-center gap-2 sm:gap-6 text-center sm:text-right w-full">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Today</p>
-                      <p className="text-sm font-semibold text-foreground mt-1">{formatDuration(personalTodayHours)}</p>
+                      <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Today</p>
+                      <p className="text-xs sm:text-sm font-semibold text-foreground mt-1">{formatDuration(personalTodayHours)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">This Month</p>
-                      <p className="text-sm font-semibold text-primary mt-1">{formatDuration(personalMonthlyHours)}</p>
+                      <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">This Month</p>
+                      <p className="text-xs sm:text-sm font-semibold text-primary mt-1">{formatDuration(personalMonthlyHours)}</p>
                     </div>
                     
                     <Button 
                       onClick={() => setViewStaffId(user?.id || null)}
-                      className="col-span-2 sm:col-auto gap-1.5 h-9 rounded-lg border border-gray-200/80 bg-[#f5f5f4] text-[#1c1917] hover:bg-amber-500 hover:text-white hover:border-amber-500 shadow-sm transition-all duration-200"
+                      className="col-span-1 sm:col-auto gap-1.5 h-8 sm:h-9 rounded-lg border border-gray-200/80 bg-[#f5f5f4] text-[#1c1917] hover:bg-amber-500 hover:text-white hover:border-amber-500 shadow-sm transition-all duration-200 text-xs"
                     >
-                      <History className="h-3.5 w-3.5 transition-colors" /> History
+                      <History className="h-3 w-3 sm:h-3.5 sm:w-3.5 transition-colors" /> <span className="hidden sm:inline">History</span>
                     </Button>
                   </div>
                 </CardContent>
@@ -540,12 +581,12 @@ export default function Attendance() {
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto mt-4 px-1">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs sm:text-sm">
               <thead className="sticky top-0 bg-background border-b z-10">
                 <tr>
                   <th className="text-left py-2 font-medium">Date</th>
-                  <th className="text-left py-2 font-medium">Check In</th>
-                  <th className="text-left py-2 font-medium">Check Out</th>
+                  <th className="text-left py-2 font-medium hidden sm:table-cell">Check In</th>
+                  <th className="text-left py-2 font-medium hidden sm:table-cell">Check Out</th>
                   <th className="text-left py-2 font-medium">Duration</th>
                   <th className="text-left py-2 font-medium">Status</th>
                 </tr>
@@ -553,19 +594,19 @@ export default function Attendance() {
               <tbody className="divide-y">
                 {selectedStaffHistory.map((h) => (
                   <tr key={h.id} className="hover:bg-muted/30">
-                    <td className="py-3 font-medium">{h.date}</td>
-                    <td className="py-3 font-mono text-xs text-muted-foreground">{h.checkIn || "—"}</td>
-                    <td className="py-3 font-mono text-xs text-muted-foreground">{h.checkOut || "—"}</td>
-                    <td className="py-3 font-semibold">{formatDuration(calculateDuration(h.checkIn, h.checkOut))}</td>
-                    <td className="py-3">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusColor(h.status)}`}>
+                    <td className="py-2 sm:py-3 font-medium text-xs sm:text-sm">{h.date}</td>
+                    <td className="py-2 sm:py-3 font-mono text-[10px] sm:text-xs text-muted-foreground hidden sm:table-cell">{h.checkIn || "—"}</td>
+                    <td className="py-2 sm:py-3 font-mono text-[10px] sm:text-xs text-muted-foreground hidden sm:table-cell">{h.checkOut || "—"}</td>
+                    <td className="py-2 sm:py-3 font-semibold text-xs sm:text-sm">{formatDuration(calculateDuration(h.checkIn, h.checkOut))}</td>
+                    <td className="py-2 sm:py-3">
+                      <span className={`text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full ${statusColor(h.status)}`}>
                         {h.status}
                       </span>
                     </td>
                   </tr>
                 ))}
                 {selectedStaffHistory.length === 0 && (
-                  <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No records found for this user</td></tr>
+                  <tr><td colSpan={5} className="py-6 sm:py-8 text-center text-muted-foreground text-xs sm:text-sm">No records found for this user</td></tr>
                 )}
               </tbody>
             </table>
@@ -578,29 +619,29 @@ export default function Attendance() {
   function renderDailyLog() {
     return (
       <div className="space-y-6">
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-2 xl:grid-cols-4">
           <Card>
-            <CardContent className="pt-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-secondary/15 flex items-center justify-center"><UserCheck className="h-5 w-5 text-secondary" /></div>
-              <div><p className="text-2xl font-bold font-serif">{presentCount}</p><p className="text-xs text-muted-foreground">Present</p></div>
+            <CardContent className="pt-3 sm:pt-4 flex items-center gap-2 sm:gap-3">
+              <div className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg bg-secondary/15 flex items-center justify-center flex-shrink-0"><UserCheck className="h-4 sm:h-5 w-4 sm:w-5 text-secondary" /></div>
+              <div><p className="text-lg sm:text-2xl font-bold font-serif">{presentCount}</p><p className="text-[10px] sm:text-xs text-muted-foreground">Present</p></div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-destructive/15 flex items-center justify-center"><UserX className="h-5 w-5 text-destructive" /></div>
-              <div><p className="text-2xl font-bold font-serif">{absentCount}</p><p className="text-xs text-muted-foreground">Absent</p></div>
+            <CardContent className="pt-3 sm:pt-4 flex items-center gap-2 sm:gap-3">
+              <div className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg bg-destructive/15 flex items-center justify-center flex-shrink-0"><UserX className="h-4 sm:h-5 w-4 sm:w-5 text-destructive" /></div>
+              <div><p className="text-lg sm:text-2xl font-bold font-serif">{absentCount}</p><p className="text-[10px] sm:text-xs text-muted-foreground">Absent</p></div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-accent/15 flex items-center justify-center"><Clock className="h-5 w-5 text-accent" /></div>
-              <div><p className="text-2xl font-bold font-serif">{lateCount}</p><p className="text-xs text-muted-foreground">Late</p></div>
+            <CardContent className="pt-3 sm:pt-4 flex items-center gap-2 sm:gap-3">
+              <div className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg bg-accent/15 flex items-center justify-center flex-shrink-0"><Clock className="h-4 sm:h-5 w-4 sm:w-5 text-accent" /></div>
+              <div><p className="text-lg sm:text-2xl font-bold font-serif">{lateCount}</p><p className="text-[10px] sm:text-xs text-muted-foreground">Late</p></div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Calendar className="h-5 w-5 text-primary" /></div>
-              <div><p className="text-2xl font-bold font-serif">{selectedDate === today ? "Today" : selectedDate}</p><p className="text-xs text-muted-foreground">Date</p></div>
+          <Card >
+            <CardContent className="pt-3 sm:pt-4 flex items-center gap-2 sm:gap-3">
+              <div className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0"><Calendar className="h-4 sm:h-5 w-4 sm:w-5 text-primary" /></div>
+              <div><p className="text-lg sm:text-2xl font-bold font-serif">{selectedDate === today ? "Today" : selectedDate}</p><p className="text-[10px] sm:text-xs text-muted-foreground">Date</p></div>
             </CardContent>
           </Card>
         </div>
@@ -639,46 +680,46 @@ export default function Attendance() {
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b bg-muted/30 text-left">
-                    <th className="p-3 font-medium text-muted-foreground">Staff</th>
-                    <th className="p-3 font-medium text-muted-foreground hidden sm:table-cell">Role</th>
-                    <th className="p-3 font-medium text-muted-foreground">Check In</th>
-                    <th className="p-3 font-medium text-muted-foreground hidden md:table-cell">Check Out</th>
-                    <th className="p-3 font-medium text-muted-foreground">Status</th>
-                    <th className="p-3 font-medium text-muted-foreground text-right">Actions</th>
+                    <th className="p-2 sm:p-3 font-medium text-muted-foreground">Staff</th>
+                    <th className="p-2 sm:p-3 font-medium text-muted-foreground hidden sm:table-cell text-[10px]">Role</th>
+                    <th className="p-2 sm:p-3 font-medium text-muted-foreground">Check In</th>
+                    <th className="p-2 sm:p-3 font-medium text-muted-foreground hidden sm:table-cell">Check Out</th>
+                    <th className="p-2 sm:p-3 font-medium text-muted-foreground">Status</th>
+                    <th className="p-2 sm:p-3 font-medium text-muted-foreground text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((r) => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/20">
-                      <td className="p-3 font-medium">{r.staffName}</td>
-                      <td className="p-3 capitalize text-muted-foreground hidden sm:table-cell">{r.role}</td>
-                      <td className="p-3 font-mono text-xs">{r.checkIn || "—"}</td>
-                      <td className="p-3 font-mono text-xs hidden md:table-cell">{r.checkOut || "—"}</td>
-                      <td className="p-3"><span className={`text-xs px-2 py-1 rounded-full ${statusColor(r.status)}`}>{r.status}</span></td>
-                      <td className="p-3 text-right">
+                      <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">{r.staffName}</td>
+                      <td className="p-2 sm:p-3 capitalize text-muted-foreground hidden sm:table-cell text-[10px]">s{r.role}</td>
+                      <td className="p-2 sm:p-3 font-mono text-[10px] sm:text-xs">{r.checkIn || "—"}</td>
+                      <td className="p-2 sm:p-3 font-mono text-[10px] sm:text-xs hidden sm:table-cell">{r.checkOut || "—"}</td>
+                      <td className="p-2 sm:p-3"><span className={`text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${statusColor(r.status)}`}>{r.status}</span></td>
+                      <td className="p-2 sm:p-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {!r.checkIn && (
-                            <Button variant="outline" size="sm" className="gap-1 h-8" onClick={() => handleCheckIn(r.id)} title="Check In">
-                              <LogIn className="h-3.5 w-3.5" /> Check In
+                            <Button variant="outline" size="sm" className="gap-1 h-7 sm:h-8 text-[10px] sm:text-xs px-2" onClick={() => handleCheckIn(r.id)} title="Check In">
+                              <LogIn className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Check In</span>
                             </Button>
                           )}
                           {r.checkIn && !r.checkOut && (
-                            <Button variant="outline" size="sm" className="gap-1 h-8" onClick={() => handleCheckOut(r.id)} title="Check Out">
-                              <LogOut className="h-3.5 w-3.5" /> Check Out
+                            <Button variant="outline" size="sm" className="gap-1 h-7 sm:h-8 text-[10px] sm:text-xs px-2" onClick={() => handleCheckOut(r.id)} title="Check Out">
+                              <LogOut className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Check Out</span>
                             </Button>
                           )}
                           {r.checkIn && r.checkOut && (
-                            <span className="text-xs text-muted-foreground">Completed</span>
+                            <span className="text-[10px] sm:text-xs text-muted-foreground">Done</span>
                           )}
                         </div>
                       </td>
                     </tr>
                   ))}
                   {filtered.length === 0 && (
-                    <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No attendance records found</td></tr>
+                    <tr><td colSpan={6} className="p-6 sm:p-8 text-center text-muted-foreground text-xs sm:text-sm">No attendance records found</td></tr>
                   )}
                 </tbody>
               </table>

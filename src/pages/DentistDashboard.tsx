@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -89,6 +89,22 @@ export default function DentistDashboard() {
 
   useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(shift)); }, [shift, storageKey]);
 
+  // Sync with Attendance page - listen for changes from Attendance feature
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === storageKey && e.newValue) {
+        try {
+          const newShift = JSON.parse(e.newValue);
+          setShift(newShift);
+        } catch (err) {
+          console.warn('Failed to parse shift state from storage');
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [storageKey]);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -127,7 +143,10 @@ export default function DentistDashboard() {
   const handleCheckIn = async () => {
     const now = Date.now();
     const nowTimeStr = new Date(now).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-    setShift(prev => ({ ...prev, status: "active", checkInTimestamp: now, date: todayDate }));
+    const newShift = { status: "active" as const, checkInTimestamp: now, checkOutTimestamp: null, breakStartTime: null, accumulatedBreakTime: 0, notes: "", date: todayDate };
+    setShift(newShift);
+    // Broadcast to other tabs/windows
+    window.dispatchEvent(new CustomEvent('attendance-synced', { detail: { type: 'check-in', shift: newShift } }));
     toast({ title: "Shift Started ✓", description: `Checked in at ${getFormattedTime(now)}. Have a great day!` });
     const token = localStorage.getItem("navadia_token");
     if (token && user) {
@@ -160,7 +179,10 @@ export default function DentistDashboard() {
     const now = Date.now();
     const nowTimeStr = new Date(now).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
     const durationStr = formatMs(now - shift.checkInTimestamp! - shift.accumulatedBreakTime);
-    setShift(prev => ({ ...prev, status: "checked_out", checkOutTimestamp: now, notes: handoverNotes }));
+    const newShift = { status: "checked_out" as const, checkInTimestamp: shift.checkInTimestamp, checkOutTimestamp: now, breakStartTime: null, accumulatedBreakTime: shift.accumulatedBreakTime, notes: handoverNotes, date: todayDate };
+    setShift(newShift);
+    // Broadcast to other tabs/windows
+    window.dispatchEvent(new CustomEvent('attendance-synced', { detail: { type: 'check-out', shift: newShift } }));
     setCheckoutDialogOpen(false);
     const todayRecord: HistoryRecord = {
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " (Today)",
@@ -206,160 +228,132 @@ export default function DentistDashboard() {
       
 
       {/* ─── MAIN GRID ───────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* ── SHIFT CONTROL PANEL ── */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden">
-            <div className="bg-primary/5 p-5 border-b">
-              <div className="flex items-center gap-2 mb-1">
-                <Activity className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold">Shift Control</h2>
-              </div>
-              <p className="text-xs text-muted-foreground">Manage your daily attendance</p>
-            </div>
-
-            <div className="p-5 space-y-4">
-              {/* Status Badge */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-medium">Status</span>
-                {shift.status === "idle" && <Badge variant="secondary" className="text-xs">Offline</Badge>}
+        <div className="lg:col-span-1">
+          <Card className="bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm border-0 shadow-md rounded-2xl">
+            <CardHeader className="flex flex-row items-center gap-3 pb-2">
+              <Activity className="h-5 w-5 text-neutral-700 dark:text-neutral-300" />
+              <CardTitle className="text-base font-bold text-neutral-800 dark:text-neutral-200">Shift Control</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-5">Manage your daily attendance</p>
+              
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Status</span>
+                {shift.status === "idle" && <Badge variant="outline" className="border-neutral-300 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400">Offline</Badge>}
                 {shift.status === "active" && (
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  <Badge className="bg-green-100 text-green-800 border border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800">
+                    <span className="relative flex h-2 w-2 mr-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                     </span>
                     Active
-                  </span>
+                  </Badge>
                 )}
-                {shift.status === "stepped_out" && <Badge className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/20">On Break</Badge>}
-                {shift.status === "checked_out" && <Badge className="text-xs bg-slate-500/10 text-slate-500 border-slate-500/20">Checked Out</Badge>}
+                {shift.status === "stepped_out" && <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-800">On Break</Badge>}
+                {shift.status === "checked_out" && <Badge className="bg-neutral-100 text-neutral-800 border border-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-700">Checked Out</Badge>}
               </div>
 
-              {/* Timer Display */}
-              {shift.status !== "idle" && shift.status !== "checked_out" && (
-                <div className="text-center py-3 bg-muted/30 rounded-xl">
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">
-                    {shift.status === "stepped_out" ? "Break Duration" : "Work Duration"}
-                  </p>
-                  <p className={`text-3xl font-mono font-bold tracking-wider ${shift.status === "stepped_out" ? "text-amber-500" : "text-primary"}`}>
-                    {shift.status === "stepped_out" ? formatMs(elapsedBreakTime) : formatMs(elapsedActiveTime)}
-                  </p>
-                </div>
-              )}
-
-              {/* Shift progress bar */}
-              {shift.status === "active" && (
-                <div>
-                  <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                    <span>Shift Progress</span>
-                    <span>{Math.round(shiftProgress)}% of 9h</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-primary transition-all duration-1000" style={{ width: `${shiftProgress}%` }} />
-                  </div>
-                </div>
-              )}
-
-              {/* Check-in time */}
-              {shift.checkInTimestamp && (
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Checked in at</span>
-                  <span className="font-mono font-semibold">{getFormattedTime(shift.checkInTimestamp)}</span>
-                </div>
-              )}
-
-              {/* Action Buttons */}
               {shift.status === "idle" && (
-                <Button onClick={handleCheckIn} className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold gap-2 shadow-lg shadow-primary/20">
+                <Button onClick={handleCheckIn} className="w-full h-12 bg-yellow-500 hover:bg-yellow-600 text-neutral-900 rounded-xl font-bold text-sm gap-2 shadow-md shadow-yellow-500/20">
                   <Play className="h-4 w-4 fill-current" /> Start Shift
                 </Button>
               )}
 
               {shift.status === "active" && (
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" onClick={() => setLunchDialogOpen(true)} className="h-10 rounded-xl border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-950/20 text-xs gap-1.5">
-                    <Utensils className="h-3.5 w-3.5" /> Break
-                  </Button>
-                  <Button variant="outline" onClick={() => setCheckoutDialogOpen(true)} className="h-10 rounded-xl border-red-200 text-red-500 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-950/20 text-xs gap-1.5">
-                    <LogOut className="h-3.5 w-3.5" /> Check Out
-                  </Button>
+                <div className="p-4 bg-neutral-100/50 dark:bg-neutral-800/40 rounded-xl text-center space-y-3">
+                   <div>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Work Duration</p>
+                    <p className="text-2xl font-bold font-mono text-neutral-800 dark:text-neutral-200">{formatMs(elapsedActiveTime)}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" onClick={() => setLunchDialogOpen(true)} className="h-10 rounded-lg bg-white dark:bg-neutral-700/50 border-neutral-200 dark:border-neutral-700 text-xs gap-1.5">
+                      <Coffee className="h-3.5 w-3.5" /> Break
+                    </Button>
+                    <Button variant="outline" onClick={() => setCheckoutDialogOpen(true)} className="h-10 rounded-lg bg-white dark:bg-neutral-700/50 border-neutral-200 dark:border-neutral-700 text-red-500 dark:text-red-400 text-xs gap-1.5">
+                      <LogOut className="h-3.5 w-3.5" /> Check Out
+                    </Button>
+                  </div>
                 </div>
               )}
 
               {shift.status === "stepped_out" && (
-                <Button onClick={handleResumeDuty} className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold gap-2">
-                  <Sparkles className="h-4 w-4" /> Resume Duty
-                </Button>
+                 <div className="p-4 bg-yellow-100/50 dark:bg-yellow-800/30 rounded-xl text-center space-y-3">
+                   <div>
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400">Break Duration</p>
+                    <p className="text-2xl font-bold font-mono text-yellow-700 dark:text-yellow-300">{formatMs(elapsedBreakTime)}</p>
+                  </div>
+                  <Button onClick={handleResumeDuty} className="w-full h-11 bg-yellow-500 hover:bg-yellow-600 text-neutral-900 rounded-xl font-semibold gap-2">
+                    <Sparkles className="h-4 w-4" /> Resume Duty
+                  </Button>
+                </div>
               )}
 
               {shift.status === "checked_out" && (
-                <div className="text-center py-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
-                  <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-1" />
-                  <p className="text-xs font-semibold text-emerald-600">Shift Complete!</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Worked {shift.checkOutTimestamp && shift.checkInTimestamp ? formatMs(shift.checkOutTimestamp - shift.checkInTimestamp - shift.accumulatedBreakTime).split(" ").slice(0,2).join(" ") : "—"}
+                <div className="text-center py-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                  <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-green-600 dark:text-green-400">Shift Complete!</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                    Total work: {shift.checkOutTimestamp && shift.checkInTimestamp ? formatMs(shift.checkOutTimestamp - shift.checkInTimestamp - shift.accumulatedBreakTime).split(" ").slice(0,2).join(" ") : "—"}
                   </p>
                 </div>
               )}
-            </div>
-          </div>
-
-         
+            </CardContent>
+          </Card>
         </div>
 
-        {/* ── APPOINTMENTS + SHIFT LOG ── */}
-        <div className="lg:col-span-8 space-y-4">
-
-        
-          {/* Shift History */}
-          <div className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+        {/* ── SHIFT HISTORY ── */}
+        <div className="lg:col-span-2">
+           <Card className="bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm border-0 shadow-md rounded-2xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-full bg-yellow-400/20 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400">
                   <Clock className="h-4 w-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold">Shift History</h2>
-                  <p className="text-xs text-muted-foreground">Last 5 working days</p>
+                  <CardTitle className="text-base font-bold text-neutral-800 dark:text-neutral-200">Shift History</CardTitle>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">Last 5 working days</p>
                 </div>
               </div>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
+              <Button variant="ghost" size="icon" className="text-neutral-500 dark:text-neutral-400">
+                <TrendingUp className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-muted/30 border-b text-muted-foreground">
-                    <th className="px-5 py-3 font-semibold">Date</th>
-                    <th className="px-5 py-3 font-semibold">Check In</th>
-                    <th className="px-5 py-3 font-semibold">Check Out</th>
-                    <th className="px-5 py-3 font-semibold text-right">Duration</th>
+                  <tr className="text-xs text-neutral-500 dark:text-neutral-400 border-b border-neutral-200/80 dark:border-neutral-800">
+                    <th className="text-left font-medium py-2">Date</th>
+                    <th className="text-center font-medium py-2">Check In</th>
+                    <th className="text-center font-medium py-2">Check Out</th>
+                    <th className="text-right font-medium py-2">Duration</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/40">
+                <tbody>
                   {shift.status !== "idle" && (
-                    <tr className="bg-primary/5 border-b border-primary/10">
-                      <td className="px-5 py-3 font-semibold text-primary">Today</td>
-                      <td className="px-5 py-3 font-mono">{getFormattedTime(shift.checkInTimestamp)}</td>
-                      <td className="px-5 py-3 font-mono text-muted-foreground">{shift.status === "checked_out" ? getFormattedTime(shift.checkOutTimestamp) : <span className="text-muted-foreground/50">—</span>}</td>
-                      <td className="px-5 py-3 font-mono text-right text-primary font-semibold">
+                    <tr className="font-semibold text-yellow-600 dark:text-yellow-400 border-b border-neutral-200/80 dark:border-neutral-800">
+                      <td className="py-3">Today</td>
+                      <td className="text-center font-mono">{getFormattedTime(shift.checkInTimestamp)}</td>
+                      <td className="text-center font-mono">{shift.status === "checked_out" ? getFormattedTime(shift.checkOutTimestamp) : "—"}</td>
+                      <td className="text-right font-mono">
                         {shift.status === "checked_out" ? formatMs(shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime).split(" ").slice(0,2).join(" ") : formatMs(elapsedActiveTime).split(" ").slice(0,2).join(" ")}
                       </td>
                     </tr>
                   )}
                   {history.map((h, i) => (
-                    <tr key={i} className="hover:bg-muted/10 transition-colors">
-                      <td className="px-5 py-3 font-medium">{h.date.replace(" (Today)", "")}</td>
-                      <td className="px-5 py-3 font-mono text-muted-foreground">{h.checkIn || "—"}</td>
-                      <td className="px-5 py-3 font-mono text-muted-foreground">{h.checkOut || "—"}</td>
-                      <td className="px-5 py-3 font-mono text-right text-muted-foreground">{h.duration ? h.duration.split(" ").slice(0,2).join(" ") : "—"}</td>
+                    <tr key={i} className="border-b border-neutral-200/80 dark:border-neutral-800 last:border-0">
+                      <td className="py-3 font-medium text-neutral-700 dark:text-neutral-300">{h.date.replace(" (Today)", "")}</td>
+                      <td className="text-center font-mono text-neutral-500 dark:text-neutral-400">{h.checkIn || "—"}</td>
+                      <td className="text-center font-mono text-neutral-500 dark:text-neutral-400">{h.checkOut || "—"}</td>
+                      <td className="text-right font-mono text-neutral-500 dark:text-neutral-400">{h.duration ? h.duration.split(" ").slice(0,2).join(" ") : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

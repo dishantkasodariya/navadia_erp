@@ -74,9 +74,10 @@ interface NavSectionProps {
   label: string;
   items: { title: string; url: string; icon: any }[];
   collapsed: boolean;
+  onMobileNavigate?: () => void;
 }
 
-function NavSection({ label, items, collapsed }: NavSectionProps) {
+function NavSection({ label, items, collapsed, onMobileNavigate }: NavSectionProps) {
   const location = useLocation();
   const { unreadCountContext } = useChat();
 
@@ -98,6 +99,7 @@ function NavSection({ label, items, collapsed }: NavSectionProps) {
                   end={item.url.endsWith("/dashboard")}
                   className="hover:bg-sidebar-accent/60 flex items-center w-full"
                   activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  onMobileNavigate={onMobileNavigate}
                 >
                   <div className="relative flex items-center justify-center shrink-0">
                     <item.icon className="h-4 w-4" />
@@ -127,9 +129,15 @@ function NavSection({ label, items, collapsed }: NavSectionProps) {
 
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, logout } = useAuth();
+
+  const handleMobileNavigate = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const userRoleLower = (user?.role || "Admin").toLowerCase();
   const rolePrefix = userRoleLower === "receptionist" ? "reception" : userRoleLower;
@@ -153,9 +161,9 @@ export function AppSidebar() {
       </div>
 
       <SidebarContent>
-        <NavSection label="Main" items={mainItems} collapsed={collapsed} />
-        <NavSection label="HR & Tasks" items={hrItems} collapsed={collapsed} />
-        <NavSection label="System" items={analyticsItems} collapsed={collapsed} />
+        <NavSection label="Main" items={mainItems} collapsed={collapsed} onMobileNavigate={handleMobileNavigate} />
+        <NavSection label="HR & Tasks" items={hrItems} collapsed={collapsed} onMobileNavigate={handleMobileNavigate} />
+        <NavSection label="System" items={analyticsItems} collapsed={collapsed} onMobileNavigate={handleMobileNavigate} />
       </SidebarContent>
 
       <SidebarFooter>
