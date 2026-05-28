@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
+
+import { API_BASE_URL } from './config/api';
 import { useAuth } from "./AuthContext";
 import { io, Socket } from "socket.io-client";
 import { toast } from "@/hooks/use-toast";
@@ -110,7 +112,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const socketInstance = io("http://localhost:5000", {
+    const socketInstance = io("${API_BASE_URL}", {
       auth: { token }
     });
 
@@ -238,7 +240,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (!token) return;
 
       try {
-        const res = await fetch("http://localhost:5000/api/messages", {
+        const res = await fetch("${API_BASE_URL}/api/messages", {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -274,7 +276,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     
     if (token) {
       try {
-        const res = await fetch("http://localhost:5000/api/messages", {
+        const res = await fetch("${API_BASE_URL}/api/messages", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -333,7 +335,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch(`http://localhost:5000/api/messages/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/messages/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -380,7 +382,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch(`http://localhost:5000/api/messages/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/messages/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -399,7 +401,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch(`http://localhost:5000/api/messages/${id}/read`, {
+        const res = await fetch(`${API_BASE_URL}/api/messages/${id}/read`, {
           method: "PUT",
           headers: { Authorization: `Bearer ${token}` }
         });

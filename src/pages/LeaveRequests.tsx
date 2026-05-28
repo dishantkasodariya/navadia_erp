@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+
+import { API_BASE_URL } from './config/api';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +48,7 @@ export default function LeaveRequests() {
   const fetchLeaveRequests = async () => {
     const token = localStorage.getItem("navadia_token");
     try {
-      const res = await fetch("http://localhost:5000/api/leave", {
+      const res = await fetch("${API_BASE_URL}/api/leave", {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -109,7 +111,7 @@ export default function LeaveRequests() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("http://localhost:5000/api/leave", {
+        const res = await fetch("${API_BASE_URL}/api/leave", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -157,7 +159,7 @@ export default function LeaveRequests() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch(`http://localhost:5000/api/leave/${id}/status`, {
+        const res = await fetch(`${API_BASE_URL}/api/leave/${id}/status`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -183,7 +185,7 @@ export default function LeaveRequests() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch(`http://localhost:5000/api/leave/${id}/status`, {
+        const res = await fetch(`${API_BASE_URL}/api/leave/${id}/status`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",

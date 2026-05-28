@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
+import { API_BASE_URL } from './config/api';
+
 export type UserRole = "Admin" | "Staff" | "Dentist" | "admin" | "staff" | "dentist" | "superadmin" | "receptionist";
 
 export interface User {
@@ -99,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem("navadia_token");
       if (!token) return;
       try {
-        const res = await fetch("http://localhost:5000/api/staff", {
+        const res = await fetch("${API_BASE_URL}/api/staff", {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -143,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     let backendFailed = false;
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch("${API_BASE_URL}/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -190,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (data: SignupData) => {
     try {
-      const res = await fetch("http://localhost:5000/api/auth/signup", {
+      const res = await fetch("${API_BASE_URL}/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -260,7 +262,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("http://localhost:5000/api/staff", {
+        const res = await fetch("${API_BASE_URL}/api/staff", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -317,7 +319,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch(`http://localhost:5000/api/staff/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/staff/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` }
         });

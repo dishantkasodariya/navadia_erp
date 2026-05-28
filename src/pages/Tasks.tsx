@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
+
+import { API_BASE_URL } from './config/api';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,7 +83,7 @@ export default function Tasks() {
   const fetchTasks = async () => {
     const token = localStorage.getItem("navadia_token");
     try {
-      const res = await fetch("http://localhost:5000/api/tasks", {
+      const res = await fetch("${API_BASE_URL}/api/tasks", {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -186,7 +188,7 @@ export default function Tasks() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("http://localhost:5000/api/tasks", {
+        const res = await fetch("${API_BASE_URL}/api/tasks", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -239,7 +241,7 @@ export default function Tasks() {
     const token = localStorage.getItem("navadia_token");
     if (token && id.length > 20) {
       try {
-        const res = await fetch(`http://localhost:5000/api/tasks/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/tasks/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -265,7 +267,7 @@ export default function Tasks() {
     const token = localStorage.getItem("navadia_token");
     if (token && id.length > 20) {
       try {
-        const res = await fetch(`http://localhost:5000/api/tasks/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/tasks/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -299,7 +301,7 @@ export default function Tasks() {
     const token = localStorage.getItem("navadia_token");
     if (token && editTask.id.length > 20) {
       try {
-        const res = await fetch(`http://localhost:5000/api/tasks/${editTask.id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/tasks/${editTask.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

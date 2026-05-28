@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+
+import { API_BASE_URL } from './config/api';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -135,7 +137,7 @@ export default function ReceptionDashboard() {
     const token = localStorage.getItem("navadia_token");
     if (token && user) {
       try {
-        await fetch("http://localhost:5000/api/attendance/check-in", {
+        await fetch("${API_BASE_URL}/api/attendance/check-in", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ userId: user.id, userName: user.name, date: todayDate, checkIn: nowTimeStr, status: nowTimeStr > "09:00" ? "Late" : "Present" })
@@ -179,7 +181,7 @@ export default function ReceptionDashboard() {
     const token = localStorage.getItem("navadia_token");
     if (token && user) {
       try {
-        await fetch("http://localhost:5000/api/attendance/check-out", {
+        await fetch("${API_BASE_URL}/api/attendance/check-out", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ userId: user.id, date: todayDate, checkOut: nowTimeStr })

@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+
+import { API_BASE_URL } from './config/api';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +48,7 @@ export default function Attendance() {
   const fetchAttendance = async () => {
     const token = localStorage.getItem("navadia_token");
     try {
-      const res = await fetch("http://localhost:5000/api/attendance", {
+      const res = await fetch("${API_BASE_URL}/api/attendance", {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -160,7 +162,7 @@ export default function Attendance() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("http://localhost:5000/api/attendance/check-in", {
+        const res = await fetch("${API_BASE_URL}/api/attendance/check-in", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -229,7 +231,7 @@ export default function Attendance() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("http://localhost:5000/api/attendance/check-out", {
+        const res = await fetch("${API_BASE_URL}/api/attendance/check-out", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -272,7 +274,7 @@ export default function Attendance() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("http://localhost:5000/api/attendance/check-in", {
+        const res = await fetch("${API_BASE_URL}/api/attendance/check-in", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

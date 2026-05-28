@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+
+import { API_BASE_URL } from './config/api';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +50,7 @@ export default function Voicemail() {
   const fetchVoicemails = async () => {
     const token = localStorage.getItem("navadia_token");
     try {
-      const res = await fetch("http://localhost:5000/api/voicemails", {
+      const res = await fetch("${API_BASE_URL}/api/voicemails", {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -121,7 +123,7 @@ export default function Voicemail() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("http://localhost:5000/api/voicemails", {
+        const res = await fetch("${API_BASE_URL}/api/voicemails", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -176,7 +178,7 @@ export default function Voicemail() {
     const token = localStorage.getItem("navadia_token");
     if (token && id.length > 20) {
       try {
-        const res = await fetch(`http://localhost:5000/api/voicemails/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/voicemails/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` }
         });

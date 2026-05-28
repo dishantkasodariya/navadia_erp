@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+
+import { API_BASE_URL } from './config/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +51,7 @@ export default function Settings() {
     const fetchSettings = async () => {
       const token = localStorage.getItem("navadia_token");
       try {
-        const res = await fetch("http://localhost:5000/api/settings", {
+        const res = await fetch("${API_BASE_URL}/api/settings", {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         if (res.ok) {
@@ -73,7 +75,7 @@ export default function Settings() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("http://localhost:5000/api/settings", {
+        const res = await fetch("${API_BASE_URL}/api/settings", {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -109,7 +111,7 @@ export default function Settings() {
     setProfileLoading(true);
     const token = localStorage.getItem("navadia_token");
     try {
-      const res = await fetch("http://localhost:5000/api/auth/profile", {
+      const res = await fetch("${API_BASE_URL}/api/auth/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -160,7 +162,7 @@ export default function Settings() {
       return;
     }
     try {
-      const res = await fetch("http://localhost:5000/api/auth/profile", {
+      const res = await fetch("${API_BASE_URL}/api/auth/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
