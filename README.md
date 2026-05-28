@@ -4,7 +4,7 @@ A modern, full-stack, enterprise-grade dental clinic management platform designe
 
 [![Tech Stack](https://img.shields.io/badge/Stack-React%20%7C%20Node%20%7C%20Express%20%7C%20MongoDB-blue.svg)](#technology-stack)
 [![Real-time Communication](https://img.shields.io/badge/Real--time-Socket.io-orange.svg)](#real-time-features)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](#license)
+[![License](https://img.shields.io/badge/License-TRG%20GRANTH-green.svg)](#license)
 
 ---
 
@@ -172,4 +172,4 @@ navadia-final/
 
 ## 🛡️ License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under TRG GRANTH.
