@@ -131,8 +131,8 @@ export default function AdminDashboard() {
     <div className="space-y-6 font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-serif">Admin Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-xl sm:text-2xl">Admin Dashboard</h1>
+          <p className="text-muted-foreground text-sm sm:text-base mt-1">
             Welcome back, {user?.name}. Full clinic administration overview.
           </p>
         </div>
@@ -176,21 +176,21 @@ export default function AdminDashboard() {
 
       {/* Module Navigation Portal */}
       <div>
-        <h2 className="text-lg font-serif font-semibold mb-3">Quick Administration Hub</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <h2 className="text-lg sm:text-lg mb-3">Quick Administration Hub</h2>
+        <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3">
           {adminModules.map((mod) => (
             <Card 
               key={mod.title} 
               className="group hover:border-primary/40 hover:shadow-sm transition-all duration-200 cursor-pointer"
               onClick={() => navigate(mod.path)}
             >
-              <CardContent className="p-4 flex gap-4">
-                <div className={`p-3 rounded-lg shrink-0 ${mod.color}`}>
-                  <mod.icon className="h-5 w-5" />
+              <CardContent className="p-5 flex gap-4">
+                <div className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-lg shrink-0 ${mod.color}`}>
+                  <mod.icon className="h-6 w-6" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-sm font-medium group-hover:text-primary transition-colors">{mod.title}</h3>
-                  <p className="text-xs text-muted-foreground leading-normal">{mod.description}</p>
+                  <h3 className="text-base sm:text-lg font-medium group-hover:text-primary transition-colors">{mod.title}</h3>
+                  <p className="text-sm sm:text-md text-muted-foreground leading-normal">{mod.description}</p>
                 </div>
               </CardContent>
             </Card>
@@ -202,8 +202,8 @@ export default function AdminDashboard() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-sans flex items-center gap-2">
-              <Stethoscope className="h-4 w-4 text-primary" /> Dentists On Duty
+            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+              <Stethoscope className="h-5 w-5 text-primary" /> Dentists On Duty
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -211,8 +211,8 @@ export default function AdminDashboard() {
               {dentists.map((d) => (
                 <div key={d.id} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/10 transition-colors">
                   <div>
-                    <p className="text-sm font-medium">{d.name}</p>
-                    <p className="text-xs text-muted-foreground">{d.specialization || "General Dentistry"}</p>
+                    <p className="text-md font-medium">{d.name}</p>
+                    <p className="text-sm text-muted-foreground">{d.specialization || "General Dentistry"}</p>
                   </div>
                   <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">On Duty</span>
                 </div>
@@ -224,8 +224,8 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-sans flex items-center gap-2">
-              <UserCog className="h-4 w-4 text-secondary" /> Staff Summary
+            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+              <UserCog className="h-5 w-5 text-secondary" /> Staff Summary
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -236,13 +236,13 @@ export default function AdminDashboard() {
                 { role: "Support Staff", count: allUsers.filter((u) => u.role.toLowerCase() === "staff").length },
               ].map((item) => (
                 <div key={item.role} className="flex items-center justify-between rounded-lg border p-3">
-                  <span className="text-sm font-medium">{item.role}</span>
-                  <span className="text-lg font-serif font-bold">{item.count}</span>
+                  <span className="text-base font-medium">{item.role}</span>
+                  <span className="text-2xl font-bold">{item.count}</span>
                 </div>
               ))}
               <div className="flex items-center justify-between rounded-lg border p-3 bg-primary border-primary/20">
-                <span className="text-sm font-medium text-primary-foreground font-semibold">Total Active Personnel</span>
-                <span className="text-lg font-serif font-bold text-primary-foreground">{staffCount}</span>
+                <span className="text-base font-medium text-primary-foreground">Total Active Personnel</span>
+                <span className="text-2xl font-bold text-primary-foreground">{staffCount}</span>
               </div>
             </div>
           </CardContent>

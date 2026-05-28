@@ -211,7 +211,7 @@ export default function ReceptionDashboard() {
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-5">
           <div className="fade-up">
             <p className="text-primary-foreground/80 text-xs font-semibold uppercase tracking-widest mb-1">Reception Desk</p>
-            <h1 className="text-2xl md:text-3xl font-serif font-bold text-white">
+            <h1 className="text-2xl md:text-3xl font-bold text-white">
               {greeting}, {user?.name?.split(" ")[0] || "Staff"} 👋
             </h1>
             <p className="text-primary-foreground/60 text-xs mt-2">
@@ -249,10 +249,10 @@ export default function ReceptionDashboard() {
           {/* Live clock */}
           <div className="text-right fade-up shrink-0">
             <p className="text-xs uppercase tracking-widest text-primary-foreground/60 font-semibold mb-1">Live Clock</p>
-            <p className="text-4xl font-mono font-bold text-primary tick-glow">
+            <p className="text-4xl font-sans font-bold text-primary tick-glow">
               {currentTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
             </p>
-            <p className="text-xs font-mono text-primary-foreground/60 mt-0.5">
+            <p className="text-xs font-sans text-primary-foreground/60 mt-0.5">
               :{currentTime.getSeconds().toString().padStart(2, "0")}
             </p>
           </div>
@@ -280,7 +280,7 @@ export default function ReceptionDashboard() {
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
                     {shift.status === "stepped_out" ? "Break Time" : "Work Time"}
                   </p>
-                  <p className={`text-3xl font-mono font-bold ${shift.status === "stepped_out" ? "text-amber-500" : "text-primary"}`}>
+                  <p className={`text-3xl font-sans font-bold ${shift.status === "stepped_out" ? "text-amber-500" : "text-primary"}`}>
                     {shift.status === "stepped_out" ? formatMs(elapsedBreakTime) : formatMs(elapsedActiveTime)}
                   </p>
                 </div>
@@ -304,11 +304,11 @@ export default function ReceptionDashboard() {
                 <div className="grid grid-cols-2 gap-2 text-center text-xs">
                   <div className="bg-muted/30 rounded-lg p-2.5">
                     <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">In</p>
-                    <p className="font-mono font-bold mt-1">{getFormattedTime(shift.checkInTimestamp)}</p>
+                    <p className="font-sans font-bold mt-1">{getFormattedTime(shift.checkInTimestamp)}</p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-2.5">
                     <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">Out</p>
-                    <p className="font-mono font-bold mt-1">{shift.status === "checked_out" ? getFormattedTime(shift.checkOutTimestamp) : "—"}</p>
+                    <p className="font-sans font-bold mt-1">{shift.status === "checked_out" ? getFormattedTime(shift.checkOutTimestamp) : "—"}</p>
                   </div>
                 </div>
               )}
@@ -392,10 +392,10 @@ export default function ReceptionDashboard() {
                 <div key={c.time} className="group flex items-center justify-between px-5 py-3.5 hover:bg-muted/15 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="text-center shrink-0 w-14">
-                      <p className="text-xs font-mono font-bold text-muted-foreground">{c.time.split(" ")[0]}</p>
+                      <p className="text-xs font-sans font-bold text-muted-foreground">{c.time.split(" ")[0]}</p>
                       <p className="text-[10px] text-muted-foreground">{c.time.split(" ")[1]}</p>
                     </div>
-                    <div className="h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-bold font-serif flex items-center justify-center shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
                       {c.patient.split(" ").map(n => n[0]).join("").slice(0,2)}
                     </div>
                     <div>
@@ -442,9 +442,9 @@ export default function ReceptionDashboard() {
                   {shift.status !== "idle" && (
                     <tr className="bg-primary/5">
                       <td className="px-5 py-3 font-semibold text-primary">Today</td>
-                      <td className="px-5 py-3 font-mono">{getFormattedTime(shift.checkInTimestamp)}</td>
-                      <td className="px-5 py-3 font-mono text-muted-foreground">{shift.status === "checked_out" ? getFormattedTime(shift.checkOutTimestamp) : <span className="text-muted-foreground/40">—</span>}</td>
-                      <td className="px-5 py-3 font-mono text-right font-semibold text-primary">
+                      <td className="px-5 py-3 font-sans">{getFormattedTime(shift.checkInTimestamp)}</td>
+                      <td className="px-5 py-3 font-sans text-muted-foreground">{shift.status === "checked_out" ? getFormattedTime(shift.checkOutTimestamp) : <span className="text-muted-foreground/40">—</span>}</td>
+                      <td className="px-5 py-3 font-sans text-right font-semibold text-primary">
                         {shift.status === "checked_out" ? formatMs(shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime).split(" ").slice(0,2).join(" ") : formatMs(elapsedActiveTime).split(" ").slice(0,2).join(" ")}
                       </td>
                     </tr>
@@ -452,9 +452,9 @@ export default function ReceptionDashboard() {
                   {history.map((h, i) => (
                     <tr key={i} className="hover:bg-muted/10 transition-colors">
                       <td className="px-5 py-3 font-medium">{h.date.replace(" (Today)", "")}</td>
-                      <td className="px-5 py-3 font-mono text-muted-foreground">{h.checkIn || "—"}</td>
-                      <td className="px-5 py-3 font-mono text-muted-foreground">{h.checkOut || "—"}</td>
-                      <td className="px-5 py-3 font-mono text-right text-muted-foreground">{h.duration ? h.duration.split(" ").slice(0,2).join(" ") : "—"}</td>
+                      <td className="px-5 py-3 font-sans text-muted-foreground">{h.checkIn || "—"}</td>
+                      <td className="px-5 py-3 font-sans text-muted-foreground">{h.checkOut || "—"}</td>
+                      <td className="px-5 py-3 font-sans text-right text-muted-foreground">{h.duration ? h.duration.split(" ").slice(0,2).join(" ") : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -471,7 +471,7 @@ export default function ReceptionDashboard() {
             <div className="h-14 w-14 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 flex items-center justify-center text-amber-500">
               <Utensils className="h-7 w-7" />
             </div>
-            <DialogTitle className="font-serif text-xl">Step Out for Lunch?</DialogTitle>
+            <DialogTitle className="text-xl">Step Out for Lunch?</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground max-w-xs">
               Your status will update to "On Break" on all tracking boards.
             </DialogDescription>
@@ -493,18 +493,18 @@ export default function ReceptionDashboard() {
             <div className="h-14 w-14 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-100 flex items-center justify-center text-red-500">
               <LogOut className="h-7 w-7" />
             </div>
-            <DialogTitle className="font-serif text-xl">End Shift & Clock Out?</DialogTitle>
+            <DialogTitle className="text-xl">End Shift & Clock Out?</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground max-w-xs">Finalize your attendance record for today.</DialogDescription>
           </DialogHeader>
           <div className="my-2 space-y-3">
             <div className="grid grid-cols-2 gap-3 text-center">
               <div className="bg-muted/40 rounded-xl p-3">
                 <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Clock In</p>
-                <p className="text-sm font-mono font-bold mt-1">{getFormattedTime(shift.checkInTimestamp)}</p>
+                <p className="text-sm font-sans font-bold mt-1">{getFormattedTime(shift.checkInTimestamp)}</p>
               </div>
               <div className="bg-primary/5 rounded-xl p-3 border border-primary/15">
                 <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Duration</p>
-                <p className="text-sm font-mono font-bold text-primary mt-1">{formatMs(elapsedActiveTime).split(" ").slice(0,2).join(" ")}</p>
+                <p className="text-sm font-sans font-bold text-primary mt-1">{formatMs(elapsedActiveTime).split(" ").slice(0,2).join(" ")}</p>
               </div>
             </div>
             <div className="space-y-1.5">

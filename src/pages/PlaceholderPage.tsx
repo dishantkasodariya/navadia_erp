@@ -10,7 +10,7 @@ export default function PlaceholderPage({ title, description }: PlaceholderPageP
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-serif">{title}</h1>
+        <h1 className="text-2xl">{title}</h1>
         <p className="text-sm text-muted-foreground mt-1">{description}</p>
       </div>
       <Card>

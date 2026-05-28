@@ -51,7 +51,7 @@ export default function Settings() {
     const fetchSettings = async () => {
       const token = localStorage.getItem("navadia_token");
       try {
-        const res = await fetch("${API_BASE_URL}/api/settings", {
+        const res = await fetch(`${API_BASE_URL}/api/settings`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         if (res.ok) {
@@ -75,7 +75,7 @@ export default function Settings() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("${API_BASE_URL}/api/settings", {
+        const res = await fetch(`${API_BASE_URL}/api/settings`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -111,7 +111,7 @@ export default function Settings() {
     setProfileLoading(true);
     const token = localStorage.getItem("navadia_token");
     try {
-      const res = await fetch("${API_BASE_URL}/api/auth/profile", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -127,7 +127,7 @@ export default function Settings() {
         // Refresh token & update context
         if (data.token) localStorage.setItem("navadia_token", data.token);
         updateUser({ name: data.name, phone: data.phone });
-        toast({ title: "Profile Updated ✓", description: "Your profile has been successfully saved." });
+        toast({ title: "Profile Updated", description: "Your profile has been successfully saved." });
       } else {
         toast({ title: "Update Failed", description: data.message || "Could not update profile.", variant: "destructive" });
       }
@@ -162,7 +162,7 @@ export default function Settings() {
       return;
     }
     try {
-      const res = await fetch("${API_BASE_URL}/api/auth/profile", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -178,7 +178,7 @@ export default function Settings() {
         if (data.token) {
           localStorage.setItem("navadia_token", data.token);
         }
-        toast({ title: "Password Updated ✓", description: "Your password has been updated. Use it on next login." });
+        toast({ title: "Password Updated", description: "Your password has been updated. Use it on next login." });
         setCurrentPassword("");
         setNewPassword("");
         setConfirmNewPassword("");
@@ -193,42 +193,37 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-6 font-sans">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-serif">Settings</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          {isAdmin ? "Manage clinical credentials, configurations, and personal profile settings" : "Manage your personal profile and account settings"}
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-7xl space-y-5 font-sans">
+     
 
-      <div className="grid gap-4 sm:gap-6 md:gap-4 md:grid-cols-3">
+      <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
         {/* User Card */}
-        <Card className="md:col-span-1 h-fit shadow-sm md:sticky md:top-6">
-          <CardHeader className="text-center pb-3 sm:pb-4 md:pb-3">
-            <div className="mx-auto h-16 sm:h-20 md:h-16 w-16 sm:w-20 md:w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-lg sm:text-2xl md:text-lg font-bold font-serif mb-2">
+        <Card className="h-fit overflow-hidden shadow-sm xl:sticky xl:top-0">
+          <CardHeader className="items-center text-center pb-4 px-4 sm:px-6 pt-5 sm:pt-6">
+            <div className="mx-auto mb-2 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary text-2xl font-bold sm:h-24 sm:w-24 sm:text-3xl">
               {user?.name ? user.name[0] : "?"}
             </div>
-            <CardTitle className="text-sm sm:text-lg md:text-sm">{user?.name}</CardTitle>
+            <CardTitle className="max-w-full truncate text-xl sm:text-2xl">{user?.name}</CardTitle>
             <CardDescription className="capitalize font-medium text-primary">
-              <Badge variant="outline" className="mt-1 text-xs md:text-[10px]">
+              <Badge variant="outline" className="mt-1 text-sm">
                 {user?.role}
               </Badge>
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 sm:space-y-3 md:space-y-2 text-[10px] sm:text-sm md:text-[9px]">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Mail className="h-3.5 w-3.5 sm:h-4 md:h-3" />
+          <CardContent className="space-y-3 px-4 pb-4 text-base sm:px-6 sm:pb-6">
+            <div className="flex min-w-0 items-center gap-3 rounded-md bg-muted/30 px-3 py-2.5 text-muted-foreground">
+              <Mail className="h-5 w-5 shrink-0" />
               <span className="break-all">{user?.email}</span>
             </div>
             {user?.phone && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="h-3.5 w-3.5 sm:h-4 md:h-3" />
+              <div className="flex min-w-0 items-center gap-3 rounded-md bg-muted/30 px-3 py-2.5 text-muted-foreground">
+                <Phone className="h-5 w-5 shrink-0" />
                 <span>{user?.phone}</span>
               </div>
             )}
             {user?.role.toLowerCase() === "dentist" && user?.specialization && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 sm:h-4 md:h-3" />
+              <div className="flex min-w-0 items-center gap-3 rounded-md bg-muted/30 px-3 py-2.5 text-muted-foreground">
+                <ShieldCheck className="h-5 w-5 shrink-0" />
                 <span>{user?.specialization}</span>
               </div>
             )}
@@ -236,58 +231,58 @@ export default function Settings() {
         </Card>
 
         {/* Configurations Form */}
-        <div className="md:col-span-2 space-y-4 sm:space-y-6 md:space-y-4">
+        <div className="space-y-5">
           {/* Profile Settings */}
-          <Card className="shadow-sm">
-            <CardHeader>
-              <div className="flex items-center gap-2 text-primary">
-                <User className="h-4 sm:h-5 md:h-4 w-4 sm:w-5 md:w-4" />
-                <CardTitle className="text-sm sm:text-lg md:text-base font-sans">Profile Settings</CardTitle>
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="space-y-2 px-4 pt-5 sm:px-6 sm:pt-6">
+              <div className="flex items-center gap-3 text-primary">
+                <User className="h-6 w-6 shrink-0" />
+                <CardTitle className="text-xl sm:text-2xl">Profile Settings</CardTitle>
               </div>
-              <CardDescription className="text-xs sm:text-sm md:text-xs">Update your personal information and contact details</CardDescription>
+              <CardDescription className="text-base">Update your personal information and contact details</CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSaveProfileSettings} className="space-y-3 sm:space-y-4 md:space-y-3">
+            <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+              <form onSubmit={handleSaveProfileSettings} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="profileName" className="text-xs sm:text-sm md:text-xs">Full Name</Label>
+                  <Label htmlFor="profileName" className="text-base">Full Name</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 md:h-3.5" />
-                    <Input id="profileName" className="pl-9 text-xs sm:text-sm md:text-xs" value={profileName} onChange={(e) => setProfileName(e.target.value)} required />
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input id="profileName" className="h-12 pl-11 text-base" value={profileName} onChange={(e) => setProfileName(e.target.value)} required />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-3 sm:gap-4 md:gap-3">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="profileEmail" className="text-xs sm:text-sm md:text-xs">Email Address</Label>
+                    <Label htmlFor="profileEmail" className="text-base">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 md:h-3.5" />
-                      <Input id="profileEmail" type="email" className="pl-9 text-xs sm:text-sm md:text-xs" value={profileEmail} disabled />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input id="profileEmail" type="email" className="h-12 pl-11 text-base" value={profileEmail} disabled />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="profilePhone" className="text-xs sm:text-sm md:text-xs">Phone Number</Label>
+                    <Label htmlFor="profilePhone" className="text-base">Phone Number</Label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 md:h-3.5" />
-                      <Input id="profilePhone" className="pl-9 text-xs sm:text-sm md:text-xs" placeholder="+91 99999 99999" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} />
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input id="profilePhone" className="h-12 pl-11 text-base" placeholder="+91 99999 99999" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} />
                     </div>
                   </div>
                 </div>
 
                 {user?.role.toLowerCase() === "dentist" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-3 sm:gap-4 md:gap-3">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <div className="space-y-2">
-                      <Label className="text-xs sm:text-sm md:text-xs">Specialization</Label>
-                      <Input className="text-xs sm:text-sm md:text-xs" value={user.specialization || "General Dentistry"} disabled />
+                      <Label className="text-base">Specialization</Label>
+                      <Input className="h-12 text-base" value={user.specialization || "General Dentistry"} disabled />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs sm:text-sm md:text-xs">License No.</Label>
-                      <Input className="text-xs sm:text-sm md:text-xs" value={user.licenseNo || "—"} disabled />
+                      <Label className="text-base">License No.</Label>
+                      <Input className="h-12 text-base" value={user.licenseNo || "-"} disabled />
                     </div>
                   </div>
                 )}
 
-                <Button type="submit" disabled={profileLoading} className="w-full sm:w-auto md:w-full text-xs sm:text-sm md:text-xs h-8 sm:h-10 md:h-8">
-                  <Save className="h-3.5 w-3.5 sm:h-4 md:h-3 mr-2" />
+                <Button type="submit" disabled={profileLoading} className="h-12 w-full text-base sm:w-auto sm:px-6">
+                  <Save className="h-4 w-4 mr-2" />
                   {profileLoading ? "Saving Changes..." : "Save Profile Details"}
                 </Button>
               </form>
@@ -296,59 +291,59 @@ export default function Settings() {
 
           {/* Clinic Settings (Admin Only) */}
           {isAdmin && (
-            <Card className="shadow-sm">
-              <CardHeader>
-                <div className="flex items-center gap-2 text-primary">
-                  <Building2 className="h-4 sm:h-5 md:h-4 w-4 sm:w-5 md:w-4" />
-                  <CardTitle className="text-sm sm:text-lg md:text-base font-sans">Clinic Settings</CardTitle>
+            <Card className="shadow-sm overflow-hidden">
+              <CardHeader className="space-y-2 px-4 pt-5 sm:px-6 sm:pt-6">
+                <div className="flex items-center gap-3 text-primary">
+                  <Building2 className="h-6 w-6 shrink-0" />
+                  <CardTitle className="text-xl sm:text-2xl">Clinic Settings</CardTitle>
                 </div>
-                <CardDescription className="text-xs sm:text-sm md:text-xs">Update clinic details visible to staff and customers</CardDescription>
+                <CardDescription className="text-base">Update clinic details visible to staff and customers</CardDescription>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSaveClinicSettings} className="space-y-3 sm:space-y-4 md:space-y-3">
+              <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+                <form onSubmit={handleSaveClinicSettings} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="clinicName" className="text-xs sm:text-sm md:text-xs">Clinic Name</Label>
+                    <Label htmlFor="clinicName" className="text-base">Clinic Name</Label>
                     <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 md:h-3.5" />
-                      <Input id="clinicName" className="pl-9 text-xs sm:text-sm md:text-xs" value={clinicName} onChange={(e) => setClinicName(e.target.value)} required />
+                      <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input id="clinicName" className="h-12 pl-11 text-base" value={clinicName} onChange={(e) => setClinicName(e.target.value)} required />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-3 sm:gap-4 md:gap-3">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="clinicEmail" className="text-xs sm:text-sm md:text-xs">Contact Email</Label>
+                      <Label htmlFor="clinicEmail" className="text-base">Contact Email</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 md:h-3.5" />
-                        <Input id="clinicEmail" type="email" className="pl-9 text-xs sm:text-sm md:text-xs" value={clinicEmail} onChange={(e) => setClinicEmail(e.target.value)} required />
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input id="clinicEmail" type="email" className="h-12 pl-11 text-base" value={clinicEmail} onChange={(e) => setClinicEmail(e.target.value)} required />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="clinicPhone" className="text-xs sm:text-sm md:text-xs">Contact Phone</Label>
+                      <Label htmlFor="clinicPhone" className="text-base">Contact Phone</Label>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 md:h-3.5" />
-                        <Input id="clinicPhone" className="pl-9 text-xs sm:text-sm md:text-xs" value={clinicPhone} onChange={(e) => setClinicPhone(e.target.value)} required />
+                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input id="clinicPhone" className="h-12 pl-11 text-base" value={clinicPhone} onChange={(e) => setClinicPhone(e.target.value)} required />
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="clinicAddress" className="text-xs sm:text-sm md:text-xs">Clinic Address</Label>
+                    <Label htmlFor="clinicAddress" className="text-base">Clinic Address</Label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 md:h-3.5" />
-                      <Input id="clinicAddress" className="pl-9 text-xs sm:text-sm md:text-xs" value={clinicAddress} onChange={(e) => setClinicAddress(e.target.value)} required />
+                      <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input id="clinicAddress" className="h-12 pl-11 text-base" value={clinicAddress} onChange={(e) => setClinicAddress(e.target.value)} required />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="clinicHours" className="text-xs sm:text-sm md:text-xs">Working Hours</Label>
+                    <Label htmlFor="clinicHours" className="text-base">Working Hours</Label>
                     <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 md:h-3.5" />
-                      <Input id="clinicHours" className="pl-9 text-xs sm:text-sm md:text-xs" value={clinicHours} onChange={(e) => setClinicHours(e.target.value)} required />
+                      <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input id="clinicHours" className="h-12 pl-11 text-base" value={clinicHours} onChange={(e) => setClinicHours(e.target.value)} required />
                     </div>
                   </div>
 
-                  <Button type="submit" disabled={clinicLoading} className="w-full sm:w-auto md:w-full text-xs sm:text-sm md:text-xs h-8 sm:h-10 md:h-8">
-                    <Save className="h-3.5 w-3.5 sm:h-4 md:h-3 mr-2" />
+                  <Button type="submit" disabled={clinicLoading} className="h-12 w-full text-base sm:w-auto sm:px-6">
+                    <Save className="h-4 w-4 mr-2" />
                     {clinicLoading ? "Saving Settings..." : "Save Clinic Configuration"}
                   </Button>
                 </form>
@@ -357,32 +352,32 @@ export default function Settings() {
           )}
 
           {/* Security Settings */}
-          <Card className="shadow-sm">
-            <CardHeader>
-              <div className="flex items-center gap-2 text-primary">
-                <Lock className="h-4 sm:h-5 md:h-4 w-4 sm:w-5 md:w-4" />
-                <CardTitle className="text-sm sm:text-lg md:text-base font-sans">Security Settings</CardTitle>
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="space-y-2 px-4 pt-5 sm:px-6 sm:pt-6">
+              <div className="flex items-center gap-3 text-primary">
+                <Lock className="h-6 w-6 shrink-0" />
+                <CardTitle className="text-xl sm:text-2xl">Security Settings</CardTitle>
               </div>
-              <CardDescription className="text-xs sm:text-sm md:text-xs">Update your account password and secure credentials</CardDescription>
+              <CardDescription className="text-base">Update your account password and secure credentials</CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSaveSecuritySettings} className="space-y-3 sm:space-y-4 md:space-y-3">
+            <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+              <form onSubmit={handleSaveSecuritySettings} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword" className="text-xs sm:text-sm md:text-xs">New Password</Label>
-                  <Input id="newPassword" type="password" className="text-xs sm:text-sm md:text-xs" placeholder="Minimum 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                  <Label htmlFor="newPassword" className="text-base">New Password</Label>
+                  <Input id="newPassword" type="password" className="h-12 text-base" placeholder="Minimum 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmNewPassword" className="text-xs sm:text-sm md:text-xs">Confirm New Password</Label>
-                  <Input id="confirmNewPassword" type="password" className="text-xs sm:text-sm md:text-xs" placeholder="Re-enter new password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} required />
+                  <Label htmlFor="confirmNewPassword" className="text-base">Confirm New Password</Label>
+                  <Input id="confirmNewPassword" type="password" className="h-12 text-base" placeholder="Re-enter new password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} required />
                 </div>
                 {newPassword && confirmNewPassword && newPassword !== confirmNewPassword && (
-                  <p className="text-xs sm:text-sm md:text-xs text-destructive">⚠ Passwords do not match</p>
+                  <p className="text-sm text-destructive">Passwords do not match</p>
                 )}
                 {newPassword && confirmNewPassword && newPassword === confirmNewPassword && (
-                  <p className="text-xs sm:text-sm md:text-xs text-green-600">✓ Passwords match</p>
+                  <p className="text-sm text-green-600">Passwords match</p>
                 )}
-                <Button type="submit" disabled={securityLoading || (!!newPassword && !!confirmNewPassword && newPassword !== confirmNewPassword)} className="w-full sm:w-auto md:w-full text-xs sm:text-sm md:text-xs h-8 sm:h-10 md:h-8">
-                  <Lock className="h-3.5 w-3.5 sm:h-4 md:h-3 mr-2" />
+                <Button type="submit" disabled={securityLoading || (!!newPassword && !!confirmNewPassword && newPassword !== confirmNewPassword)} className="h-12 w-full text-base sm:w-auto sm:px-6">
+                  <Lock className="h-4 w-4 mr-2" />
                   {securityLoading ? "Updating Password..." : "Update Password"}
                 </Button>
               </form>

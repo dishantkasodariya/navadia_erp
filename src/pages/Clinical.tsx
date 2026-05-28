@@ -11,7 +11,7 @@ export default function Clinical() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-serif">Clinical Records</h1>
+          <h1 className="text-2xl">Clinical Records</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Patient: <span className="font-medium text-foreground">Rahul Sharma</span> (ID: #PT-8829)
           </p>
@@ -32,7 +32,7 @@ export default function Clinical() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-sans flex items-center gap-2">
+              <CardTitle className="text-base flex items-center gap-2">
                 <Stethoscope className="h-4 w-4" /> Treatment Notes (SOAP)
               </CardTitle>
             </CardHeader>
@@ -64,7 +64,7 @@ export default function Clinical() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-sans flex items-center gap-2">
+              <CardTitle className="text-base flex items-center gap-2">
                 <ClipboardList className="h-4 w-4" /> Recent History
               </CardTitle>
             </CardHeader>
@@ -87,7 +87,7 @@ export default function Clinical() {
 
           <Card className="bg-primary/5 border-primary/10">
             <CardHeader>
-              <CardTitle className="text-base font-sans">Quick Actions</CardTitle>
+              <CardTitle className="text-base">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2">
               <Button variant="outline" className="justify-start text-xs h-9">Issue Prescription</Button>

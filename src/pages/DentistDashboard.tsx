@@ -237,10 +237,10 @@ export default function DentistDashboard() {
           <Card className="bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm border-0 shadow-md rounded-2xl">
             <CardHeader className="flex flex-row items-center gap-3 pb-2">
               <Activity className="h-5 w-5 text-neutral-700 dark:text-neutral-300" />
-              <CardTitle className="text-base font-bold text-neutral-800 dark:text-neutral-200">Shift Control</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl text-neutral-800 dark:text-neutral-200">Shift Control</CardTitle>
             </CardHeader>
             <CardContent className="pt-2">
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-5">Manage your daily attendance</p>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Manage your daily attendance</p>
               
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Status</span>
@@ -268,7 +268,7 @@ export default function DentistDashboard() {
                 <div className="p-4 bg-neutral-100/50 dark:bg-neutral-800/40 rounded-xl text-center space-y-3">
                    <div>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400">Work Duration</p>
-                    <p className="text-2xl font-bold font-mono text-neutral-800 dark:text-neutral-200">{formatMs(elapsedActiveTime)}</p>
+                    <p className="text-2xl font-bold font-sans text-neutral-800 dark:text-neutral-200">{formatMs(elapsedActiveTime)}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Button variant="outline" onClick={() => setLunchDialogOpen(true)} className="h-10 rounded-lg bg-white dark:bg-neutral-700/50 border-neutral-200 dark:border-neutral-700 text-xs gap-1.5">
@@ -285,7 +285,7 @@ export default function DentistDashboard() {
                  <div className="p-4 bg-yellow-100/50 dark:bg-yellow-800/30 rounded-xl text-center space-y-3">
                    <div>
                     <p className="text-xs text-yellow-600 dark:text-yellow-400">Break Duration</p>
-                    <p className="text-2xl font-bold font-mono text-yellow-700 dark:text-yellow-300">{formatMs(elapsedBreakTime)}</p>
+                    <p className="text-2xl font-bold font-sans text-yellow-700 dark:text-yellow-300">{formatMs(elapsedBreakTime)}</p>
                   </div>
                   <Button onClick={handleResumeDuty} className="w-full h-11 bg-yellow-500 hover:bg-yellow-600 text-neutral-900 rounded-xl font-semibold gap-2">
                     <Sparkles className="h-4 w-4" /> Resume Duty
@@ -315,7 +315,7 @@ export default function DentistDashboard() {
                   <Clock className="h-4 w-4" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-bold text-neutral-800 dark:text-neutral-200">Shift History</CardTitle>
+                  <CardTitle className="text-xl sm:text-2xl text-neutral-800 dark:text-neutral-200">Shift History</CardTitle>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400">Last 5 working days</p>
                 </div>
               </div>
@@ -337,9 +337,9 @@ export default function DentistDashboard() {
                   {shift.status !== "idle" && (
                     <tr className="font-semibold text-yellow-600 dark:text-yellow-400 border-b border-neutral-200/80 dark:border-neutral-800">
                       <td className="py-3">Today</td>
-                      <td className="text-center font-mono">{getFormattedTime(shift.checkInTimestamp)}</td>
-                      <td className="text-center font-mono">{shift.status === "checked_out" ? getFormattedTime(shift.checkOutTimestamp) : "—"}</td>
-                      <td className="text-right font-mono">
+                      <td className="text-center font-sans">{getFormattedTime(shift.checkInTimestamp)}</td>
+                      <td className="text-center font-sans">{shift.status === "checked_out" ? getFormattedTime(shift.checkOutTimestamp) : "—"}</td>
+                      <td className="text-right font-sans">
                         {shift.status === "checked_out" ? formatMs(shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime).split(" ").slice(0,2).join(" ") : formatMs(elapsedActiveTime).split(" ").slice(0,2).join(" ")}
                       </td>
                     </tr>
@@ -347,9 +347,9 @@ export default function DentistDashboard() {
                   {history.map((h, i) => (
                     <tr key={i} className="border-b border-neutral-200/80 dark:border-neutral-800 last:border-0">
                       <td className="py-3 font-medium text-neutral-700 dark:text-neutral-300">{h.date.replace(" (Today)", "")}</td>
-                      <td className="text-center font-mono text-neutral-500 dark:text-neutral-400">{h.checkIn || "—"}</td>
-                      <td className="text-center font-mono text-neutral-500 dark:text-neutral-400">{h.checkOut || "—"}</td>
-                      <td className="text-right font-mono text-neutral-500 dark:text-neutral-400">{h.duration ? h.duration.split(" ").slice(0,2).join(" ") : "—"}</td>
+                      <td className="text-center font-sans text-neutral-500 dark:text-neutral-400">{h.checkIn || "—"}</td>
+                      <td className="text-center font-sans text-neutral-500 dark:text-neutral-400">{h.checkOut || "—"}</td>
+                      <td className="text-right font-sans text-neutral-500 dark:text-neutral-400">{h.duration ? h.duration.split(" ").slice(0,2).join(" ") : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -366,7 +366,7 @@ export default function DentistDashboard() {
             <div className="h-14 w-14 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 flex items-center justify-center text-amber-500">
               <Utensils className="h-7 w-7" />
             </div>
-            <DialogTitle className="font-serif text-xl">Step Out for Break?</DialogTitle>
+            <DialogTitle className="text-xl">Step Out for Break?</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">Your status will show as "On Break" to all staff.</DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-center mt-2">
@@ -382,18 +382,18 @@ export default function DentistDashboard() {
             <div className="h-14 w-14 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-100 flex items-center justify-center text-red-500">
               <LogOut className="h-7 w-7" />
             </div>
-            <DialogTitle className="font-serif text-xl">End Shift & Clock Out?</DialogTitle>
+            <DialogTitle className="text-xl">End Shift & Clock Out?</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground max-w-xs">Finalize your daily logs and submit your shift report.</DialogDescription>
           </DialogHeader>
           <div className="my-2 space-y-3">
             <div className="grid grid-cols-2 gap-3 text-center">
               <div className="bg-muted/40 rounded-xl p-3">
                 <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Clock In</p>
-                <p className="text-sm font-mono font-bold mt-1">{getFormattedTime(shift.checkInTimestamp)}</p>
+                <p className="text-sm font-sans font-bold mt-1">{getFormattedTime(shift.checkInTimestamp)}</p>
               </div>
               <div className="bg-primary/5 rounded-xl p-3 border border-primary/15">
                 <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Duration</p>
-                <p className="text-sm font-mono font-bold text-primary mt-1">{formatMs(elapsedActiveTime).split(" ").slice(0,2).join(" ")}</p>
+                <p className="text-sm font-sans font-bold text-primary mt-1">{formatMs(elapsedActiveTime).split(" ").slice(0,2).join(" ")}</p>
               </div>
             </div>
             <div className="space-y-1.5">

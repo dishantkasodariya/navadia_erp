@@ -65,14 +65,14 @@ export default function Signup() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
               <span className="text-xl font-bold text-primary-foreground">N</span>
             </div>
-            <h1 className="text-4xl font-serif text-foreground tracking-tight">Navadia</h1>
+            <h1 className="text-4xl text-foreground tracking-tight">Navadia</h1>
           </div>
           <p className="text-muted-foreground text-sm">Join the future of dental care</p>
         </div>
 
         <Card className="border-none shadow-md bg-card/50 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-2xl font-sans text-center">Admin Registration</CardTitle>
+            <CardTitle className="text-2xl text-center">Admin Registration</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="mb-6 border-t border-dashed border-muted-foreground/20"></div>

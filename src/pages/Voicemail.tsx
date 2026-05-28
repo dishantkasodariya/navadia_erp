@@ -211,7 +211,7 @@ export default function Voicemail() {
     <div className="space-y-6 font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-serif">Voicemail</h1>
+          <h1 className="text-2xl">Voicemail</h1>
           <p className="text-muted-foreground text-sm mt-1">Send and receive voice messages for task assignments</p>
         </div>
         {user?.role.toLowerCase() === "admin" && (
@@ -249,7 +249,7 @@ export default function Voicemail() {
                       <div className="text-center">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
-                          <span className="text-sm font-mono">{formatTime(recordingDuration)}</span>
+                          <span className="text-sm font-sans">{formatTime(recordingDuration)}</span>
                         </div>
                         <Button type="button" variant="destructive" size="lg" className="rounded-full h-16 w-16" onClick={stopRecording}>
                           <Square className="h-6 w-6" />
@@ -282,21 +282,21 @@ export default function Voicemail() {
         <Card>
           <CardContent className="pt-4 text-center">
             <Phone className="h-5 w-5 mx-auto text-primary mb-1" />
-            <p className="text-2xl font-bold font-serif">{messages.length}</p>
+            <p className="text-2xl font-bold">{messages.length}</p>
             <p className="text-xs text-muted-foreground">Total Messages</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <Clock className="h-5 w-5 mx-auto text-accent mb-1" />
-            <p className="text-2xl font-bold font-serif">{unreadCount}</p>
+            <p className="text-2xl font-bold">{unreadCount}</p>
             <p className="text-xs text-muted-foreground">Unread</p>
           </CardContent>
         </Card>
         <Card className="col-span-2 lg:col-span-1">
           <CardContent className="pt-4 text-center">
             <Mic className="h-5 w-5 mx-auto text-secondary mb-1" />
-            <p className="text-2xl font-bold font-serif">{messages.filter((m) => m.fromId === user?.id).length}</p>
+            <p className="text-2xl font-bold">{messages.filter((m) => m.fromId === user?.id).length}</p>
             <p className="text-xs text-muted-foreground">Sent</p>
           </CardContent>
         </Card>

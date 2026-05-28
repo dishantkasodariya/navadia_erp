@@ -85,7 +85,7 @@ function NavSection({ label, items, collapsed, onMobileNavigate }: NavSectionPro
 
   return (
     <SidebarGroup>
-      {!collapsed && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
+      {!collapsed && <SidebarGroupLabel className="px-3">{label}</SidebarGroupLabel>}
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
@@ -108,10 +108,10 @@ function NavSection({ label, items, collapsed, onMobileNavigate }: NavSectionPro
                     )}
                   </div>
                   {!collapsed && (
-                    <span className="flex-1 flex items-center justify-between w-full ml-3 min-w-0">
-                      <span className="truncate">{item.title}</span>
+                    <span className="flex-1 flex items-center justify-between w-full ml-3 min-w-0 gap-2">
+                      <span className="truncate text-base font-medium leading-6">{item.title}</span>
                       {item.title === "Messages" && unreadCountContext > 0 && (
-                        <span className="bg-primary text-primary-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full select-none shrink-0 animate-pulse">
+                        <span className="bg-primary text-primary-foreground text-xs font-semibold px-2 py-0.5 rounded-full select-none shrink-0 animate-pulse">
                           {unreadCountContext}
                         </span>
                       )}
@@ -149,12 +149,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <div className={`flex items-center gap-2 py-4 transition-all duration-200 ${collapsed ? "px-2 justify-center" : "px-4"}`}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-          <span className="text-sm font-bold text-primary-foreground">N</span>
+      <div className={`flex items-center gap-3 py-4 transition-all duration-200 ${collapsed ? "px-2 justify-center" : "px-4"}`}>
+        <div className="flex h-8 w-8 items-center justify-center">
+          <img src="/logo.png" alt="Navadia logo" className="h-12 w-12 object-contain" />
         </div>
         {!collapsed && (
-          <span className="text-lg font-serif font-bold text-foreground">
+          <span className="text-2xl font-bold text-foreground">
             Navadia
           </span>
         )}

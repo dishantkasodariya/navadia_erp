@@ -390,17 +390,17 @@ export default function Attendance() {
 
   return (
     <div className="space-y-6 font-sans">
-      <div className="flex flex-col sm:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-serif">Attendance Management</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-1">Track and manage daily check-ins and hours</p>
+          <h1 className="text-xl sm:text-2xl md:max-lg:text-2xl">Attendance Management</h1>
+          <p className="text-muted-foreground text-sm sm:text-base md:max-lg:text-sm mt-1">Track and manage daily check-ins and hours</p>
         </div>
         {isAdmin && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Mark Attendance</Button>
+              <Button className="w-full sm:w-fit md:max-lg:h-10 md:max-lg:px-4 md:max-lg:text-sm lg:w-auto"><Plus className="h-4 w-4 mr-2" />Mark Attendance</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[calc(100vw-2rem)] max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg p-4 sm:w-[calc(100vw-3rem)] sm:max-h-[calc(100svh-3rem)] sm:p-6 lg:w-full lg:max-h-none lg:overflow-visible">
               <DialogHeader><DialogTitle>Mark Attendance</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-2">
                 <div>
@@ -440,45 +440,45 @@ export default function Attendance() {
 
       {isAdmin ? (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="daily" className="gap-2"><Clock className="h-4 w-4" /> Daily Log</TabsTrigger>
-            <TabsTrigger value="overview" className="gap-2"><Users className="h-4 w-4" /> Staff Overview</TabsTrigger>
+          <TabsList className="mb-4 w-full justify-between lg:w-auto lg:justify-start">
+            <TabsTrigger value="daily" className="flex-1 gap-2 lg:flex-none"><Clock className="h-4 w-4" /> Daily Log</TabsTrigger>
+            <TabsTrigger value="overview" className="flex-1 gap-2 lg:flex-none"><Users className="h-4 w-4" /> Staff Overview</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview">
-            <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 mb-6">
+            <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 md:max-lg:grid-cols-2 mb-6">
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Active Personnel</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm sm:text-base font-medium">Active Personnel</CardTitle></CardHeader>
                 <CardContent>
                   <div className="text-xl sm:text-2xl font-bold">{staffOptions.length} Staff</div>
-                  <p className="text-xs text-muted-foreground mt-1">Clock-in and payroll operational</p>
+                  <p className="text-sm text-muted-foreground mt-1">Clock-in and payroll operational</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Total Monthly Hours Worked</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm sm:text-base font-medium">Total Monthly Hours Worked</CardTitle></CardHeader>
                 <CardContent>
                   <div className="text-xl sm:text-2xl font-bold">
                     {formatDuration(staffSummary.reduce((acc, s) => acc + s.monthlyHours, 0))}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Accumulated hours</p>
+                  <p className="text-sm text-muted-foreground mt-1">Accumulated hours</p>
                 </CardContent>
               </Card>
               <Card className="bg-primary/5 border-primary/20 sm:col-span-2 xl:col-span-1">
-                <CardHeader className="pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Active Period</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm sm:text-base font-medium">Active Period</CardTitle></CardHeader>
                 <CardContent>
                   <div className="text-lg sm:text-xl font-semibold">{format(new Date(), "MMMM yyyy")}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Payroll Cycle</p>
+                  <p className="text-sm text-muted-foreground mt-1">Payroll Cycle</p>
                 </CardContent>
               </Card>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-6">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:max-lg:flex-wrap mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-9 text-sm" placeholder="Search staff..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                <Input className="pl-9 text-sm md:max-lg:text-sm" placeholder="Search staff..." value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full sm:w-[140px] text-sm"><SelectValue placeholder="All Roles" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[140px] md:max-lg:w-[160px] text-sm"><SelectValue placeholder="All Roles" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="dentist">Dentists</SelectItem>
@@ -487,29 +487,29 @@ export default function Attendance() {
               </Select>
             </div>
 
-            <div className="grid gap-3 sm:gap-4">
+            <div className="grid gap-3 sm:gap-4 md:grid-cols-2 md:max-lg:grid-cols-2 2xl:grid-cols-3">
               {staffSummary.map((staff) => (
                 <Card key={staff.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                  <CardContent className="grid gap-4 p-4 md:max-lg:p-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
                         {staff.name?.charAt(0) || "?"}
                       </div>
-                      <div>
-                        <p className="font-medium">{staff.name}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{staff.role}</p>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{staff.name}</p>
+                        <p className="text-sm text-muted-foreground capitalize">{staff.role}</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 sm:flex items-center gap-2 sm:gap-6 text-center sm:text-right w-full">
-                      <div>
-                        <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">Today</p>
-                        <p className="text-xs sm:text-sm font-semibold">{formatDuration(staff.todayHours)}</p>
+                    <div className="grid w-full grid-cols-2 gap-2 md:max-lg:gap-1.5">
+                      <div className="rounded-md bg-muted/30 px-3 py-2 text-center sm:min-w-24">
+                        <p className="text-xs sm:text-xs uppercase tracking-wider text-muted-foreground">Today</p>
+                        <p className="text-sm sm:text-base font-semibold">{formatDuration(staff.todayHours)}</p>
                       </div>
-                      <div>
-                        <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">This Month</p>
-                        <p className="text-xs sm:text-sm font-semibold text-primary">{formatDuration(staff.monthlyHours)}</p>
+                      <div className="rounded-md bg-primary/5 px-3 py-2 text-center sm:min-w-28">
+                        <p className="text-xs sm:text-xs uppercase tracking-wider text-muted-foreground">This Month</p>
+                        <p className="text-sm sm:text-base font-semibold text-primary">{formatDuration(staff.monthlyHours)}</p>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => setViewStaffId(staff.id)} className="col-span-1 sm:col-auto gap-1 h-8 text-xs">
+                      <Button variant="outline" size="sm" onClick={() => setViewStaffId(staff.id)} className="col-span-2 h-9 gap-1 text-xs md:max-lg:h-8 md:max-lg:text-[11px]">
                         <History className="h-3 w-3" /> History
                       </Button>
                     </div>
@@ -536,35 +536,35 @@ export default function Attendance() {
 
           <TabsContent value="overview">
             <div className="space-y-6">
-              <Card className=" transition-shadow border-muted/50 rounded-lg bg-card shadow-sm overflow-hidden">
-                <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <Card className="transition-shadow border-muted/50 rounded-lg bg-card shadow-sm overflow-hidden">
+                <CardContent className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(220px,1fr)_minmax(320px,auto)] md:max-lg:p-3 sm:items-center">
                   {/* Profile Details */}
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center font-bold text-amber-600 text-sm">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-amber-500/10 flex items-center justify-center font-bold text-amber-600 text-sm">
                       {user?.name?.charAt(0) || "?"}
                     </div>
-                    <div>
-                      <h3 className="font-medium text-sm text-foreground">{user?.name}</h3>
-                      <p className="text-xs text-muted-foreground capitalize mt-0.5">{user?.role}</p>
+                    <div className="min-w-0">
+                      <h3 className="truncate font-medium text-sm text-foreground">{user?.name}</h3>
+                      <p className="text-sm text-muted-foreground capitalize mt-0.5">{user?.role}</p>
                     </div>
                   </div>
                   
                   {/* Statistics & Actions */}
-                  <div className="grid grid-cols-3 sm:flex items-center gap-2 sm:gap-6 text-center sm:text-right w-full">
-                    <div>
-                      <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Today</p>
-                      <p className="text-xs sm:text-sm font-semibold text-foreground mt-1">{formatDuration(personalTodayHours)}</p>
+                  <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:justify-end sm:gap-3 lg:gap-4 md:max-lg:gap-2">
+                    <div className="rounded-md bg-muted/30 px-3 py-2 text-center sm:min-w-24">
+                      <p className="text-xs sm:text-xs uppercase tracking-wider text-muted-foreground font-semibold">Today</p>
+                      <p className="text-sm sm:text-base font-semibold text-foreground mt-1">{formatDuration(personalTodayHours)}</p>
                     </div>
-                    <div>
-                      <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">This Month</p>
-                      <p className="text-xs sm:text-sm font-semibold text-primary mt-1">{formatDuration(personalMonthlyHours)}</p>
+                    <div className="rounded-md bg-primary/5 px-3 py-2 text-center sm:min-w-28">
+                      <p className="text-xs sm:text-xs uppercase tracking-wider text-muted-foreground font-semibold">This Month</p>
+                      <p className="text-sm sm:text-base font-semibold text-primary mt-1">{formatDuration(personalMonthlyHours)}</p>
                     </div>
                     
                     <Button 
                       onClick={() => setViewStaffId(user?.id || null)}
-                      className="col-span-1 sm:col-auto gap-1.5 h-8 sm:h-9 rounded-lg border border-gray-200/80 bg-[#f5f5f4] text-[#1c1917] hover:bg-amber-500 hover:text-white hover:border-amber-500 shadow-sm transition-all duration-200 text-xs"
+                      className="col-span-2 h-9 gap-1.5 rounded-lg border border-gray-200/80 bg-[#f5f5f4] text-[#1c1917] hover:bg-amber-500 hover:text-white hover:border-amber-500 shadow-sm transition-all duration-200 text-xs sm:col-auto sm:min-w-24 md:max-lg:h-8 md:max-lg:px-3 md:max-lg:text-[11px]"
                     >
-                      <History className="h-3 w-3 sm:h-3.5 sm:w-3.5 transition-colors" /> <span className="hidden sm:inline">History</span>
+                      <History className="h-3 w-3 sm:h-3.5 sm:w-3.5 transition-colors" /> History
                     </Button>
                   </div>
                 </CardContent>
@@ -578,12 +578,12 @@ export default function Attendance() {
       <Dialog open={!!viewStaffId} onOpenChange={(o) => !o && setViewStaffId(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-serif">
+            <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" /> Attendance History: {selectedStaffName}
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto mt-4 px-1">
-            <table className="w-full text-xs sm:text-sm">
+            <table className="w-full text-sm sm:text-base">
               <thead className="sticky top-0 bg-background border-b z-10">
                 <tr>
                   <th className="text-left py-2 font-medium">Date</th>
@@ -596,19 +596,19 @@ export default function Attendance() {
               <tbody className="divide-y">
                 {selectedStaffHistory.map((h) => (
                   <tr key={h.id} className="hover:bg-muted/30">
-                    <td className="py-2 sm:py-3 font-medium text-xs sm:text-sm">{h.date}</td>
-                    <td className="py-2 sm:py-3 font-mono text-[10px] sm:text-xs text-muted-foreground hidden sm:table-cell">{h.checkIn || "—"}</td>
-                    <td className="py-2 sm:py-3 font-mono text-[10px] sm:text-xs text-muted-foreground hidden sm:table-cell">{h.checkOut || "—"}</td>
-                    <td className="py-2 sm:py-3 font-semibold text-xs sm:text-sm">{formatDuration(calculateDuration(h.checkIn, h.checkOut))}</td>
+                    <td className="py-2 sm:py-3 font-medium text-sm sm:text-base">{h.date}</td>
+                    <td className="py-2 sm:py-3 font-sans text-xs sm:text-sm text-muted-foreground hidden sm:table-cell">{h.checkIn || "—"}</td>
+                    <td className="py-2 sm:py-3 font-sans text-xs sm:text-sm text-muted-foreground hidden sm:table-cell">{h.checkOut || "—"}</td>
+                    <td className="py-2 sm:py-3 font-semibold text-sm sm:text-base">{formatDuration(calculateDuration(h.checkIn, h.checkOut))}</td>
                     <td className="py-2 sm:py-3">
-                      <span className={`text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full ${statusColor(h.status)}`}>
+                      <span className={`text-xs sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${statusColor(h.status)}`}>
                         {h.status}
                       </span>
                     </td>
                   </tr>
                 ))}
                 {selectedStaffHistory.length === 0 && (
-                  <tr><td colSpan={5} className="py-6 sm:py-8 text-center text-muted-foreground text-xs sm:text-sm">No records found for this user</td></tr>
+                  <tr><td colSpan={5} className="py-6 sm:py-8 text-center text-muted-foreground text-sm sm:text-base">No records found for this user</td></tr>
                 )}
               </tbody>
             </table>
@@ -621,41 +621,41 @@ export default function Attendance() {
   function renderDailyLog() {
     return (
       <div className="space-y-6">
-        <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardContent className="pt-3 sm:pt-4 flex items-center gap-2 sm:gap-3">
-              <div className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg bg-secondary/15 flex items-center justify-center flex-shrink-0"><UserCheck className="h-4 sm:h-5 w-4 sm:w-5 text-secondary" /></div>
-              <div><p className="text-lg sm:text-2xl font-bold font-serif">{presentCount}</p><p className="text-[10px] sm:text-xs text-muted-foreground">Present</p></div>
+              <div className="h-10 w-10 rounded-lg bg-secondary/15 flex items-center justify-center flex-shrink-0"><UserCheck className="h-4 sm:h-5 w-4 sm:w-5 text-secondary" /></div>
+              <div><p className="text-lg sm:text-2xl font-bold">{presentCount}</p><p className="text-xs sm:text-sm text-muted-foreground">Present</p></div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-3 sm:pt-4 flex items-center gap-2 sm:gap-3">
-              <div className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg bg-destructive/15 flex items-center justify-center flex-shrink-0"><UserX className="h-4 sm:h-5 w-4 sm:w-5 text-destructive" /></div>
-              <div><p className="text-lg sm:text-2xl font-bold font-serif">{absentCount}</p><p className="text-[10px] sm:text-xs text-muted-foreground">Absent</p></div>
+              <div className="h-10 w-10 rounded-lg bg-destructive/15 flex items-center justify-center flex-shrink-0"><UserX className="h-4 sm:h-5 w-4 sm:w-5 text-destructive" /></div>
+              <div><p className="text-lg sm:text-2xl font-bold">{absentCount}</p><p className="text-xs sm:text-sm text-muted-foreground">Absent</p></div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-3 sm:pt-4 flex items-center gap-2 sm:gap-3">
-              <div className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg bg-accent/15 flex items-center justify-center flex-shrink-0"><Clock className="h-4 sm:h-5 w-4 sm:w-5 text-accent" /></div>
-              <div><p className="text-lg sm:text-2xl font-bold font-serif">{lateCount}</p><p className="text-[10px] sm:text-xs text-muted-foreground">Late</p></div>
+              <div className="h-10 w-10 rounded-lg bg-accent/15 flex items-center justify-center flex-shrink-0"><Clock className="h-4 sm:h-5 w-4 sm:w-5 text-accent" /></div>
+              <div><p className="text-lg sm:text-2xl font-bold">{lateCount}</p><p className="text-xs sm:text-sm text-muted-foreground">Late</p></div>
             </CardContent>
           </Card>
           <Card >
             <CardContent className="pt-3 sm:pt-4 flex items-center gap-2 sm:gap-3">
-              <div className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0"><Calendar className="h-4 sm:h-5 w-4 sm:w-5 text-primary" /></div>
-              <div><p className="text-lg sm:text-2xl font-bold font-serif">{selectedDate === today ? "Today" : selectedDate}</p><p className="text-[10px] sm:text-xs text-muted-foreground">Date</p></div>
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0"><Calendar className="h-4 sm:h-5 w-4 sm:w-5 text-primary" /></div>
+              <div><p className="text-lg sm:text-2xl font-bold">{selectedDate === today ? "Today" : selectedDate}</p><p className="text-xs sm:text-sm text-muted-foreground">Date</p></div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:items-center">
+          <div className="relative sm:col-span-2 md:col-span-3 lg:col-span-1 lg:flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Search staff..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input className="h-11 pl-9 lg:h-10" placeholder="Search staff..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           {isAdmin && (
             <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="h-11 w-full lg:h-10 lg:w-[180px]">
                 <SelectValue placeholder="All Roles" />
               </SelectTrigger>
               <SelectContent>
@@ -666,7 +666,7 @@ export default function Attendance() {
             </Select>
           )}
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-11 w-full lg:h-10 lg:w-[150px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="present">Present</SelectItem>
@@ -676,17 +676,17 @@ export default function Attendance() {
               <SelectItem value="on-leave">On Leave</SelectItem>
             </SelectContent>
           </Select>
-          {isAdmin && <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full sm:w-[170px]" />}
+          {isAdmin && <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="h-11 w-full sm:col-span-2 md:col-span-1 lg:h-10 lg:w-[170px]" />}
         </div>
 
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs sm:text-sm">
+              <table className="min-w-[640px] text-sm sm:text-base lg:min-w-0 lg:w-full">
                 <thead>
                   <tr className="border-b bg-muted/30 text-left">
                     <th className="p-2 sm:p-3 font-medium text-muted-foreground">Staff</th>
-                    <th className="p-2 sm:p-3 font-medium text-muted-foreground hidden sm:table-cell text-[10px]">Role</th>
+                    <th className="p-2 sm:p-3 font-medium text-muted-foreground hidden sm:table-cell text-xs">Role</th>
                     <th className="p-2 sm:p-3 font-medium text-muted-foreground">Check In</th>
                     <th className="p-2 sm:p-3 font-medium text-muted-foreground hidden sm:table-cell">Check Out</th>
                     <th className="p-2 sm:p-3 font-medium text-muted-foreground">Status</th>
@@ -696,32 +696,32 @@ export default function Attendance() {
                 <tbody>
                   {filtered.map((r) => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/20">
-                      <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">{r.staffName}</td>
-                      <td className="p-2 sm:p-3 capitalize text-muted-foreground hidden sm:table-cell text-[10px]">s{r.role}</td>
-                      <td className="p-2 sm:p-3 font-mono text-[10px] sm:text-xs">{r.checkIn || "—"}</td>
-                      <td className="p-2 sm:p-3 font-mono text-[10px] sm:text-xs hidden sm:table-cell">{r.checkOut || "—"}</td>
-                      <td className="p-2 sm:p-3"><span className={`text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${statusColor(r.status)}`}>{r.status}</span></td>
+                      <td className="p-2 sm:p-3 font-medium text-sm sm:text-base">{r.staffName}</td>
+                      <td className="p-2 sm:p-3 capitalize text-muted-foreground hidden sm:table-cell text-base">s{r.role}</td>
+                      <td className="p-2 sm:p-3 font-sans text-xs sm:text-xs">{r.checkIn || "—"}</td>
+                      <td className="p-2 sm:p-3 font-sans text-xs sm:text-xs hidden sm:table-cell">{r.checkOut || "—"}</td>
+                      <td className="p-2 sm:p-3"><span className={`text-xs sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${statusColor(r.status)}`}>{r.status}</span></td>
                       <td className="p-2 sm:p-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {!r.checkIn && (
-                            <Button variant="outline" size="sm" className="gap-1 h-7 sm:h-8 text-[10px] sm:text-xs px-2" onClick={() => handleCheckIn(r.id)} title="Check In">
+                            <Button variant="outline" size="sm" className="gap-1 h-9 text-xs sm:text-xs px-2" onClick={() => handleCheckIn(r.id)} title="Check In">
                               <LogIn className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Check In</span>
                             </Button>
                           )}
                           {r.checkIn && !r.checkOut && (
-                            <Button variant="outline" size="sm" className="gap-1 h-7 sm:h-8 text-[10px] sm:text-xs px-2" onClick={() => handleCheckOut(r.id)} title="Check Out">
+                            <Button variant="outline" size="sm" className="gap-1 h-9 text-xs sm:text-xs px-2" onClick={() => handleCheckOut(r.id)} title="Check Out">
                               <LogOut className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Check Out</span>
                             </Button>
                           )}
                           {r.checkIn && r.checkOut && (
-                            <span className="text-[10px] sm:text-xs text-muted-foreground">Done</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground">Done</span>
                           )}
                         </div>
                       </td>
                     </tr>
                   ))}
                   {filtered.length === 0 && (
-                    <tr><td colSpan={6} className="p-6 sm:p-8 text-center text-muted-foreground text-xs sm:text-sm">No attendance records found</td></tr>
+                    <tr><td colSpan={6} className="p-6 sm:p-8 text-center text-muted-foreground text-sm sm:text-base">No attendance records found</td></tr>
                   )}
                 </tbody>
               </table>

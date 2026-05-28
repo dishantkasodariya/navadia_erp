@@ -22,11 +22,11 @@ const roleBadgeVariant: Record<string, "default" | "secondary" | "outline"> = {
 };
 
 const roleIcons: Record<string, React.ReactNode> = {
-  dentist: <Stethoscope className="h-3 w-3" />,
-  Dentist: <Stethoscope className="h-3 w-3" />,
-  receptionist: <UserCog className="h-3 w-3" />,
-  staff: <Users className="h-3 w-3" />,
-  Staff: <Users className="h-3 w-3" />,
+  dentist: <Stethoscope className="h-4 w-4" />,
+  Dentist: <Stethoscope className="h-4 w-4" />,
+  receptionist: <UserCog className="h-4 w-4" />,
+  staff: <Users className="h-4 w-4" />,
+  Staff: <Users className="h-4 w-4" />,
 };
 
 export default function StaffManagement() {
@@ -76,42 +76,42 @@ export default function StaffManagement() {
 
   return (
     <div className="space-y-6 font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-serif">Employee Management</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage team members, Dentists, and support Staff roles</p>
+          <h1 className="text-xl sm:text-2xl">Employee Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage team members, Dentists, and support Staff roles</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="default" className="gap-1.5" onClick={() => handleOpenAddDialog("Dentist")}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-center gap-2">
+          <Button size="sm" variant="default" className="gap-1.5 text-base w-full lg:w-auto" onClick={() => handleOpenAddDialog("Dentist") }>
             <Stethoscope className="h-4 w-4" /> Add Dentist
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => handleOpenAddDialog("Staff")}>
+          <Button size="sm" variant="outline" className="gap-1.5 text-base w-full lg:w-auto" onClick={() => handleOpenAddDialog("Staff") }>
             <Plus className="h-4 w-4" /> Add Staff
           </Button>
         </div>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="w-[calc(100vw-2rem)] max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg p-4 sm:w-[calc(100vw-3rem)] sm:max-h-[calc(100svh-3rem)] sm:p-6 lg:w-full lg:max-h-none lg:overflow-visible">
           <DialogHeader>
             <DialogTitle>Add New {role}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} />
+              <Label className="text-base">Full Name</Label>
+              <Input className="h-10 sm:h-12 text-base" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" placeholder="john@navadia.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Label className="text-base">Email</Label>
+              <Input className="h-10 sm:h-12 text-base" type="email" placeholder="john@navadia.com" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Password</Label>
-              <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Label className="text-base">Password</Label>
+              <Input className="h-10 sm:h-12 text-base" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <Label className="text-base">Phone</Label>
+              <Input className="h-10 sm:h-12 text-base" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Role</Label>
@@ -126,12 +126,12 @@ export default function StaffManagement() {
             {role.toLowerCase() === "dentist" && (
               <>
                 <div className="space-y-2">
-                  <Label>Specialization</Label>
-                  <Input placeholder="e.g. Endodontics" value={specialization} onChange={(e) => setSpecialization(e.target.value)} />
+                  <Label className="text-base">Specialization</Label>
+                  <Input className="h-10 sm:h-12 text-base" placeholder="e.g. Endodontics" value={specialization} onChange={(e) => setSpecialization(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>License No.</Label>
-                  <Input placeholder="DEN-2026-XXX" value={licenseNo} onChange={(e) => setLicenseNo(e.target.value)} />
+                  <Label className="text-base">License No.</Label>
+                  <Input className="h-10 sm:h-12 text-base" placeholder="DEN-2026-XXX" value={licenseNo} onChange={(e) => setLicenseNo(e.target.value)} />
                 </div>
               </>
             )}
@@ -143,18 +143,18 @@ export default function StaffManagement() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-sans text-muted-foreground">Dentists Registered</CardTitle>
+            <CardTitle className="text-base">Dentists Registered</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-serif text-primary">{staffMembers.filter((u) => u.role.toLowerCase() === "dentist").length}</div>
+            <div className="text-3xl sm:text-4xl font-bold text-primary">{staffMembers.filter((u) => u.role.toLowerCase() === "dentist").length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-sans text-muted-foreground">Staff & Support Registered</CardTitle>
+            <CardTitle className="text-base">Staff & Support Registered</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-serif text-secondary">{staffMembers.filter((u) => u.role.toLowerCase() === "staff").length}</div>
+            <div className="text-3xl sm:text-4xl font-bold text-secondary">{staffMembers.filter((u) => u.role.toLowerCase() === "staff").length}</div>
           </CardContent>
         </Card>
       </div>
@@ -163,7 +163,7 @@ export default function StaffManagement() {
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[220px] lg:w-[180px]">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
@@ -174,36 +174,75 @@ export default function StaffManagement() {
             </Select>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-4 pt-0 lg:hidden">
+          {filtered.length === 0 ? (
+            <div className="rounded-lg border bg-muted/20 py-8 text-center text-base text-muted-foreground">No staff members found</div>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {filtered.map((member) => (
+                <div key={member.id} className="rounded-lg border bg-card p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-semibold">{member.name}</p>
+                      <p className="mt-1 break-all text-sm text-muted-foreground">{member.email}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => handleRemove(member.id, member.name)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="mt-4 grid gap-2 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">Phone</span>
+                      <span className="text-right font-medium">{member.phone || "-"}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">Role</span>
+                      <Badge variant={roleBadgeVariant[member.role] || "outline"} className="gap-1 capitalize">
+                        {roleIcons[member.role]}
+                        {member.role}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">Specialization</span>
+                      <span className="text-right font-medium">{member.specialization || "-"}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+        <CardContent className="hidden p-0 lg:block">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Specialization</TableHead>
+                <TableHead className="text-sm sm:text-base font-medium">Name</TableHead>
+                <TableHead className="text-sm sm:text-base font-medium">Email</TableHead>
+                <TableHead className="text-sm sm:text-base font-medium">Phone</TableHead>
+                <TableHead className="text-sm sm:text-base font-medium">Role</TableHead>
+                <TableHead className="text-sm sm:text-base font-medium">Specialization</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No staff members found</TableCell>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8 text-base">No staff members found</TableCell>
                 </TableRow>
               ) : (
                 filtered.map((member) => (
                   <TableRow key={member.id}>
-                    <TableCell className="font-medium">{member.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{member.email}</TableCell>
-                    <TableCell className="text-muted-foreground">{member.phone || "—"}</TableCell>
+                    <TableCell className="font-medium text-base">{member.name}</TableCell>
+                    <TableCell className="text-muted-foreground text-base">{member.email}</TableCell>
+                    <TableCell className="text-muted-foreground text-base">{member.phone || "—"}</TableCell>
                     <TableCell>
                       <Badge variant={roleBadgeVariant[member.role] || "outline"} className="gap-1 capitalize">
                         {roleIcons[member.role]}
                         {member.role}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{member.specialization || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground text-base">{member.specialization || "—"}</TableCell>
                     <TableCell>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleRemove(member.id, member.name)}>
                         <Trash2 className="h-4 w-4" />

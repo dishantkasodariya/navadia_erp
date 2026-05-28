@@ -48,6 +48,7 @@ export default function Tasks() {
   const [filterPriority, setFilterPriority] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
+  const [taskMenuOpen, setTaskMenuOpen] = useState(false);
 
   const [form, setForm] = useState({ title: "", description: "", role: "all", assignedTo: "", priority: "medium" as Task["priority"], dueDate: today, isPrivate: false });
   const [activeTab, setActiveTab] = useState("all-tasks");
@@ -362,30 +363,30 @@ export default function Tasks() {
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs sm:text-sm">
+            <table className="w-full text-sm sm:text-base">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground text-xs sm:text-sm">Task</th>
-                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground hidden sm:table-cell text-xs sm:text-sm">Assigned To</th>
-                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground text-xs sm:text-sm">Priority</th>
-                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground hidden md:table-cell text-xs sm:text-sm">Status</th>
-                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground hidden lg:table-cell text-xs sm:text-sm">Due</th>
-                  <th className="text-right p-2 sm:p-3 font-medium text-muted-foreground text-xs sm:text-sm">Actions</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground text-sm sm:text-base">Task</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground hidden sm:table-cell text-sm sm:text-base">Assigned To</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground text-sm sm:text-base">Priority</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground hidden md:table-cell text-sm sm:text-base">Status</th>
+                  <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground hidden lg:table-cell text-sm sm:text-base">Due</th>
+                  <th className="text-right p-2 sm:p-3 font-medium text-muted-foreground text-sm sm:text-base">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((t) => (
                   <tr key={t.id} className="border-b last:border-0 hover:bg-muted/10">
                     <td className="p-2 sm:p-3">
-                      <p className="font-medium text-xs sm:text-sm">{t.title}</p>
-                      {t.description && <p className="text-[9px] sm:text-[10px] text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{t.description}</p>}
+                      <p className="font-medium text-sm sm:text-base">{t.title}</p>
+                      {t.description && <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{t.description}</p>}
                     </td>
                     <td className="p-2 sm:p-3 hidden sm:table-cell">
                       <p className="font-medium text-xs">{t.assignedToName}</p>
-                      <p className="text-[9px] text-muted-foreground">by {t.assignedByName}</p>
+                      <p className="text-sm text-muted-foreground">by {t.assignedByName}</p>
                     </td>
                     <td className="p-2 sm:p-3">
-                      <Badge variant="outline" className={`text-[8px] sm:text-[10px] ${priorityColor(t.priority)}`}>
+                      <Badge variant="outline" className={`text-xs sm:text-xs ${priorityColor(t.priority)}`}>
                         {t.priority}
                       </Badge>
                     </td>
@@ -394,17 +395,17 @@ export default function Tasks() {
                         {statusIcon(t.status)} {t.status}
                       </div>
                     </td>
-                    <td className="p-2 sm:p-3 text-xs text-muted-foreground hidden lg:table-cell">{t.dueDate}</td>
+                    <td className="p-2 sm:p-3 text-sm text-muted-foreground hidden lg:table-cell">{t.dueDate}</td>
                     <td className="p-2 sm:p-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0" onClick={() => handleStartEdit(t)}><Edit2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
+                        <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => handleStartEdit(t)}><Edit2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
+                        <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
                       </div>
                     </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="p-4 sm:p-8 text-center text-muted-foreground text-xs sm:text-sm">No tasks matching filters</td></tr>
+                  <tr><td colSpan={6} className="p-4 sm:p-8 text-center text-muted-foreground text-sm sm:text-base">No tasks matching filters</td></tr>
                 )}
               </tbody>
             </table>
@@ -425,15 +426,15 @@ export default function Tasks() {
                   {statusIcon(t.status)}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium leading-none mb-1 text-xs sm:text-sm">{t.title}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Due: {t.dueDate}</p>
+                  <p className="font-medium leading-none mb-1 text-sm sm:text-base">{t.title}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Due: {t.dueDate}</p>
                 </div>
-                <Badge variant="outline" className={`text-[8px] sm:text-[10px] shrink-0 ${priorityColor(t.priority)}`}>
+                <Badge variant="outline" className={`text-xs sm:text-xs shrink-0 ${priorityColor(t.priority)}`}>
                   {t.priority}
                 </Badge>
               </div>
 
-              {t.description && <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 line-clamp-2">{t.description}</p>}
+              {t.description && <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4 line-clamp-2">{t.description}</p>}
 
               {t.voiceNote && (
                 <div className="mb-3 sm:mb-4 bg-muted/40 p-2 rounded-lg">
@@ -441,18 +442,18 @@ export default function Tasks() {
                 </div>
               )}
 
-              <div className="mt-auto pt-2 sm:pt-3 border-t flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
+              <div className="mt-auto pt-2 sm:pt-3 border-t flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
                 <span className="truncate">To: {t.assignedToName}</span>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 p-0" onClick={() => handleStartEdit(t)}><Edit2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 p-0 text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 p-0" onClick={() => handleStartEdit(t)}><Edit2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
         {filtered.length === 0 && (
-          <Card className="col-span-full"><CardContent className="p-4 sm:p-8 text-center text-muted-foreground text-xs sm:text-sm">No tasks matching filters</CardContent></Card>
+          <Card className="col-span-full"><CardContent className="p-4 sm:p-8 text-center text-muted-foreground text-sm sm:text-base">No tasks matching filters</CardContent></Card>
         )}
       </div>
     );
@@ -462,31 +463,51 @@ export default function Tasks() {
     <div className="space-y-6 font-sans">
       <div className="flex flex-col sm:flex-row md:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-serif">Tasks</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Assign and coordinate duties</p>
+          <h1 className="text-xl sm:text-2xl">Tasks</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Assign and coordinate duties</p>
         </div>
         {canAssign && (
-          <div className="flex items-center">
-            <HoverCard openDelay={100} closeDelay={200}>
-              <HoverCardTrigger asChild>
-                <Button size="sm" onClick={() => { setForm(prev => ({ ...prev, isPrivate: false })); setDialogOpen(true); }}>
+          <div className="flex items-center sm:justify-end">
+            <Popover open={taskMenuOpen} onOpenChange={setTaskMenuOpen}>
+              <PopoverTrigger asChild>
+                <Button size="sm" className="w-full sm:hidden">
                   <Plus className="h-4 w-4 mr-1" /> Add Task
                 </Button>
-              </HoverCardTrigger>
-              <HoverCardContent align="end" className="w-48 p-2 flex flex-col gap-1">
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-2 flex flex-col gap-1 sm:hidden">
                 {canAssignOthers && (
-                  <Button variant="ghost" size="sm" className="justify-start w-full font-normal" onClick={() => { setForm(prev => ({ ...prev, isPrivate: false })); setDialogOpen(true); }}>
+                  <Button variant="ghost" size="sm" className="justify-start w-full font-normal" onClick={() => { setTaskMenuOpen(false); setForm(prev => ({ ...prev, isPrivate: false })); setDialogOpen(true); }}>
                     Assign Task to Others
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" className="justify-start w-full font-normal" onClick={() => { setForm(prev => ({ ...prev, isPrivate: true })); setDialogOpen(true); }}>
+                <Button variant="ghost" size="sm" className="justify-start w-full font-normal" onClick={() => { setTaskMenuOpen(false); setForm(prev => ({ ...prev, isPrivate: true })); setDialogOpen(true); }}>
                   Create Private Task
                 </Button>
-              </HoverCardContent>
-            </HoverCard>
+              </PopoverContent>
+            </Popover>
+
+            <div className="hidden sm:block">
+              <HoverCard openDelay={100} closeDelay={200}>
+                <HoverCardTrigger asChild>
+                  <Button size="sm" className="w-full sm:w-auto" onClick={() => { setForm(prev => ({ ...prev, isPrivate: false })); setDialogOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-1" /> Add Task
+                  </Button>
+                </HoverCardTrigger>
+                <HoverCardContent align="end" className="w-48 p-2 flex flex-col gap-1">
+                  {canAssignOthers && (
+                    <Button variant="ghost" size="sm" className="justify-start w-full font-normal" onClick={() => { setForm(prev => ({ ...prev, isPrivate: false })); setDialogOpen(true); }}>
+                      Assign Task to Others
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" className="justify-start w-full font-normal" onClick={() => { setForm(prev => ({ ...prev, isPrivate: true })); setDialogOpen(true); }}>
+                    Create Private Task
+                  </Button>
+                </HoverCardContent>
+              </HoverCard>
+            </div>
 
             <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setVoiceNote(null); }}>
-              <DialogContent>
+              <DialogContent className="w-[calc(100vw-2rem)] max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg p-4 sm:w-full sm:max-h-none sm:overflow-visible sm:p-6">
                 <DialogHeader><DialogTitle>{form.isPrivate ? "Create Private Task" : "Create New Task"}</DialogTitle></DialogHeader>
                 <div className="space-y-4 mt-2">
                   <div className="space-y-2">
@@ -498,7 +519,7 @@ export default function Tasks() {
                     <Textarea placeholder="Details about the task..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                   </div>
                 {!form.isPrivate && (
-                  <div className={canAssignOthers ? "grid grid-cols-2 gap-4" : "space-y-2"}>
+                  <div className={canAssignOthers ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : "space-y-2"}>
                     {canAssignOthers && (
                       <div className="space-y-2">
                         <Label>Assign by Role</Label>
@@ -525,7 +546,7 @@ export default function Tasks() {
                     </div>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Priority</Label>
                     <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v as Task["priority"] })}>
@@ -545,12 +566,12 @@ export default function Tasks() {
                         <Button
                           variant="outline"
                           className={cn(
-                            "group w-full justify-start text-left font-normal h-10 rounded-xl border-muted bg-[#f5f5f4] text-[#1c1917] hover:bg-[#d97706] hover:text-white transition-all",
+                            "group w-full min-w-0 justify-start overflow-hidden text-left font-normal h-10 rounded-xl border-muted bg-[#f5f5f4] text-[#1c1917] hover:bg-[#d97706] hover:text-white transition-all",
                             !form.dueDate && "text-muted-foreground hover:text-white"
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4 text-[#d97706] group-hover:text-white transition-colors" />
-                          {form.dueDate ? format(parseISO(form.dueDate), "PPP") : <span>Pick a date</span>}
+                          <span className="min-w-0 truncate">{form.dueDate ? format(parseISO(form.dueDate), "PPP") : "Pick a date"}</span>
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0 rounded-xl shadow-lg border bg-popover z-[100]" align="start">
@@ -584,7 +605,7 @@ export default function Tasks() {
                         <Button type="button" variant="outline" size="sm" onClick={() => setVoiceNote(null)}>Clear</Button>
                       </div>
                     )}
-                    <span className="text-xs text-muted-foreground">{isRecording ? "Recording..." : voiceNote ? "Voice note captured" : "No recording"}</span>
+                    <span className="text-sm text-muted-foreground">{isRecording ? "Recording..." : voiceNote ? "Voice note captured" : "No recording"}</span>
                   </div>
                 </div>
 
@@ -598,61 +619,79 @@ export default function Tasks() {
 
       <div className="grid gap-2 sm:gap-3 sm:grid-cols-3">
         <Card><CardContent className="pt-3 sm:pt-4 text-center">
-          <p className="text-lg sm:text-2xl font-bold font-serif text-accent">{pendingCount}</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Pending</p>
+          <p className="text-lg sm:text-2xl font-bold text-accent">{pendingCount}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Pending</p>
         </CardContent></Card>
         <Card><CardContent className="pt-3 sm:pt-4 text-center">
-          <p className="text-lg sm:text-2xl font-bold font-serif text-primary">{inProgressCount}</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">In Progress</p>
+          <p className="text-lg sm:text-2xl font-bold text-primary">{inProgressCount}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">In Progress</p>
         </CardContent></Card>
         <Card><CardContent className="pt-3 sm:pt-4 text-center">
-          <p className="text-lg sm:text-2xl font-bold font-serif text-secondary">{completedCount}</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Completed</p>
+          <p className="text-lg sm:text-2xl font-bold text-secondary">{completedCount}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Completed</p>
         </CardContent></Card>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:max-lg:flex-row md:max-lg:justify-between">
           <TabsList>
             <TabsTrigger value="all-tasks">Tasks</TabsTrigger>
             <TabsTrigger value="my-tasks">My Tasks</TabsTrigger>
           </TabsList>
+          <div className="hidden md:max-lg:flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
+            <Button
+              variant={viewMode === "grid" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-9 w-24 rounded-md text-sm"
+              onClick={() => setViewMode("grid")}
+            >
+              <LayoutGrid className="h-4 w-4 mr-1.5" /> Grid
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-9 w-24 rounded-md text-sm"
+              onClick={() => setViewMode("table")}
+            >
+              <List className="h-4 w-4 mr-1.5" /> Table
+            </Button>
+          </div>
         </div>
 
         <div className="mt-4 space-y-3 sm:space-y-4">
           {/* Search and Filters Row */}
-          <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-4">
+          <div className="flex flex-col gap-3 sm:gap-4 md:max-lg:grid md:max-lg:grid-cols-[minmax(0,1fr)_auto] md:max-lg:items-start lg:flex-row lg:items-center">
             {/* Search - Left on tablet+ */}
-            <div className="relative flex-1 order-2 md:order-1">
+            <div className="relative flex-1 order-2 md:max-lg:order-1 lg:order-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input className="pl-9 text-sm" placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input className="h-11 pl-9 text-sm lg:h-10" placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
 
             {/* Filters and Toggle - Right on tablet+ */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-wrap items-start sm:items-center order-1 md:order-2 md:justify-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:flex gap-2 sm:gap-3 items-stretch lg:items-center order-1 md:max-lg:order-2 md:max-lg:min-w-[340px] md:max-lg:justify-end lg:order-2 lg:justify-end">
               {/* Grid/Table Toggle - Primary on mobile */}
-              <div className="flex md:hidden items-center gap-1 border rounded-lg p-0.5 bg-muted/20 w-full">
+              <div className="flex md:hidden items-center gap-1 border rounded-lg p-0.5 bg-muted/20 w-full sm:col-span-2">
                 <Button
                   variant={viewMode === "grid" ? "secondary" : "ghost"}
                   size="icon"
-                  className="h-7 w-7 flex-1 rounded-md text-xs"
+                  className="h-9 w-full flex-1 rounded-md text-sm"
                   onClick={() => setViewMode("grid")}
                 >
-                  <LayoutGrid className="h-3.5 w-3.5 mr-1" /> Grid
+                  <LayoutGrid className="h-4 w-4 mr-1.5" /> Grid
                 </Button>
                 <Button
                   variant={viewMode === "table" ? "secondary" : "ghost"}
                   size="icon"
-                  className="h-7 w-7 flex-1 rounded-md text-xs"
+                  className="h-9 w-full flex-1 rounded-md text-sm"
                   onClick={() => setViewMode("table")}
                 >
-                  <List className="h-3.5 w-3.5 mr-1" /> Table
+                  <List className="h-4 w-4 mr-1.5" /> Table
                 </Button>
               </div>
 
               {/* Status & Priority Filters - Always visible */}
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-full sm:w-[110px] md:w-auto text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectTrigger className="h-11 w-full text-sm md:max-lg:w-[160px] lg:h-10 lg:w-auto"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
@@ -662,7 +701,7 @@ export default function Tasks() {
                 </SelectContent>
               </Select>
               <Select value={filterPriority} onValueChange={setFilterPriority}>
-                <SelectTrigger className="w-full sm:w-[110px] md:w-auto text-sm"><SelectValue placeholder="Priority" /></SelectTrigger>
+                <SelectTrigger className="h-11 w-full text-sm md:max-lg:w-[160px] lg:h-10 lg:w-auto"><SelectValue placeholder="Priority" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Priority</SelectItem>
                   <SelectItem value="low">Low</SelectItem>
@@ -676,7 +715,7 @@ export default function Tasks() {
               {isAdmin && (
                 <>
                   <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v); setUserFilter("all"); }}>
-                    <SelectTrigger className="w-full sm:w-[110px] md:w-auto text-sm"><SelectValue placeholder="Role" /></SelectTrigger>
+                    <SelectTrigger className="h-11 w-full text-sm md:max-lg:w-[160px] lg:h-10 lg:w-auto"><SelectValue placeholder="Role" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Roles</SelectItem>
                       <SelectItem value="Dentist">Dentist</SelectItem>
@@ -684,7 +723,7 @@ export default function Tasks() {
                     </SelectContent>
                   </Select>
                   <Select value={userFilter} onValueChange={setUserFilter}>
-                    <SelectTrigger className="w-full sm:w-[130px] md:w-auto text-sm"><SelectValue placeholder="Assignee" /></SelectTrigger>
+                    <SelectTrigger className="h-11 w-full text-sm md:max-lg:w-[160px] lg:h-10 lg:w-auto"><SelectValue placeholder="Assignee" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Users</SelectItem>
                       {filteredUsersForFilter.map((s) => (
@@ -696,11 +735,11 @@ export default function Tasks() {
               )}
               
               {/* Grid/Table Toggle - Hidden on mobile, shown on tablet+ */}
-              <div className="hidden md:flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
+              <div className="hidden lg:flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
                 <Button
                   variant={viewMode === "grid" ? "secondary" : "ghost"}
                   size="icon"
-                  className="h-7 sm:h-8 w-7 sm:w-8 rounded-md"
+                  className="h-9 w-7 sm:w-8 rounded-md"
                   onClick={() => setViewMode("grid")}
                 >
                   <LayoutGrid className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
@@ -708,7 +747,7 @@ export default function Tasks() {
                 <Button
                   variant={viewMode === "table" ? "secondary" : "ghost"}
                   size="icon"
-                  className="h-7 sm:h-8 w-7 sm:w-8 rounded-md"
+                  className="h-9 w-7 sm:w-8 rounded-md"
                   onClick={() => setViewMode("table")}
                 >
                   <List className="h-3.5 sm:h-4 w-3.5 sm:w-4" />

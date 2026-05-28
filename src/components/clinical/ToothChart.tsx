@@ -82,7 +82,7 @@ export function ToothChart() {
   return (
     <Card className="w-full bg-slate-50/50">
       <CardHeader>
-        <CardTitle className="text-lg font-serif">Interactive Tooth Chart</CardTitle>
+        <CardTitle className="text-lg">Interactive Tooth Chart</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col lg:flex-row gap-8 items-center justify-center">

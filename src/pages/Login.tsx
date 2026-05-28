@@ -49,17 +49,17 @@ export default function Login() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
-              <span className="text-xl font-bold text-primary-foreground">N</span>
+            <div className="flex h-12 w-12 items-center justify-center">
+              <img src="/logo.png" alt="Navadia logo" className="h-12 w-12 object-contain" />
             </div>
-            <h1 className="text-4xl font-serif text-foreground tracking-tight">Navadia</h1>
+            <h1 className="text-4xl text-foreground tracking-tight">Navadia</h1>
           </div>
           <p className="text-muted-foreground text-sm">Welcome back! Please enter your details.</p>
         </div>
 
         <Card className="border-none shadow-md bg-card/50 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-2xl font-sans text-center">Login Portal</CardTitle>
+            <CardTitle className="text-2xl text-center">Login Portal</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Tabs value={activePortal} onValueChange={setActivePortal} className="w-full">

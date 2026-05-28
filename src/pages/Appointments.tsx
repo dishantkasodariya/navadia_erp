@@ -116,7 +116,7 @@ export default function Appointments() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-serif">Appointments</h1>
+          <h1 className="text-2xl">Appointments</h1>
           <p className="text-sm text-muted-foreground mt-1">{displayDate} — Day View</p>
         </div>
         <div className="flex items-center gap-2">
@@ -184,7 +184,7 @@ export default function Appointments() {
               const slotApts = [1, 2, 3].map((chair) => appointments.find((a) => a.time === slot && a.chair === chair && a.status !== "cancelled"));
               return (
                 <React.Fragment key={slot}>
-                  <div className="bg-card p-2 text-xs text-muted-foreground font-mono border-t">{slot}</div>
+                  <div className="bg-card p-2 text-xs text-muted-foreground font-sans border-t">{slot}</div>
                   {slotApts.map((apt, i) => (
                     <div key={`${slot}-${i}`} className="bg-card p-1 border-t min-h-[40px]">
                       {apt && (

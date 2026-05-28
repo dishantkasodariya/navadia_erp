@@ -116,7 +116,7 @@ export default function Patients() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-serif">Patients</h1>
+          <h1 className="text-2xl">Patients</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage patient records and profiles</p>
         </div>
         <div className="flex gap-2">
@@ -195,7 +195,7 @@ export default function Patients() {
               ) : (
                 filtered.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell className="font-mono text-xs">{p.mrn}</TableCell>
+                    <TableCell className="font-sans text-xs">{p.mrn}</TableCell>
                     <TableCell className="font-medium">
                       {editingId === p.id ? <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-8" /> : p.name}
                     </TableCell>

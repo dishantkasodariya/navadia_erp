@@ -12,7 +12,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-serif">Dashboard</h1>
+        <h1 className="text-2xl">Dashboard</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Welcome back. Here's what's happening today.
         </p>
@@ -22,14 +22,14 @@ export default function Dashboard() {
         {stats.map((stat) => (
           <Card key={stat.label}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium font-sans text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.label}
               </CardTitle>
               <stat.icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-serif">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-sm text-muted-foreground mt-1">{stat.change}</p>
             </CardContent>
           </Card>
         ))}
@@ -38,17 +38,17 @@ export default function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-base font-sans">Today's Schedule</CardTitle>
+            <CardTitle className="text-base">Today's Schedule</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {[].map((apt: any) => (
                 <div key={apt.time} className="flex items-center justify-between rounded-lg border p-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-mono text-muted-foreground w-12">{apt.time}</span>
+                    <span className="text-sm font-sans text-muted-foreground w-12">{apt.time}</span>
                     <div>
                       <p className="text-sm font-medium">{apt.patient}</p>
-                      <p className="text-xs text-muted-foreground">{apt.procedure}</p>
+                      <p className="text-sm text-muted-foreground">{apt.procedure}</p>
                     </div>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full ${
@@ -69,7 +69,7 @@ export default function Dashboard() {
 
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-base font-sans">Recent Activity</CardTitle>
+            <CardTitle className="text-base">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -77,9 +77,9 @@ export default function Dashboard() {
                 <div key={i} className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-medium">{item.action}</p>
-                    <p className="text-xs text-muted-foreground">{item.detail}</p>
+                    <p className="text-sm text-muted-foreground">{item.detail}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{item.time}</span>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">{item.time}</span>
                 </div>
               ))}
               {[].length === 0 && <p className="text-center text-muted-foreground py-4 text-sm">No recent activity.</p>}

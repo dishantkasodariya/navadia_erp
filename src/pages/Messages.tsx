@@ -100,7 +100,7 @@ export default function Messages() {
       {/* Sidebar Contacts */}
       <Card className={`flex-col overflow-hidden xl:col-span-1 ${selectedUserId ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-2 sm:p-3 lg:p-4 border-b bg-muted/30">
-          <h2 className="font-serif font-medium text-sm sm:text-base lg:text-lg">Contacts</h2>
+          <h2 className="font-medium text-sm sm:text-base lg:text-lg">Contacts</h2>
         </div>
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-1.5 sm:p-2 lg:p-2 space-y-0.5 sm:space-y-1">
@@ -114,15 +114,15 @@ export default function Messages() {
                     selectedUserId === u.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
                   )}`}
                 >
-                  <Avatar className="h-8 sm:h-10 w-8 sm:w-10 border border-muted shrink-0">
-                    <AvatarFallback className="bg-primary/5 text-primary text-[9px] sm:text-xs">{getInitials(u.name)}</AvatarFallback>
+                  <Avatar className="h-10 w-10 border border-muted shrink-0">
+                    <AvatarFallback className="bg-primary/5 text-primary text-xs sm:text-xs">{getInitials(u.name)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-xs sm:text-sm truncate">{u.name}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{u.role}</p>
+                    <p className="font-medium text-sm sm:text-base truncate">{u.name}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground capitalize">{u.role}</p>
                   </div>
                   {unread > 0 && (
-                    <span className="min-w-5 h-5 flex items-center justify-center bg-primary text-primary-foreground text-[9px] rounded-full px-1 shrink-0">
+                    <span className="min-w-5 h-5 flex items-center justify-center bg-primary text-primary-foreground text-xs rounded-full px-1 shrink-0">
                       {unread}
                     </span>
                   )}
@@ -141,20 +141,20 @@ export default function Messages() {
               <Button variant="ghost" className="md:hidden h-8 w-8 p-0" onClick={() => setSelectedUserId(null)}>
                 <X className="h-4 w-4" />
               </Button>
-              <Avatar className="h-8 sm:h-10 w-8 sm:w-10 shrink-0">
+              <Avatar className="h-10 w-10 shrink-0">
                 <AvatarFallback className="bg-primary/10 text-primary text-xs">{getInitials(selectedUser?.name || "")}</AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <h2 className="font-bold text-xs sm:text-sm truncate">{selectedUser?.name}</h2>
-                <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{selectedUser?.role}</p>
+                <h2 className="font-bold text-sm sm:text-base truncate">{selectedUser?.name}</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground capitalize">{selectedUser?.role}</p>
               </div>
             </div>
 
             <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-3 lg:p-4 space-y-2 sm:space-y-3 lg:space-y-4 bg-muted/10">
               {conversation.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-                  <MessageSquare className="h-8 sm:h-10 lg:h-12 w-8 sm:w-10 lg:w-12 mb-2 opacity-20" />
-                  <p className="text-xs sm:text-sm">No messages yet. Start the conversation!</p>
+                  <MessageSquare className="h-10 lg:h-12 w-10 lg:w-12 mb-2 opacity-20" />
+                  <p className="text-sm sm:text-base">No messages yet. Start the conversation!</p>
                 </div>
               ) : (
                 conversation.map((msg) => {
@@ -162,18 +162,18 @@ export default function Messages() {
                   const isBroadcast = msg.receiverId === "broadcast";
                   return (
                     <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[75%] rounded-2xl p-2 sm:p-3 text-xs sm:text-sm ${
+                      <div className={`max-w-[75%] rounded-2xl p-2 sm:p-3 text-sm sm:text-base ${
                         isBroadcast ? "bg-accent/20 border border-accent/40 rounded-tl-none w-full max-w-[90%]" 
                         : isMine ? "bg-primary text-primary-foreground rounded-br-none" 
                         : "bg-muted rounded-bl-none"
                       }`}>
                         {isBroadcast && (
-                          <div className="flex items-center gap-1 mb-2 text-accent font-bold text-[9px] uppercase tracking-wider">
+                          <div className="flex items-center gap-1 mb-2 text-accent font-bold text-xs uppercase tracking-wider">
                             <Megaphone className="h-3 w-3" /> Broadcast from Admin
                           </div>
                         )}
                         {!isMine && !isBroadcast && (
-                          <div className="text-[9px] sm:text-[10px] opacity-70 mb-1">{msg.senderName}</div>
+                          <div className="text-xs sm:text-sm opacity-70 mb-1">{msg.senderName}</div>
                         )}
 
                         {editingMessageId === msg.id ? (
@@ -181,35 +181,35 @@ export default function Messages() {
                             <Input 
                               value={editText} 
                               onChange={(e) => setEditText(e.target.value)} 
-                              className="bg-background text-foreground h-7 sm:h-8 text-xs"
+                              className="bg-background text-foreground h-9 text-xs"
                             />
                             <div className="flex items-center gap-1 sm:gap-2">
                               {!isRecording ? (
-                                <Button size="sm" variant="outline" className="h-6 sm:h-7 text-[9px] sm:text-xs bg-background text-foreground" onClick={startRecording}>
+                                <Button size="sm" variant="outline" className="h-8 text-xs sm:text-xs bg-background text-foreground" onClick={startRecording}>
                                   <Mic className="h-3 w-3 mr-0.5 sm:mr-1" /> Re-record
                                 </Button>
                               ) : (
-                                <Button size="sm" variant="destructive" className="h-6 sm:h-7 text-[9px] sm:text-xs" onClick={stopRecording}>
+                                <Button size="sm" variant="destructive" className="h-8 text-xs sm:text-xs" onClick={stopRecording}>
                                   <Square className="h-3 w-3 mr-0.5 sm:mr-1" /> Stop
                                 </Button>
                               )}
-                              <Button size="icon" variant="ghost" className="h-6 w-6 sm:h-7 sm:w-7 text-green-500 hover:text-green-600 hover:bg-green-50 bg-background" onClick={handleEditSave}><Check className="h-3 w-3" /></Button>
-                              <Button size="icon" variant="ghost" className="h-6 w-6 sm:h-7 sm:w-7 text-destructive hover:bg-destructive/10 bg-background" onClick={() => { setEditingMessageId(null); setVoiceNote(null); }}><X className="h-3 w-3" /></Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500 hover:text-green-600 hover:bg-green-50 bg-background" onClick={handleEditSave}><Check className="h-3 w-3" /></Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10 bg-background" onClick={() => { setEditingMessageId(null); setVoiceNote(null); }}><X className="h-3 w-3" /></Button>
                             </div>
-                            {voiceNote && <audio src={voiceNote} controls className="h-6 sm:h-7 w-full mt-1 sm:mt-2" />}
+                            {voiceNote && <audio src={voiceNote} controls className="h-8 w-full mt-1 sm:mt-2" />}
                           </div>
                         ) : (
                           <>
-                            {msg.content && <p className="text-xs sm:text-sm whitespace-pre-wrap">{msg.content}</p>}
+                            {msg.content && <p className="text-sm sm:text-base whitespace-pre-wrap">{msg.content}</p>}
                             {msg.voiceNote && (
                               <audio 
                                 src={msg.voiceNote} 
                                 controls 
-                                className={`h-6 sm:h-7 w-full mt-1 sm:mt-2 ${isMine ? "brightness-110 contrast-125" : ""}`} 
+                                className={`h-8 w-full mt-1 sm:mt-2 ${isMine ? "brightness-110 contrast-125" : ""}`} 
                               />
                             )}
                             <div className="flex items-center justify-end gap-1 sm:gap-2 mt-1 sm:mt-2">
-                              <span className="text-[9px] opacity-70">
+                              <span className="text-sm opacity-70">
                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 {msg.isEdited && " (edited)"}
                               </span>
@@ -245,7 +245,7 @@ export default function Messages() {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                    className="pr-10 sm:pr-12 bg-muted/50 text-xs sm:text-sm h-8 sm:h-10"
+                    className="pr-10 sm:pr-12 bg-muted/50 text-sm sm:text-base h-10"
                   />
                   {!isRecording ? (
                     <button 
@@ -263,7 +263,7 @@ export default function Messages() {
                     </button>
                   )}
                 </div>
-                <Button onClick={handleSend} disabled={!inputText.trim() && !voiceNote} className="shrink-0 h-8 sm:h-10 w-8 sm:w-10 p-0">
+                <Button onClick={handleSend} disabled={!inputText.trim() && !voiceNote} className="shrink-0 h-10 w-10 p-0">
                   <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
@@ -273,7 +273,7 @@ export default function Messages() {
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
             <MessageSquare className="h-12 sm:h-14 lg:h-16 w-12 sm:w-14 lg:w-16 mb-2 sm:mb-4 opacity-20" />
             <p className="text-sm sm:text-base lg:text-lg font-medium">Select a contact to start messaging</p>
-            <p className="text-xs sm:text-sm opacity-70">You can send private text and voice notes</p>
+            <p className="text-sm sm:text-base opacity-70">You can send private text and voice notes</p>
           </div>
         )}
       </Card>
