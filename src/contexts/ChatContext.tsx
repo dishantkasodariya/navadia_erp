@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 
-import { API_BASE_URL } from './config/api';
+import { API_BASE_URL } from '../config/api';
 import { useAuth } from "./AuthContext";
 import { io, Socket } from "socket.io-client";
 import { toast } from "@/hooks/use-toast";

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { API_BASE_URL } from './config/api';
+import { API_BASE_URL } from '../config/api';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";

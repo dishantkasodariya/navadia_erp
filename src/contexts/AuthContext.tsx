@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-import { API_BASE_URL } from './config/api';
+import { API_BASE_URL } from '../config/api';
 
 export type UserRole = "Admin" | "Staff" | "Dentist" | "admin" | "staff" | "dentist" | "superadmin" | "receptionist";
 
