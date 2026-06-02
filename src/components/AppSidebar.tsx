@@ -40,7 +40,7 @@ function getNavItems(rolePrefix: string) {
         { title: "Messages", url: `/${rolePrefix}/messages`, icon: MessageSquare },
       ],
       hrItems: [
-        { title: "Employee", url: `/${rolePrefix}/staff`, icon: UserCog },
+        { title: "Dentists", url: `/${rolePrefix}/staff`, icon: UserCog },
         { title: "Attendance", url: `/${rolePrefix}/attendance`, icon: Clock },
         { title: "Leave", url: `/${rolePrefix}/leave-requests`, icon: CalendarOff },
         { title: "Tasks", url: `/${rolePrefix}/tasks`, icon: CheckSquare },
