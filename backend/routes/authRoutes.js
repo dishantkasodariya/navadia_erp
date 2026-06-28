@@ -65,6 +65,23 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        phone: user.phone,
+        alternatePhone: user.alternatePhone,
+        dateOfBirth: user.dateOfBirth,
+        gender: user.gender,
+        bloodGroup: user.bloodGroup,
+        aadhaarNo: user.aadhaarNo,
+        panNo: user.panNo,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        country: user.country,
+        pincode: user.pincode,
+        emergencyContact: user.emergencyContact,
+        emergencyPhone: user.emergencyPhone,
+        specialization: user.specialization,
+        licenseNo: user.licenseNo,
+        joiningDate: user.joiningDate,
         token: generateToken(user._id)
       });
     } else {
@@ -78,33 +95,59 @@ router.post('/login', async (req, res) => {
 // @desc    Update user profile
 // @route   PUT /api/auth/profile
 router.put('/profile', verifyJWT, async (req, res) => {
-  const { name, phone, password, specialization, licenseNo } = req.body;
   try {
     const user = await User.findById(req.user._id);
-    if (user) {
-      user.name = name || user.name;
-      if (phone !== undefined) user.phone = phone;
-      if (specialization !== undefined) user.specialization = specialization;
-      if (licenseNo !== undefined) user.licenseNo = licenseNo;
-
-      if (password) {
-        user.password = password;
-      }
-
-      const updatedUser = await user.save();
-      res.json({
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        phone: updatedUser.phone,
-        specialization: updatedUser.specialization,
-        licenseNo: updatedUser.licenseNo,
-        token: generateToken(updatedUser._id)
-      });
-    } else {
-      res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
+
+    // Basic
+    if (req.body.name) user.name = req.body.name;
+    if (req.body.password) {
+      if (!req.body.currentPassword) {
+        return res.status(400).json({ message: 'Current password is required to change password' });
+      }
+      const isMatch = await user.comparePassword(req.body.currentPassword);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Incorrect current password' });
+      }
+      user.password = req.body.password;
+    }
+
+    // Contact
+    if (req.body.phone !== undefined) user.phone = req.body.phone;
+    if (req.body.alternatePhone !== undefined) user.alternatePhone = req.body.alternatePhone;
+
+    // Personal
+    if (req.body.dateOfBirth !== undefined) user.dateOfBirth = req.body.dateOfBirth;
+    if (req.body.gender !== undefined) user.gender = req.body.gender;
+    if (req.body.bloodGroup !== undefined) user.bloodGroup = req.body.bloodGroup;
+
+    // Documents
+    if (req.body.aadhaarNo !== undefined) user.aadhaarNo = req.body.aadhaarNo;
+    if (req.body.panNo !== undefined) user.panNo = req.body.panNo;
+
+    // Address
+    if (req.body.address !== undefined) user.address = req.body.address;
+    if (req.body.city !== undefined) user.city = req.body.city;
+    if (req.body.state !== undefined) user.state = req.body.state;
+    if (req.body.country !== undefined) user.country = req.body.country;
+    if (req.body.pincode !== undefined) user.pincode = req.body.pincode;
+
+    // Emergency
+    if (req.body.emergencyContact !== undefined) user.emergencyContact = req.body.emergencyContact;
+    if (req.body.emergencyPhone !== undefined) user.emergencyPhone = req.body.emergencyPhone;
+
+    // Professional
+    if (req.body.specialization !== undefined) user.specialization = req.body.specialization;
+    if (req.body.licenseNo !== undefined) user.licenseNo = req.body.licenseNo;
+
+    const updatedUser = await user.save();
+    const result = await User.findById(updatedUser._id).select('-password');
+    res.json({
+      ...result.toObject(),
+      token: generateToken(updatedUser._id)
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

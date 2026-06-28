@@ -24,11 +24,57 @@ const UserSchema = new mongoose.Schema({
   phone: {
     type: String
   },
+  alternatePhone: {
+    type: String
+  },
+  dateOfBirth: {
+    type: String
+  },
+  gender: {
+    type: String,
+    enum: ['Male', 'Female', 'Other', ''],
+    default: ''
+  },
+  bloodGroup: {
+    type: String
+  },
+  aadhaarNo: {
+    type: String
+  },
+  panNo: {
+    type: String
+  },
+  address: {
+    type: String
+  },
+  city: {
+    type: String
+  },
+  state: {
+    type: String
+  },
+  country: {
+    type: String,
+    default: 'India'
+  },
+  pincode: {
+    type: String
+  },
+  emergencyContact: {
+    type: String
+  },
+  emergencyPhone: {
+    type: String
+  },
   specialization: {
     type: String
   },
   licenseNo: {
     type: String
+  },
+  joiningDate: {
+    type: Date,
+    default: Date.now
   },
   branch: {
     type: mongoose.Schema.Types.ObjectId,

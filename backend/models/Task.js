@@ -10,7 +10,7 @@ const TaskSchema = new mongoose.Schema({
   },
   assignedTo: { 
     type: String, 
-    required: true 
+    required: false 
   }, // User ID of the assigned staff/dentist
   role: { 
     type: String 
@@ -31,6 +31,21 @@ const TaskSchema = new mongoose.Schema({
   }, // Admin ID or Name
   createdByName: {
     type: String
+  },
+  isRecurring: {
+    type: Boolean,
+    default: false
+  },
+  completedDates: {
+    type: [String],
+    default: []
+  },
+  completions: {
+    type: [{
+      userId: String,
+      date: String
+    }],
+    default: []
   },
   createdAt: { 
     type: Date, 
