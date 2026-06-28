@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { API_BASE_URL } from "@/config/api";
 
 interface Patient {
   id: string;
@@ -46,6 +47,46 @@ export default function Patients() {
   const [form, setForm] = useState({ name: "", phone: "", email: "", dob: "", gender: "Male", bloodGroup: "O+", status: "Active" as "Active" | "Inactive" });
   const { toast } = useToast();
 
+  const fetchPatients = async () => {
+    const token = localStorage.getItem("navadia_token");
+    if (!token) {
+      setPatients(getStoredPatients());
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/patients`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = data.map((p: any) => ({
+          id: p._id,
+          mrn: p.mrn,
+          name: p.name,
+          phone: p.phone,
+          email: p.email || "",
+          dob: p.dob || "",
+          gender: p.gender || "Male",
+          bloodGroup: p.bloodGroup || "O+",
+          lastVisit: p.lastVisit ? new Date(p.lastVisit).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "",
+          status: p.status || "Active",
+          balance: p.balance || "$0"
+        }));
+        setPatients(mapped);
+        savePatients(mapped);
+      } else {
+        setPatients(getStoredPatients());
+      }
+    } catch (e) {
+      console.error("Error fetching patients:", e);
+      setPatients(getStoredPatients());
+    }
+  };
+
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
   const filtered = patients.filter((p) => {
     const matchesSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.mrn.toLowerCase().includes(search.toLowerCase()) || p.phone.includes(search);
     const matchesStatus = statusFilter === "all" || p.status === statusFilter;
@@ -54,13 +95,22 @@ export default function Patients() {
 
   const resetForm = () => setForm({ name: "", phone: "", email: "", dob: "", gender: "Male", bloodGroup: "O+", status: "Active" });
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!form.name || !form.phone) {
       toast({ title: "Error", description: "Name and phone are required", variant: "destructive" });
       return;
     }
-    const mrnNum = patients.length > 0 ? Math.max(...patients.map((p) => parseInt(p.mrn.split("-")[2]))) + 1 : 1;
-    const newPatient: Patient = {
+
+    const token = localStorage.getItem("navadia_token");
+    
+    // Local fallback creation
+    const mrnNum = patients.length > 0 ? Math.max(...patients.map((p) => {
+      const parts = p.mrn.split("-");
+      const numStr = parts[parts.length - 1];
+      const parsed = parseInt(numStr);
+      return isNaN(parsed) ? 0 : parsed;
+    })) + 1 : 1;
+    const localNewPatient: Patient = {
       id: crypto.randomUUID(),
       mrn: `PT-2025-${String(mrnNum).padStart(4, "0")}`,
       name: form.name,
@@ -73,10 +123,57 @@ export default function Patients() {
       status: form.status,
       balance: "$0",
     };
-    const updated = [newPatient, ...patients];
+
+    if (token) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/patients`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: form.name,
+            phone: form.phone,
+            email: form.email,
+            dob: form.dob,
+            gender: form.gender,
+            bloodGroup: form.bloodGroup,
+            status: form.status
+          })
+        });
+        if (res.ok) {
+          const created = await res.json();
+          const mappedCreated: Patient = {
+            id: created._id,
+            mrn: created.mrn,
+            name: created.name,
+            phone: created.phone,
+            email: created.email || "",
+            dob: created.dob || "",
+            gender: created.gender || "Male",
+            bloodGroup: created.bloodGroup || "O+",
+            lastVisit: created.lastVisit ? new Date(created.lastVisit).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "",
+            status: created.status || "Active",
+            balance: created.balance || "$0"
+          };
+          const updated = [mappedCreated, ...patients];
+          setPatients(updated);
+          savePatients(updated);
+          toast({ title: "Patient registered", description: `${form.name} — ${mappedCreated.mrn}` });
+          resetForm();
+          setOpen(false);
+          return;
+        }
+      } catch (e) {
+        console.warn("Backend error, falling back to local:", e);
+      }
+    }
+
+    const updated = [localNewPatient, ...patients];
     setPatients(updated);
     savePatients(updated);
-    toast({ title: "Patient added", description: `${form.name} — ${newPatient.mrn}` });
+    toast({ title: "Patient added (Offline fallback)", description: `${form.name} — ${localNewPatient.mrn}` });
     resetForm();
     setOpen(false);
   };
@@ -86,20 +183,82 @@ export default function Patients() {
     setForm({ name: p.name, phone: p.phone, email: p.email, dob: p.dob, gender: p.gender, bloodGroup: p.bloodGroup, status: p.status });
   };
 
-  const handleSaveEdit = (id: string) => {
+  const handleSaveEdit = async (id: string) => {
+    const token = localStorage.getItem("navadia_token");
+    if (token && !id.includes("-")) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/patients/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: form.name,
+            phone: form.phone,
+            email: form.email,
+            dob: form.dob,
+            gender: form.gender,
+            bloodGroup: form.bloodGroup,
+            status: form.status
+          })
+        });
+        if (res.ok) {
+          const updatedPatient = await res.json();
+          const updated = patients.map((p) => p.id === id ? {
+            ...p,
+            name: updatedPatient.name,
+            phone: updatedPatient.phone,
+            email: updatedPatient.email || "",
+            dob: updatedPatient.dob || "",
+            gender: updatedPatient.gender || "Male",
+            bloodGroup: updatedPatient.bloodGroup || "O+",
+            status: updatedPatient.status || "Active"
+          } : p);
+          setPatients(updated);
+          savePatients(updated);
+          setEditingId(null);
+          resetForm();
+          toast({ title: "Patient updated" });
+          return;
+        }
+      } catch (e) {
+        console.warn("Backend error updating patient:", e);
+      }
+    }
+
     const updated = patients.map((p) => p.id === id ? { ...p, name: form.name, phone: form.phone, email: form.email, dob: form.dob, gender: form.gender, bloodGroup: form.bloodGroup, status: form.status } : p);
     setPatients(updated);
     savePatients(updated);
     setEditingId(null);
     resetForm();
-    toast({ title: "Patient updated" });
+    toast({ title: "Patient updated (Offline fallback)" });
   };
 
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
+    const token = localStorage.getItem("navadia_token");
+    if (token && !id.includes("-")) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/patients/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const updated = patients.filter((p) => p.id !== id);
+          setPatients(updated);
+          savePatients(updated);
+          toast({ title: "Patient removed", description: name });
+          return;
+        }
+      } catch (e) {
+        console.warn("Backend error deleting patient:", e);
+      }
+    }
+
     const updated = patients.filter((p) => p.id !== id);
     setPatients(updated);
     savePatients(updated);
-    toast({ title: "Patient removed", description: name });
+    toast({ title: "Patient removed (Offline fallback)", description: name });
   };
 
   const handleExport = () => {

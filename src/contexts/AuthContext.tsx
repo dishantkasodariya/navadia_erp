@@ -12,6 +12,19 @@ export interface User {
   phone?: string;
   specialization?: string;
   licenseNo?: string;
+  aadhaarNo?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
+  alternatePhone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  bloodGroup?: string;
+  panNo?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
 }
 
 interface AuthContextType {
@@ -22,8 +35,9 @@ interface AuthContextType {
   signup: (data: SignupData) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   allUsers: User[];
-  addStaffMember: (data: Omit<User, "id"> & { password?: string }) => void;
-  removeStaffMember: (id: string) => void;
+  addStaffMember: (data: Omit<User, "id"> & { password?: string }) => Promise<{ success: boolean; message: string }>;
+  editStaffMember: (id: string, data: Partial<User>) => Promise<{ success: boolean; message: string }>;
+  removeStaffMember: (id: string) => Promise<{ success: boolean; message: string }>;
   updateUser: (updatedUser: Partial<User>) => void;
 }
 
@@ -35,6 +49,19 @@ interface SignupData {
   phone?: string;
   specialization?: string;
   licenseNo?: string;
+  aadhaarNo?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
+  alternatePhone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  bloodGroup?: string;
+  panNo?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,12 +70,6 @@ const DEFAULT_USERS: (User & { password: string })[] = [
   { id: "super-1", name: "Super Admin", email: "super@navadia.com", password: "super", role: "Admin", phone: "+91 99999 99999" },
   { id: "1", name: "Dr. Jatin Navadia", email: "jatin@navadia.com", password: "jatin", role: "Admin", phone: "+91 98765 43210" },
   { id: "admin-2", name: "Dr. Dimpal Navadia", email: "dimpal@navadia.com", password: "dimpal", role: "Admin", phone: "+91 98765 43211" },
-  { id: "dentist-eva", name: "Dr. Eva", email: "eva@navadia.com", password: "eva", role: "Dentist", phone: "+91 00000 00001" },
-  { id: "dentist-archita", name: "Dr. Archita", email: "archita@navadia.com", password: "archita", role: "Dentist", phone: "+91 00000 00002" },
-  { id: "dentist-sejal", name: "Dr. Sejal", email: "sejal@navadia.com", password: "sejal", role: "Dentist", phone: "+91 00000 00003" },
-  { id: "dentist-shruti", name: "Dr. Shruti", email: "shruti@navadia.com", password: "shruti", role: "Dentist", phone: "+91 00000 00004" },
-  { id: "dentist-pooja", name: "Dr. Pooja", email: "pooja@navadia.com", password: "pooja", role: "Dentist", phone: "+91 00000 00005" },
-  { id: "dentist-mosam", name: "Dr. Mosam", email: "mosam@navadia.com", password: "mosam", role: "Dentist", phone: "+91 00000 00006" },
 ];
 
 function normalizeRole(role: string): UserRole {
@@ -61,15 +82,17 @@ function normalizeRole(role: string): UserRole {
 function getStoredUsers(): (User & { password: string })[] {
   const stored = localStorage.getItem("navadia_users");
   if (stored) {
-    const parsed = JSON.parse(stored);
-    if (parsed[0]?.email !== "super@navadia.com" && parsed[0]?.email !== "jatin@navadia.com") {
-      localStorage.setItem("navadia_users", JSON.stringify(DEFAULT_USERS));
-      return DEFAULT_USERS;
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return parsed.map((u: any) => ({
+          ...u,
+          role: normalizeRole(u.role)
+        })) as (User & { password: string })[];
+      }
+    } catch (e) {
+      console.error("Failed to parse stored users:", e);
     }
-    return parsed.map((u: any) => ({
-      ...u,
-      role: normalizeRole(u.role)
-    }));
   }
   localStorage.setItem("navadia_users", JSON.stringify(DEFAULT_USERS));
   return DEFAULT_USERS;
@@ -101,36 +124,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem("navadia_token");
       if (!token) return;
       try {
-        const res = await fetch("${API_BASE_URL}/api/staff", {
+        const res = await fetch(`${API_BASE_URL}/api/staff`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
           const backendStaff = await res.json();
-          const mapped = backendStaff.map((u: any) => ({
-            id: u._id,
-            name: u.name,
-            email: u.email,
-            role: normalizeRole(u.role),
-            phone: u.phone,
-            specialization: u.specialization,
-            licenseNo: u.licenseNo,
+          const mapped = backendStaff.map((u: Record<string, unknown>) => ({
+            id: u._id as string,
+            name: u.name as string,
+            email: u.email as string,
+            role: normalizeRole(u.role as string),
+            phone: u.phone as string,
+            specialization: u.specialization as string,
+            licenseNo: u.licenseNo as string,
+            aadhaarNo: u.aadhaarNo as string,
+            address: u.address as string,
+            city: u.city as string,
+            state: u.state as string,
+            country: u.country as string,
+            pincode: u.pincode as string,
+            alternatePhone: u.alternatePhone as string,
+            dateOfBirth: u.dateOfBirth as string,
+            gender: u.gender as string,
+            bloodGroup: u.bloodGroup as string,
+            panNo: u.panNo as string,
+            emergencyContact: u.emergencyContact as string,
+            emergencyPhone: u.emergencyPhone as string,
             password: "password123" // Placeholder for list
           }));
           
-          // Merge with defaults
-          const merged = [...getStoredUsers()];
-          mapped.forEach((b: any) => {
-            const idx = merged.findIndex((u) => u.email === b.email);
-            if (idx >= 0) {
-              const existingPassword = merged[idx].password;
-              merged[idx] = { 
-                ...merged[idx], 
-                ...b,
-                password: existingPassword && existingPassword !== "password123" ? existingPassword : b.password
-              };
-            } else {
-              merged.push(b);
-            }
+          // Use backend users directly as the source of truth, preserving local passwords for offline use
+          const merged = mapped.map((b: User & { password?: string }) => {
+            const existing = users.find((u) => u.email === b.email);
+            return {
+              ...b,
+              password: existing ? existing.password : "password123"
+            };
           });
           setUsers(merged);
           saveUsers(merged);
@@ -145,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     let backendFailed = false;
     try {
-      const res = await fetch("${API_BASE_URL}/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -159,14 +188,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: normalizeRole(data.role),
           phone: data.phone,
           specialization: data.specialization,
-          licenseNo: data.licenseNo
+          licenseNo: data.licenseNo,
+          aadhaarNo: data.aadhaarNo,
+          address: data.address,
+          city: data.city,
+          state: data.state,
+          country: data.country,
+          pincode: data.pincode,
+          alternatePhone: data.alternatePhone,
+          dateOfBirth: data.dateOfBirth,
+          gender: data.gender,
+          bloodGroup: data.bloodGroup,
+          panNo: data.panNo,
+          emergencyContact: data.emergencyContact,
+          emergencyPhone: data.emergencyPhone
         };
         setUser(normalized);
         localStorage.setItem("navadia_current_user", JSON.stringify(normalized));
         localStorage.setItem("navadia_token", data.token);
         return { success: true, message: "Login successful" };
       } else {
-        backendFailed = true;
+        const errorData = await res.json().catch(() => ({}));
+        return { success: false, message: errorData.message || "Invalid email or password" };
       }
     } catch (e) {
       console.warn("Backend offline, falling back to local storage:", e);
@@ -192,7 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (data: SignupData) => {
     try {
-      const res = await fetch("${API_BASE_URL}/api/auth/signup", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -234,6 +277,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phone: data.phone,
       specialization: data.specialization,
       licenseNo: data.licenseNo,
+      aadhaarNo: data.aadhaarNo,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      country: data.country,
+      pincode: data.pincode,
+      alternatePhone: data.alternatePhone,
+      dateOfBirth: data.dateOfBirth,
+      gender: data.gender,
+      bloodGroup: data.bloodGroup,
+      panNo: data.panNo,
+      emergencyContact: data.emergencyContact,
+      emergencyPhone: data.emergencyPhone,
     };
     const updated = [...users, newUser];
     setUsers(updated);
@@ -255,88 +311,155 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role: normalizeRole(u.role)
   }));
 
-  const addStaffMember = async (data: Omit<User, "id"> & { password?: string }) => {
+  const addStaffMember = async (data: Omit<User, "id"> & { password?: string }): Promise<{ success: boolean; message: string }> => {
     const finalRole = normalizeRole(data.role);
     const password = data.password || data.name.split(" ").pop()?.toLowerCase() || "password123";
     
     const token = localStorage.getItem("navadia_token");
-    if (token) {
-      try {
-        const res = await fetch("${API_BASE_URL}/api/staff", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            name: data.name,
-            email: data.email,
-            password: password,
-            role: finalRole,
-            phone: data.phone,
-            specialization: data.specialization,
-            licenseNo: data.licenseNo
-          })
-        });
-        if (res.ok) {
-          const created = await res.json();
-          const newUser = {
-            id: created._id,
-            name: created.name,
-            email: created.email,
-            role: normalizeRole(created.role),
-            phone: data.phone,
-            specialization: data.specialization,
-            licenseNo: data.licenseNo,
-            password
-          };
-          const updated = [...users, newUser];
-          setUsers(updated);
-          saveUsers(updated);
-          return;
-        }
-      } catch (e) {
-        console.warn("Backend offline, adding to local storage fallback:", e);
-      }
-    }
+    if (!token) return { success: false, message: "Authentication token missing. Please log in again." };
 
-    const newUser: User & { password: string } = {
-      id: crypto.randomUUID(),
-      name: data.name,
-      email: data.email,
-      role: finalRole,
-      phone: data.phone,
-      specialization: data.specialization,
-      licenseNo: data.licenseNo,
-      password: password,
-    };
-    const updated = [...users, newUser];
-    setUsers(updated);
-    saveUsers(updated);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/staff`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: password,
+          role: finalRole,
+          phone: data.phone,
+          specialization: data.specialization,
+          licenseNo: data.licenseNo,
+          aadhaarNo: data.aadhaarNo,
+          address: data.address,
+          city: data.city,
+          state: data.state,
+          country: data.country,
+          pincode: data.pincode,
+          alternatePhone: data.alternatePhone,
+          dateOfBirth: data.dateOfBirth,
+          gender: data.gender,
+          bloodGroup: data.bloodGroup,
+          panNo: data.panNo,
+          emergencyContact: data.emergencyContact,
+          emergencyPhone: data.emergencyPhone
+        })
+      });
+      
+      const resData = await res.json();
+      
+      if (res.ok) {
+        const newUser = {
+          id: resData._id,
+          name: resData.name,
+          email: resData.email,
+          role: normalizeRole(resData.role),
+          phone: resData.phone,
+          specialization: resData.specialization,
+          licenseNo: resData.licenseNo,
+          aadhaarNo: resData.aadhaarNo,
+          address: resData.address,
+          city: resData.city,
+          state: resData.state,
+          country: resData.country,
+          pincode: resData.pincode,
+          alternatePhone: resData.alternatePhone,
+          dateOfBirth: resData.dateOfBirth,
+          gender: resData.gender,
+          bloodGroup: resData.bloodGroup,
+          panNo: resData.panNo,
+          emergencyContact: resData.emergencyContact,
+          emergencyPhone: resData.emergencyPhone,
+          password
+        };
+        const updated = [...users, newUser];
+        setUsers(updated);
+        saveUsers(updated);
+        return { success: true, message: "Staff added successfully" };
+      } else {
+        return { success: false, message: resData.message || "Failed to add staff member" };
+      }
+    } catch (e) {
+      console.error("Error adding staff:", e);
+      return { success: false, message: "Cannot connect to server. Please try again later." };
+    }
   };
 
-  const removeStaffMember = async (id: string) => {
+  const editStaffMember = async (id: string, data: Partial<User>): Promise<{ success: boolean; message: string }> => {
     const token = localStorage.getItem("navadia_token");
-    if (token) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/staff/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` }
+    if (!token) return { success: false, message: "Authentication token missing. Please log in again." };
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/staff/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(data)
+      });
+      
+      const resData = await res.json();
+      
+      if (res.ok) {
+        const updatedUsers = users.map(u => {
+          if (u.id === id) {
+            return {
+              ...u,
+              ...resData,
+              id: resData._id || u.id,
+              role: normalizeRole(resData.role || u.role)
+            };
+          }
+          return u;
         });
-        if (res.ok) {
-          const updated = users.filter((u) => u.id !== id);
-          setUsers(updated);
-          saveUsers(updated);
-          return;
-        }
-      } catch (e) {
-        console.warn("Backend offline, removing from local storage fallback:", e);
+        setUsers(updatedUsers);
+        saveUsers(updatedUsers);
+        return { success: true, message: "Staff updated successfully" };
+      } else {
+        return { success: false, message: resData.message || "Failed to update staff member" };
       }
+    } catch (e) {
+      console.error("Error updating staff:", e);
+      return { success: false, message: "Cannot connect to server. Please try again later." };
+    }
+  };
+
+  const removeStaffMember = async (id: string): Promise<{ success: boolean; message: string }> => {
+    // If the ID is a temporary local ID and not a valid 24-character hexadecimal Mongo ObjectId, remove it locally
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(id);
+    if (!isMongoId) {
+      const updated = users.filter((u) => u.id !== id);
+      setUsers(updated);
+      saveUsers(updated);
+      return { success: true, message: "Staff removed successfully" };
     }
 
-    const updated = users.filter((u) => u.id !== id);
-    setUsers(updated);
-    saveUsers(updated);
+    const token = localStorage.getItem("navadia_token");
+    if (!token) return { success: false, message: "Authentication token missing." };
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/staff/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok || res.status === 404) {
+        const updated = users.filter((u) => u.id !== id);
+        setUsers(updated);
+        saveUsers(updated);
+        return { success: true, message: "Staff removed successfully" };
+      } else {
+        const resData = await res.json();
+        return { success: false, message: resData.message || "Failed to remove staff" };
+      }
+    } catch (e) {
+      console.error("Error removing staff:", e);
+      return { success: false, message: "Cannot connect to server." };
+    }
   };
 
   const updateUser = (updatedUser: Partial<User>) => {
@@ -349,7 +472,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, signup, logout, allUsers, addStaffMember, removeStaffMember, updateUser }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, signup, logout, allUsers, addStaffMember, editStaffMember, removeStaffMember, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

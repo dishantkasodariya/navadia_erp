@@ -54,7 +54,6 @@ export default function Login() {
             </div>
             <h1 className="text-4xl text-foreground tracking-tight">Navadia</h1>
           </div>
-          <p className="text-muted-foreground text-sm">Welcome back! Please enter your details.</p>
         </div>
 
         <Card className="border-none shadow-md bg-card/50 backdrop-blur-sm">

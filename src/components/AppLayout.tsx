@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function AppLayout() {
   const { user, logout } = useAuth();
-  const { notifications, markNotificationAsRead, clearNotifications } = useChat();
+  const { notifications, markNotificationAsRead, markAllNotificationsAsRead, clearNotifications } = useChat();
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const navigate = useNavigate();
 
@@ -26,7 +26,7 @@ export function AppLayout() {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           {/* Premium Unified Header for all roles (Admin, Dentist, Staff) */}
-          <header className="h-14 flex items-center justify-between border-b bg-card px-4 shrink-0">
+          <header className="sticky top-0 z-40 h-14 flex items-center justify-between border-b bg-card/80 backdrop-blur-md px-4 shrink-0 shadow-sm">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
             </div>
@@ -99,6 +99,18 @@ export function AppLayout() {
                       )}
                     </div>
                   </ScrollArea>
+                  {notifications.length > 0 && (
+                    <div className="pt-2 mt-1 border-t border-muted/30 flex justify-center">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 text-xs w-full text-primary hover:bg-primary/10 hover:text-primary transition-all font-semibold rounded-lg"
+                        onClick={markAllNotificationsAsRead}
+                      >
+                        Mark All as Read
+                      </Button>
+                    </div>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
 

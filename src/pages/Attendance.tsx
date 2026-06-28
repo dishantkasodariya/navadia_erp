@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Clock, LogIn, LogOut, Search, Plus, Calendar, UserCheck, UserX, History, FileText, Users } from "lucide-react";
+import { Clock, LogIn, LogOut, Search, Plus, Calendar, UserCheck, UserX, History, FileText, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { calculateDuration, formatDuration } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,7 +23,8 @@ interface AttendanceRecord {
   date: string;
   checkIn: string | null;
   checkOut: string | null;
-  status: "present" | "absent" | "late" | "half-day" | "on-leave";
+  breakTime?: number; // Break time in minutes
+  status: "present" | "absent" | "late" | "half-day" | "on-leave" | "tour";
   notes: string;
 }
 
@@ -34,6 +35,8 @@ export default function Attendance() {
   const { user, allUsers } = useAuth();
   const { toast } = useToast();
   const [records, setRecords] = useState<AttendanceRecord[]>(INITIAL_RECORDS);
+  const [leaves, setLeaves] = useState<any[]>([]);
+  const [currentCalendarMonth, setCurrentCalendarMonth] = useState(new Date());
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedDate, setSelectedDate] = useState(today);
@@ -47,23 +50,25 @@ export default function Attendance() {
 
   const fetchAttendance = async () => {
     const token = localStorage.getItem("navadia_token");
+    if (!token) return;
     try {
-      const res = await fetch("${API_BASE_URL}/api/attendance", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await fetch(`${API_BASE_URL}/api/attendance`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
         const mapped = data.map((a: any) => ({
-          id: a._id,
-          staffId: a.userId,
-          staffName: a.userName,
-          role: allUsers.find(u => u.id === a.userId)?.role || "Staff",
-          date: a.date,
-          checkIn: a.checkIn || null,
-          checkOut: a.checkOut || null,
-          status: (a.status || "Present").toLowerCase() === "on leave" ? "on-leave" : (a.status || "Present").toLowerCase(),
-          notes: ""
-        }));
+            id: a._id,
+            staffId: a.userId,
+            staffName: a.userName,
+            role: allUsers.find(u => u.id === a.userId)?.role || "Staff",
+            date: a.date,
+            checkIn: a.checkIn || null,
+            checkOut: a.checkOut || null,
+            breakTime: a.breakTime || 0,
+            status: (a.status || "Present").toLowerCase() === "on leave" ? "on-leave" : (a.status || "Present").toLowerCase(),
+            notes: ""
+          }));
         setRecords(mapped);
       }
     } catch (e) {
@@ -71,8 +76,25 @@ export default function Attendance() {
     }
   };
 
+  const fetchLeaves = async () => {
+    const token = localStorage.getItem("navadia_token");
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/leave`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLeaves(data.filter((l: any) => l.status === "Approved"));
+      }
+    } catch (e) {
+      console.warn("Failed to fetch leaves:", e);
+    }
+  };
+
   useEffect(() => {
     fetchAttendance();
+    fetchLeaves();
   }, [allUsers]);
 
   // Ensure current logged-in employee has an attendance record placeholder for today so they can clock in/out
@@ -88,6 +110,7 @@ export default function Attendance() {
           date: today,
           checkIn: null,
           checkOut: null,
+          breakTime: 0,
           status: "absent",
           notes: ""
         };
@@ -101,10 +124,10 @@ export default function Attendance() {
     const handleAttendanceSync = (e: Event) => {
       if (e instanceof CustomEvent && e.detail?.type === 'check-in') {
         // Dashboard checked in, refetch attendance to show updated records
-        setTimeout(() => fetchAttendance(), 500);
+        setTimeout(() => { fetchAttendance(); fetchLeaves(); }, 500);
       } else if (e instanceof CustomEvent && e.detail?.type === 'check-out') {
         // Dashboard checked out, refetch attendance to show updated records
-        setTimeout(() => fetchAttendance(), 500);
+        setTimeout(() => { fetchAttendance(); fetchLeaves(); }, 500);
       }
     };
     window.addEventListener('attendance-synced', handleAttendanceSync);
@@ -112,7 +135,7 @@ export default function Attendance() {
     // Also listen for storage changes from other tabs
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key?.includes('navadia_dentist_shift') && e.newValue) {
-        setTimeout(() => fetchAttendance(), 500);
+        setTimeout(() => { fetchAttendance(); fetchLeaves(); }, 500);
       }
     };
     window.addEventListener('storage', handleStorageChange);
@@ -162,7 +185,7 @@ export default function Attendance() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("${API_BASE_URL}/api/attendance/check-in", {
+        const res = await fetch(`${API_BASE_URL}/api/attendance/check-in`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -231,7 +254,7 @@ export default function Attendance() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("${API_BASE_URL}/api/attendance/check-out", {
+        const res = await fetch(`${API_BASE_URL}/api/attendance/check-out`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -274,7 +297,7 @@ export default function Attendance() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("${API_BASE_URL}/api/attendance/check-in", {
+        const res = await fetch(`${API_BASE_URL}/api/attendance/check-in`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -308,6 +331,7 @@ export default function Attendance() {
       date: selectedDate,
       checkIn: formData.status === "present" ? nowTime : null,
       checkOut: null,
+      breakTime: 0,
       status: formData.status,
       notes: formData.notes,
     };
@@ -388,12 +412,428 @@ export default function Attendance() {
 
   const personalTodayHours = calculateDuration(personalTodayRecord?.checkIn || null, personalTodayRecord?.checkOut || null);
 
+  const formatTimeTo12h = (time24: string | null) => {
+    if (!time24) return "—";
+    if (time24.includes("AM") || time24.includes("PM")) return time24; // already formatted
+    const parts = time24.split(":");
+    if (parts.length < 2) return time24;
+    const h = parseInt(parts[0], 10);
+    const m = parts[1];
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12.toString().padStart(2, "0")}:${m} ${ampm}`;
+  };
+
+  const getDayStatus = (userId: string, dateStr: string) => {
+    // 1. Check records
+    const record = records.find(r => r.staffId === userId && r.date === dateStr);
+    if (record) {
+      const statusVal = record.status.toLowerCase();
+      let mappedStatus = "Present";
+      if (statusVal === "present") mappedStatus = "Present";
+      else if (statusVal === "late") mappedStatus = "Late";
+      else if (statusVal === "absent") mappedStatus = "Absent";
+      else if (statusVal === "on-leave" || statusVal === "on leave") mappedStatus = "On Leave";
+      else if (statusVal === "tour") mappedStatus = "Tour";
+
+      return {
+        status: mappedStatus,
+        checkIn: record.checkIn,
+        checkOut: record.checkOut,
+        breakTime: record.breakTime || 0,
+        recordId: record.id
+      };
+    }
+    
+    // 2. Check approved leaves
+    const approvedLeave = leaves.find(l => l.userId === userId && dateStr >= l.startDate && dateStr <= l.endDate);
+    if (approvedLeave) {
+      const isTour = (approvedLeave.type || "").toLowerCase().includes("tour");
+      return {
+        status: isTour ? "Tour" : "On Leave",
+        checkIn: null,
+        checkOut: null,
+        breakTime: 0,
+        recordId: null
+      };
+    }
+
+    // 3. Sundays
+    const dayOfWeek = parseISO(dateStr).getDay();
+    if (dayOfWeek === 0) {
+      return {
+        status: "Holiday",
+        checkIn: null,
+        checkOut: null,
+        breakTime: 0,
+        recordId: null
+      };
+    }
+
+    // 4. Past vs Future
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (dateStr < todayStr) {
+      return {
+        status: "Absent",
+        checkIn: null,
+        checkOut: null,
+        breakTime: 0,
+        recordId: null
+      };
+    }
+
+    return {
+      status: "Pending",
+      checkIn: null,
+      checkOut: null,
+      breakTime: 0,
+      recordId: null
+    };
+  };
+
+  const renderStaffAttendanceOverview = (userId: string) => {
+    // 1. Calculate dates for selected month
+    const startOfCalMonth = startOfMonth(currentCalendarMonth);
+    const endOfCalMonth = endOfMonth(currentCalendarMonth);
+    const monthStr = format(currentCalendarMonth, "yyyy-MM");
+    const todayStr = new Date().toISOString().split("T")[0];
+    
+    // Find all attendance records for this month
+    const userRecords = records.filter(r => r.staffId === userId && r.date.startsWith(monthStr));
+    const userLeaves = leaves.filter(l => l.userId === userId && l.status === "Approved");
+
+    // Calculate dynamic stats for this selected month
+    let presentCount = 0;
+    let absentCount = 0;
+    let leaveCount = 0;
+    let tourCount = 0;
+    let lateCount = 0;
+    let requiredDays = 0;
+    
+    const todayDate = new Date();
+    const endStatLimit = endOfCalMonth < todayDate ? endOfCalMonth : todayDate;
+    
+    // Calculate total required days for the whole month
+    for (let d = new Date(startOfCalMonth); d <= endOfCalMonth; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() !== 0) requiredDays++;
+    }
+    if (requiredDays <= 0) requiredDays = 24;
+
+    // Calculate actual statuses up to endStatLimit
+    const recordsMap = new Map<string, any>();
+    userRecords.forEach((r: any) => {
+      recordsMap.set(r.date, r);
+    });
+
+    for (let d = new Date(startOfCalMonth); d <= endStatLimit; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() === 0) continue; // skip Sunday
+      const dateStr = d.toISOString().split("T")[0];
+
+      if (recordsMap.has(dateStr)) {
+        const r = recordsMap.get(dateStr);
+        const statusStr = (r.status || "").toLowerCase();
+        if (statusStr === "present") {
+          presentCount++;
+        } else if (statusStr === "late") {
+          lateCount++;
+          presentCount++;
+        } else if (statusStr === "absent") {
+          absentCount++;
+        } else if (statusStr === "on leave" || statusStr === "on-leave") {
+          leaveCount++;
+        } else if (statusStr === "tour") {
+          tourCount++;
+        } else {
+          presentCount++;
+        }
+      } else {
+        const isOnApprovedLeave = userLeaves.find((l: any) => dateStr >= l.startDate && dateStr <= l.endDate);
+        if (isOnApprovedLeave) {
+          const leaveType = (isOnApprovedLeave.type || "").toLowerCase();
+          if (leaveType.includes("tour")) {
+            tourCount++;
+          } else {
+            leaveCount++;
+          }
+        } else {
+          if (dateStr < todayStr) {
+            absentCount++;
+          }
+        }
+      }
+    }
+
+    // Calculate total hours
+    let totalMs = 0;
+    let workedDaysWithDuration = 0;
+    
+    userRecords.forEach((r: any) => {
+      if (r.checkIn && r.checkOut) {
+        const [inH, inM] = r.checkIn.split(":").map(Number);
+        const [outH, outM] = r.checkOut.split(":").map(Number);
+        let durationMs = ((outH * 60 + outM) - (inH * 60 + inM)) * 60 * 1000;
+        if (r.breakTime) {
+          durationMs -= r.breakTime * 60 * 1000;
+        }
+        if (durationMs > 0) {
+          totalMs += durationMs;
+          workedDaysWithDuration++;
+        }
+      }
+    });
+
+    const totalHours = Math.floor(totalMs / (3600 * 1000));
+    const totalMins = Math.floor((totalMs % (3600 * 1000)) / (60 * 1000));
+    const totalHoursStr = `${totalHours}h ${totalMins}m`;
+
+    let avgHoursStr = "00h 00m";
+    if (workedDaysWithDuration > 0) {
+      const avgMs = totalMs / workedDaysWithDuration;
+      const avgHours = Math.floor(avgMs / (3600 * 1000));
+      const avgMins = Math.floor((avgMs % (3600 * 1000)) / (60 * 1000));
+      avgHoursStr = `${avgHours.toString().padStart(2, "0")}h ${avgMins.toString().padStart(2, "0")}m`;
+    }
+
+    const attendanceRate = requiredDays > 0 ? Math.round((presentCount / requiredDays) * 100) : 0;
+
+    // Generate Calendar Grid
+    const startDayIndex = startOfCalMonth.getDay(); // 0: Sun, 1: Mon, etc.
+    const daysInMonth = endOfCalMonth.getDate();
+    const calendarCells: { dateStr: string | null; dayNum: number | null }[] = [];
+    
+    // Empty cells before start of month
+    for (let i = 0; i < startDayIndex; i++) {
+      calendarCells.push({ dateStr: null, dayNum: null });
+    }
+    
+    // Month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(startOfCalMonth);
+      d.setDate(i);
+      calendarCells.push({
+        dateStr: d.toISOString().split("T")[0],
+        dayNum: i
+      });
+    }
+
+    // Week-wise Log records
+    const logRecords: any[] = [];
+    for (let i = daysInMonth; i >= 1; i--) {
+      const d = new Date(startOfCalMonth);
+      d.setDate(i);
+      const dateStr = d.toISOString().split("T")[0];
+      if (dateStr > todayStr) continue; // skip future dates
+      
+      const dayStatus = getDayStatus(userId, dateStr);
+      if (dayStatus.status !== "Holiday" && dayStatus.status !== "Pending") {
+        logRecords.push({
+          date: dateStr,
+          ...dayStatus
+        });
+      }
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Month Selector & Rate Row */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/20 p-4 rounded-xl border border-muted/30">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => setCurrentCalendarMonth(prev => {
+                const next = new Date(prev);
+                next.setMonth(prev.getMonth() - 1);
+                return next;
+              })}
+              className="h-8 w-8"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h3 className="text-base font-bold min-w-32 text-center text-neutral-800 dark:text-neutral-200">
+              {format(currentCalendarMonth, "MMMM yyyy")}
+            </h3>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              disabled={startOfCalMonth > todayDate}
+              onClick={() => setCurrentCalendarMonth(prev => {
+                const next = new Date(prev);
+                next.setMonth(prev.getMonth() + 1);
+                return next;
+              })}
+              className="h-8 w-8"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="text-center">
+              <span className="block text-[10px] text-muted-foreground font-semibold uppercase tracking-wider font-sans">Attendance Rate</span>
+              <span className="text-xl font-extrabold text-emerald-600 font-sans">{attendanceRate}%</span>
+            </div>
+            <div className="h-8 w-[1px] bg-neutral-200 dark:bg-neutral-800" />
+            <div className="text-center">
+              <span className="block text-[10px] text-muted-foreground font-semibold uppercase tracking-wider font-sans">Total / Avg Hours</span>
+              <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200 font-mono">{totalHoursStr} / {avgHoursStr}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Breakdown Stats Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3 flex flex-col items-center justify-center">
+            <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1 font-sans">Present Days</span>
+            <span className="text-xl font-extrabold text-emerald-600 font-sans">{presentCount}</span>
+            <span className="text-[9px] text-emerald-500/80 mt-0.5 font-medium font-sans">{requiredDays > 0 ? Math.round((presentCount / requiredDays)*100) : 0}% of target</span>
+          </div>
+          <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-3 flex flex-col items-center justify-center">
+            <span className="text-[10px] text-red-500 font-bold uppercase tracking-wider mb-1 font-sans">Absent Days</span>
+            <span className="text-xl font-extrabold text-red-500 font-sans">{absentCount}</span>
+            <span className="text-[9px] text-red-400 mt-0.5 font-medium font-sans">{requiredDays > 0 ? Math.round((absentCount / requiredDays)*100) : 0}% rate</span>
+          </div>
+          <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-3 flex flex-col items-center justify-center">
+            <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider mb-1 font-sans">Leaves Approved</span>
+            <span className="text-xl font-extrabold text-blue-500 font-sans">{leaveCount}</span>
+            <span className="text-[9px] text-blue-400 mt-0.5 font-medium font-sans">Leave periods</span>
+          </div>
+          <div className="bg-purple-500/5 border border-purple-500/10 rounded-xl p-3 flex flex-col items-center justify-center">
+            <span className="text-[10px] text-purple-600 font-bold uppercase tracking-wider mb-1 font-sans">Tour Days</span>
+            <span className="text-xl font-extrabold text-purple-600 font-sans">{tourCount}</span>
+            <span className="text-[9px] text-purple-400 mt-0.5 font-medium font-sans">Out of clinic</span>
+          </div>
+        </div>
+
+        {/* Layout Grid: Calendar & Log Table */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Calendar Widget */}
+          <Card className="lg:col-span-5 p-4 border border-neutral-200/60 dark:border-neutral-800 shadow-sm rounded-xl">
+            <CardHeader className="p-0 pb-3 border-b mb-3">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-400 font-sans">Monthly Calendar</CardTitle>
+            </CardHeader>
+            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-neutral-400 mb-1 font-sans">
+              <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {calendarCells.map((cell, idx) => {
+                if (cell.dayNum === null || cell.dateStr === null) {
+                  return <div key={`empty-${idx}`} className="aspect-square bg-muted/5 rounded" />;
+                }
+                const dayStatus = getDayStatus(userId, cell.dateStr);
+                let bgStyle = "bg-muted/10 text-neutral-400";
+                let dotStyle = "";
+
+                if (dayStatus.status === "Present") {
+                  bgStyle = "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-200/50 dark:border-emerald-900/30";
+                  dotStyle = "bg-emerald-500";
+                } else if (dayStatus.status === "Late") {
+                  bgStyle = "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 font-bold border border-amber-200/50 dark:border-amber-900/30";
+                  dotStyle = "bg-amber-500";
+                } else if (dayStatus.status === "Absent") {
+                  bgStyle = "bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border border-red-200/50 dark:border-red-900/30";
+                  dotStyle = "bg-red-500";
+                } else if (dayStatus.status === "On Leave") {
+                  bgStyle = "bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/30";
+                  dotStyle = "bg-blue-500";
+                } else if (dayStatus.status === "Tour") {
+                  bgStyle = "bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border border-purple-200/50 dark:border-purple-900/30";
+                  dotStyle = "bg-purple-500";
+                } else if (dayStatus.status === "Holiday") {
+                  bgStyle = "bg-neutral-100 dark:bg-neutral-900 text-neutral-400/70 border border-transparent";
+                }
+
+                const isToday = cell.dateStr === todayStr;
+
+                return (
+                  <div 
+                    key={`day-${cell.dayNum}`} 
+                    className={`aspect-square flex flex-col items-center justify-between p-1 rounded-lg text-xs relative cursor-help transition-all duration-200 ${bgStyle} ${isToday ? "ring-2 ring-blue-500" : ""}`}
+                    title={`${cell.dateStr}: ${dayStatus.status}${dayStatus.checkIn ? ` (${dayStatus.checkIn} - ${dayStatus.checkOut || 'Active'})` : ''}`}
+                  >
+                    <span className="font-semibold">{cell.dayNum}</span>
+                    {dotStyle && <span className={`h-1.5 w-1.5 rounded-full ${dotStyle}`} />}
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Legend */}
+            <div className="mt-4 pt-3 border-t grid grid-cols-5 gap-1 text-[9px] font-semibold text-neutral-500 font-sans">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" /> Present</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500 inline-block" /> Late</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500 inline-block" /> Absent</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500 inline-block" /> Leave</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-purple-500 inline-block" /> Tour</span>
+            </div>
+          </Card>
+
+          {/* Week-wise Table Log */}
+          <Card className="lg:col-span-7 p-4 border border-neutral-200/60 dark:border-neutral-800 shadow-sm rounded-xl overflow-hidden">
+            <CardHeader className="p-0 pb-3 border-b mb-3">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-400 font-sans">Attendance Log (Week-Wise)</CardTitle>
+            </CardHeader>
+            <div className="overflow-x-auto max-h-[350px]">
+              <table className="w-full text-xs text-left min-w-[500px]">
+                <thead>
+                  <tr className="bg-muted/30 border-b text-muted-foreground">
+                    <th className="px-3 py-2.5 font-semibold font-sans">Date</th>
+                    <th className="px-3 py-2.5 font-semibold font-sans">Status</th>
+                    <th className="px-3 py-2.5 font-semibold font-sans">Check-In</th>
+                    <th className="px-3 py-2.5 font-semibold font-sans">Check-Out</th>
+                    <th className="px-3 py-2.5 font-semibold font-sans">Duration</th>
+                    <th className="px-3 py-2.5 font-semibold font-sans">Break</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {logRecords.map((r, i) => {
+                    const formattedDateStr = format(parseISO(r.date), "eee, MMM d, yyyy");
+                    const durationVal = calculateDuration(r.checkIn, r.checkOut);
+                    const formattedDurationStr = r.checkIn ? formatDuration(durationVal) : "—";
+                    const formattedBreakStr = r.breakTime ? `${r.breakTime}m` : "—";
+
+                    let badgeClass = "bg-muted text-muted-foreground";
+                    if (r.status === "Present") badgeClass = "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400 border border-emerald-200/50";
+                    else if (r.status === "Late") badgeClass = "bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 border border-amber-200/50";
+                    else if (r.status === "Absent") badgeClass = "bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-400 border border-red-200/50";
+                    else if (r.status === "On Leave") badgeClass = "bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-400 border border-blue-200/50";
+                    else if (r.status === "Tour") badgeClass = "bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-400 border border-purple-200/50";
+
+                    return (
+                      <tr key={`log-${i}`} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30 transition-colors">
+                        <td className="px-3 py-2.5 font-bold text-neutral-800 dark:text-neutral-200 font-sans">{formattedDateStr}</td>
+                        <td className="px-3 py-2.5">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold inline-block ${badgeClass} font-sans`}>
+                            {r.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-neutral-500">{formatTimeTo12h(r.checkIn)}</td>
+                        <td className="px-3 py-2.5 font-mono text-neutral-500">{formatTimeTo12h(r.checkOut)}</td>
+                        <td className="px-3 py-2.5 font-bold text-neutral-800 dark:text-neutral-200 font-sans">{formattedDurationStr}</td>
+                        <td className="px-3 py-2.5 text-orange-600 dark:text-orange-400 font-semibold font-sans">{formattedBreakStr}</td>
+                      </tr>
+                    );
+                  })}
+                  {logRecords.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground font-sans">
+                        No records for this month
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 font-sans">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl md:max-lg:text-2xl">Attendance Management</h1>
-          <p className="text-muted-foreground text-sm sm:text-base md:max-lg:text-sm mt-1">Track and manage daily check-ins and hours</p>
+          <h1 className="text-xl sm:text-2xl md:max-lg:text-2xl">Attendance</h1>
         </div>
         {isAdmin && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -443,6 +883,7 @@ export default function Attendance() {
           <TabsList className="mb-4 w-full justify-between lg:w-auto lg:justify-start">
             <TabsTrigger value="daily" className="flex-1 gap-2 lg:flex-none"><Clock className="h-4 w-4" /> Daily Log</TabsTrigger>
             <TabsTrigger value="overview" className="flex-1 gap-2 lg:flex-none"><Users className="h-4 w-4" /> Staff Overview</TabsTrigger>
+            <TabsTrigger value="my-overview" className="flex-1 gap-2 lg:flex-none"><UserCheck className="h-4 w-4" /> My Overview</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview">
@@ -522,6 +963,12 @@ export default function Attendance() {
           <TabsContent value="daily">
             {renderDailyLog()}
           </TabsContent>
+
+          <TabsContent value="my-overview">
+            <div className="space-y-6">
+              {user && renderStaffAttendanceOverview(user.id)}
+            </div>
+          </TabsContent>
         </Tabs>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -540,35 +987,30 @@ export default function Attendance() {
                 <CardContent className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(220px,1fr)_minmax(320px,auto)] md:max-lg:p-3 sm:items-center">
                   {/* Profile Details */}
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="h-10 w-10 shrink-0 rounded-full bg-amber-500/10 flex items-center justify-center font-bold text-amber-600 text-sm">
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-amber-500/10 flex items-center justify-center font-bold text-amber-600 text-sm font-sans">
                       {user?.name?.charAt(0) || "?"}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="truncate font-medium text-sm text-foreground">{user?.name}</h3>
-                      <p className="text-sm text-muted-foreground capitalize mt-0.5">{user?.role}</p>
+                      <h3 className="truncate font-medium text-sm text-foreground font-sans">{user?.name}</h3>
+                      <p className="text-sm text-muted-foreground capitalize mt-0.5 font-sans">{user?.role}</p>
                     </div>
                   </div>
                   
-                  {/* Statistics & Actions */}
+                  {/* Statistics */}
                   <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:justify-end sm:gap-3 lg:gap-4 md:max-lg:gap-2">
                     <div className="rounded-md bg-muted/30 px-3 py-2 text-center sm:min-w-24">
-                      <p className="text-xs sm:text-xs uppercase tracking-wider text-muted-foreground font-semibold">Today</p>
-                      <p className="text-sm sm:text-base font-semibold text-foreground mt-1">{formatDuration(personalTodayHours)}</p>
+                      <p className="text-xs sm:text-xs uppercase tracking-wider text-muted-foreground font-semibold font-sans">Today</p>
+                      <p className="text-sm sm:text-base font-semibold text-foreground mt-1 font-sans">{formatDuration(personalTodayHours)}</p>
                     </div>
                     <div className="rounded-md bg-primary/5 px-3 py-2 text-center sm:min-w-28">
-                      <p className="text-xs sm:text-xs uppercase tracking-wider text-muted-foreground font-semibold">This Month</p>
-                      <p className="text-sm sm:text-base font-semibold text-primary mt-1">{formatDuration(personalMonthlyHours)}</p>
+                      <p className="text-xs sm:text-xs uppercase tracking-wider text-muted-foreground font-semibold font-sans">This Month</p>
+                      <p className="text-sm sm:text-base font-semibold text-primary mt-1 font-sans">{formatDuration(personalMonthlyHours)}</p>
                     </div>
-                    
-                    <Button 
-                      onClick={() => setViewStaffId(user?.id || null)}
-                      className="col-span-2 h-9 gap-1.5 rounded-lg border border-gray-200/80 bg-[#f5f5f4] text-[#1c1917] hover:bg-amber-500 hover:text-white hover:border-amber-500 shadow-sm transition-all duration-200 text-xs sm:col-auto sm:min-w-24 md:max-lg:h-8 md:max-lg:px-3 md:max-lg:text-[11px]"
-                    >
-                      <History className="h-3 w-3 sm:h-3.5 sm:w-3.5 transition-colors" /> History
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
+
+              {user && renderStaffAttendanceOverview(user.id)}
             </div>
           </TabsContent>
         </Tabs>
@@ -576,42 +1018,14 @@ export default function Attendance() {
 
       {/* Staff History Modal */}
       <Dialog open={!!viewStaffId} onOpenChange={(o) => !o && setViewStaffId(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" /> Attendance History: {selectedStaffName}
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl font-bold font-sans">
+              <FileText className="h-5 w-5 text-primary animate-pulse" /> Attendance Overview: {selectedStaffName}
             </DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto mt-4 px-1">
-            <table className="w-full text-sm sm:text-base">
-              <thead className="sticky top-0 bg-background border-b z-10">
-                <tr>
-                  <th className="text-left py-2 font-medium">Date</th>
-                  <th className="text-left py-2 font-medium hidden sm:table-cell">Check In</th>
-                  <th className="text-left py-2 font-medium hidden sm:table-cell">Check Out</th>
-                  <th className="text-left py-2 font-medium">Duration</th>
-                  <th className="text-left py-2 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {selectedStaffHistory.map((h) => (
-                  <tr key={h.id} className="hover:bg-muted/30">
-                    <td className="py-2 sm:py-3 font-medium text-sm sm:text-base">{h.date}</td>
-                    <td className="py-2 sm:py-3 font-sans text-xs sm:text-sm text-muted-foreground hidden sm:table-cell">{h.checkIn || "—"}</td>
-                    <td className="py-2 sm:py-3 font-sans text-xs sm:text-sm text-muted-foreground hidden sm:table-cell">{h.checkOut || "—"}</td>
-                    <td className="py-2 sm:py-3 font-semibold text-sm sm:text-base">{formatDuration(calculateDuration(h.checkIn, h.checkOut))}</td>
-                    <td className="py-2 sm:py-3">
-                      <span className={`text-xs sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${statusColor(h.status)}`}>
-                        {h.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {selectedStaffHistory.length === 0 && (
-                  <tr><td colSpan={5} className="py-6 sm:py-8 text-center text-muted-foreground text-sm sm:text-base">No records found for this user</td></tr>
-                )}
-              </tbody>
-            </table>
+          <div className="mt-4">
+            {viewStaffId && renderStaffAttendanceOverview(viewStaffId)}
           </div>
         </DialogContent>
       </Dialog>
@@ -682,46 +1096,68 @@ export default function Attendance() {
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="min-w-[640px] text-sm sm:text-base lg:min-w-0 lg:w-full">
+              <table className="w-full text-xs text-left min-w-[800px]">
                 <thead>
-                  <tr className="border-b bg-muted/30 text-left">
-                    <th className="p-2 sm:p-3 font-medium text-muted-foreground">Staff</th>
-                    <th className="p-2 sm:p-3 font-medium text-muted-foreground hidden sm:table-cell text-xs">Role</th>
-                    <th className="p-2 sm:p-3 font-medium text-muted-foreground">Check In</th>
-                    <th className="p-2 sm:p-3 font-medium text-muted-foreground hidden sm:table-cell">Check Out</th>
-                    <th className="p-2 sm:p-3 font-medium text-muted-foreground">Status</th>
-                    <th className="p-2 sm:p-3 font-medium text-muted-foreground text-right">Actions</th>
+                  <tr className="border-b bg-muted/30 text-left text-muted-foreground">
+                    {isAdmin && <th className="p-3 font-semibold font-sans">Staff</th>}
+                    {isAdmin && <th className="p-3 font-semibold font-sans hidden sm:table-cell">Role</th>}
+                    <th className="p-3 font-semibold font-sans">Date</th>
+                    <th className="p-3 font-semibold font-sans">Check In</th>
+                    <th className="p-3 font-semibold font-sans">Check Out</th>
+                    <th className="p-3 font-semibold font-sans">Working Hours</th>
+                    <th className="p-3 font-semibold font-sans">Break Time</th>
+                    <th className="p-3 font-semibold font-sans">Status</th>
+                    <th className="p-3 font-semibold font-sans text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {filtered.map((r) => (
-                    <tr key={r.id} className="border-b last:border-0 hover:bg-muted/20">
-                      <td className="p-2 sm:p-3 font-medium text-sm sm:text-base">{r.staffName}</td>
-                      <td className="p-2 sm:p-3 capitalize text-muted-foreground hidden sm:table-cell text-base">s{r.role}</td>
-                      <td className="p-2 sm:p-3 font-sans text-xs sm:text-xs">{r.checkIn || "—"}</td>
-                      <td className="p-2 sm:p-3 font-sans text-xs sm:text-xs hidden sm:table-cell">{r.checkOut || "—"}</td>
-                      <td className="p-2 sm:p-3"><span className={`text-xs sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${statusColor(r.status)}`}>{r.status}</span></td>
-                      <td className="p-2 sm:p-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {!r.checkIn && (
-                            <Button variant="outline" size="sm" className="gap-1 h-9 text-xs sm:text-xs px-2" onClick={() => handleCheckIn(r.id)} title="Check In">
-                              <LogIn className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Check In</span>
-                            </Button>
-                          )}
-                          {r.checkIn && !r.checkOut && (
-                            <Button variant="outline" size="sm" className="gap-1 h-9 text-xs sm:text-xs px-2" onClick={() => handleCheckOut(r.id)} title="Check Out">
-                              <LogOut className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Check Out</span>
-                            </Button>
-                          )}
-                          {r.checkIn && r.checkOut && (
-                            <span className="text-xs sm:text-sm text-muted-foreground">Done</span>
-                          )}
-                        </div>
+                <tbody className="divide-y divide-border/50">
+                  {filtered.map((r) => {
+                    const formattedDateStr = r.date ? format(parseISO(r.date), "eee, MMM d, yyyy") : "—";
+                    const durationVal = calculateDuration(r.checkIn, r.checkOut);
+                    const netDurationVal = Math.max(0, durationVal - (r.breakTime || 0) / 60);
+                    const formattedDurationStr = r.checkIn && r.checkOut ? formatDuration(netDurationVal) : "—";
+                    const formattedBreakStr = r.breakTime ? `${r.breakTime}m` : "—";
+
+                    return (
+                      <tr key={r.id} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30 transition-colors">
+                        {isAdmin && <td className="p-3 font-medium text-neutral-800 dark:text-neutral-200 font-sans">{r.staffName}</td>}
+                        {isAdmin && <td className="p-3 capitalize text-muted-foreground hidden sm:table-cell font-sans">{r.role}</td>}
+                        <td className="p-3 font-bold text-neutral-800 dark:text-neutral-200 font-sans">{formattedDateStr}</td>
+                        <td className="p-3 font-mono text-neutral-500">{formatTimeTo12h(r.checkIn)}</td>
+                        <td className="p-3 font-mono text-neutral-500">{formatTimeTo12h(r.checkOut)}</td>
+                        <td className="p-3 font-bold text-neutral-800 dark:text-neutral-200 font-sans">{formattedDurationStr}</td>
+                        <td className="p-3 text-orange-650 dark:text-orange-400 font-semibold font-sans">{formattedBreakStr}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold inline-block ${statusColor(r.status)} font-sans`}>
+                            {r.status}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {!r.checkIn && (
+                              <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckIn(r.id)} title="Check In">
+                                <LogIn className="h-3.5 w-3.5" /> <span>Check In</span>
+                              </Button>
+                            )}
+                            {r.checkIn && !r.checkOut && (
+                              <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckOut(r.id)} title="Check Out">
+                                <LogOut className="h-3.5 w-3.5" /> <span>Check Out</span>
+                              </Button>
+                            )}
+                            {r.checkIn && r.checkOut && (
+                              <span className="text-xs text-muted-foreground font-medium pr-2">Done</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={isAdmin ? 9 : 7} className="p-8 text-center text-muted-foreground font-sans">
+                        No attendance records found
                       </td>
                     </tr>
-                  ))}
-                  {filtered.length === 0 && (
-                    <tr><td colSpan={6} className="p-6 sm:p-8 text-center text-muted-foreground text-sm sm:text-base">No attendance records found</td></tr>
                   )}
                 </tbody>
               </table>

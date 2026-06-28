@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,8 @@ import { Plus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { API_BASE_URL } from "@/config/api";
 
 interface Appointment {
   id: string;
@@ -53,7 +55,7 @@ function saveAppointments(appointments: Appointment[]) {
 
 export default function Appointments() {
   const { user, allUsers } = useAuth();
-  const dentists = allUsers.filter(u => u.role === "dentist");
+  const dentists = allUsers.filter(u => u.role.toLowerCase() === "dentist");
   const [appointments, setAppointments] = useState<Appointment[]>(getStoredAppointments);
 
   const [open, setOpen] = useState(false);
@@ -61,18 +63,58 @@ export default function Appointments() {
   const [form, setForm] = useState({ patient: "", procedure: "", dentist: dentists[0]?.name || "", time: "09:00", chair: "1", status: "scheduled" });
   const { toast } = useToast();
 
-  const handleAdd = () => {
+  const fetchAppointments = async () => {
+    const token = localStorage.getItem("navadia_token");
+    if (!token) {
+      setAppointments(getStoredAppointments());
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/appointments?date=${date}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = data.map((a: any) => ({
+          id: a._id,
+          time: a.time,
+          duration: a.duration,
+          patient: a.patient,
+          procedure: a.procedure,
+          dentist: a.dentist,
+          status: a.status,
+          chair: a.chair
+        }));
+        setAppointments(mapped);
+        saveAppointments(mapped);
+      } else {
+        setAppointments(getStoredAppointments());
+      }
+    } catch (e) {
+      console.error("Error fetching appointments:", e);
+      setAppointments(getStoredAppointments());
+    }
+  };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [date]);
+
+  const handleAdd = async () => {
     if (!form.patient || !form.procedure) {
       toast({ title: "Error", description: "Patient and procedure are required", variant: "destructive" });
       return;
     }
-    // Check for conflicts
+    
+    // Check conflicts
     const conflict = appointments.find((a) => a.time === form.time && a.chair === parseInt(form.chair) && a.status !== "cancelled");
     if (conflict) {
       toast({ title: "Conflict", description: `Chair ${form.chair} is occupied at ${form.time}`, variant: "destructive" });
       return;
     }
-    const newApt: Appointment = {
+
+    const token = localStorage.getItem("navadia_token");
+    const localNewApt: Appointment = {
       id: crypto.randomUUID(),
       time: form.time,
       duration: 1,
@@ -82,26 +124,114 @@ export default function Appointments() {
       status: form.status,
       chair: parseInt(form.chair),
     };
-    const updated = [...appointments, newApt];
+
+    if (token) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/appointments`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            time: form.time,
+            duration: 1,
+            patient: form.patient,
+            procedure: form.procedure,
+            dentist: form.dentist,
+            status: form.status,
+            chair: parseInt(form.chair),
+            date: date
+          })
+        });
+        if (res.ok) {
+          const created = await res.json();
+          const mappedCreated: Appointment = {
+            id: created._id,
+            time: created.time,
+            duration: created.duration,
+            patient: created.patient,
+            procedure: created.procedure,
+            dentist: created.dentist,
+            status: created.status,
+            chair: created.chair
+          };
+          const updated = [...appointments, mappedCreated];
+          setAppointments(updated);
+          saveAppointments(updated);
+          toast({ title: "Appointment scheduled", description: `${form.patient} at ${form.time}` });
+          setForm({ patient: "", procedure: "", dentist: dentists[0]?.name || "", time: "09:00", chair: "1", status: "scheduled" });
+          setOpen(false);
+          return;
+        }
+      } catch (e) {
+        console.warn("Backend error scheduling appointment:", e);
+      }
+    }
+
+    const updated = [...appointments, localNewApt];
     setAppointments(updated);
     saveAppointments(updated);
-    toast({ title: "Appointment added", description: `${form.patient} at ${form.time}` });
+    toast({ title: "Appointment scheduled (Offline fallback)", description: `${form.patient} at ${form.time}` });
     setForm({ patient: "", procedure: "", dentist: dentists[0]?.name || "", time: "09:00", chair: "1", status: "scheduled" });
     setOpen(false);
   };
 
-  const updateStatus = (id: string, newStatus: string) => {
+  const updateStatus = async (id: string, newStatus: string) => {
+    const token = localStorage.getItem("navadia_token");
+    if (token && !id.includes("-")) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/appointments/${id}/status`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+        if (res.ok) {
+          const updatedApt = await res.json();
+          const updated = appointments.map((a) => a.id === id ? { ...a, status: updatedApt.status } : a);
+          setAppointments(updated);
+          saveAppointments(updated);
+          toast({ title: "Status updated", description: statusLabels[newStatus] });
+          return;
+        }
+      } catch (e) {
+        console.warn("Backend error updating status:", e);
+      }
+    }
+
     const updated = appointments.map((a) => a.id === id ? { ...a, status: newStatus } : a);
     setAppointments(updated);
     saveAppointments(updated);
-    toast({ title: "Status updated", description: statusLabels[newStatus] });
+    toast({ title: "Status updated (Offline fallback)", description: statusLabels[newStatus] });
   };
 
-  const deleteAppointment = (id: string) => {
+  const deleteAppointment = async (id: string) => {
+    const token = localStorage.getItem("navadia_token");
+    if (token && !id.includes("-")) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/appointments/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const updated = appointments.filter((a) => a.id !== id);
+          setAppointments(updated);
+          saveAppointments(updated);
+          toast({ title: "Appointment deleted" });
+          return;
+        }
+      } catch (e) {
+        console.warn("Backend error deleting appointment:", e);
+      }
+    }
+
     const updated = appointments.filter((a) => a.id !== id);
     setAppointments(updated);
     saveAppointments(updated);
-    toast({ title: "Appointment deleted" });
+    toast({ title: "Appointment deleted (Offline fallback)" });
   };
 
   const changeDate = (delta: number) => {

@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 import { API_BASE_URL } from '../config/api';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { calculateDuration, formatDuration } from "@/lib/utils";
 import {
   Utensils, LogOut, Play, CheckCircle2, Sparkles, Coffee,
   Timer, Clock, CalendarDays, Users, Phone, Activity,
-  ChevronRight, AlertTriangle, TrendingUp, Briefcase
+  ChevronRight, AlertTriangle, TrendingUp, Briefcase, AlertCircle
 } from "lucide-react";
 
 interface ShiftState {
@@ -19,6 +22,8 @@ interface ShiftState {
   checkOutTimestamp: number | null;
   breakStartTime: number | null;
   accumulatedBreakTime: number;
+  breakCount: number;
+  breaks: { start: number; end: number | null; duration: number }[];
   notes: string;
   date: string;
 }
@@ -31,17 +36,13 @@ interface HistoryRecord {
   timestamp: number;
 }
 
-const myCheckIns = [
-  { time: "09:30 AM", patient: "Rajesh Patel", procedure: "Root Canal Therapy", dentist: "Dr. Eva", status: "Arrived" },
-  { time: "11:00 AM", patient: "Priya Shah", procedure: "Dental Crown Fitting", dentist: "Dr. Archita", status: "En Route" },
-  { time: "02:00 PM", patient: "Amit Mehta", procedure: "Teeth Whitening", dentist: "Dr. Sejal", status: "Confirmed" },
-  { time: "04:15 PM", patient: "Sneha Reddy", procedure: "Routine Prophylaxis", dentist: "Dr. Pooja", status: "Confirmed" },
-];
-
 const statusBadge: Record<string, string> = {
   "Arrived": "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20",
-  "En Route": "bg-amber-500/10 text-amber-600 border border-amber-500/20",
+  "In Chair": "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20",
   "Confirmed": "bg-primary/10 text-primary border border-primary/20",
+  "Scheduled": "bg-muted text-muted-foreground border-border",
+  "Completed": "bg-neutral-100 text-neutral-800 border-neutral-200",
+  "Cancelled": "bg-red-500/10 text-red-600 border border-red-500/20",
 };
 
 const quickLinks = [
@@ -71,7 +72,7 @@ export default function ReceptionDashboard() {
       const parsed = JSON.parse(saved);
       if (parsed.date === todayDate) return parsed;
     }
-    return { status: "idle", checkInTimestamp: null, checkOutTimestamp: null, breakStartTime: null, accumulatedBreakTime: 0, notes: "", date: todayDate };
+    return { status: "idle", checkInTimestamp: null, checkOutTimestamp: null, breakStartTime: null, accumulatedBreakTime: 0, breakCount: 0, breaks: [], notes: "", date: todayDate };
   });
 
   const [history, setHistory] = useState<HistoryRecord[]>(() => {
@@ -89,10 +90,330 @@ export default function ReceptionDashboard() {
   });
 
   const [lunchDialogOpen, setLunchDialogOpen] = useState(false);
+  const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [handoverNotes, setHandoverNotes] = useState("");
   const [elapsedActiveTime, setElapsedActiveTime] = useState<number>(0);
   const [elapsedBreakTime, setElapsedBreakTime] = useState<number>(0);
+
+  const [clinicSettings, setClinicSettings] = useState<any>(null);
+  const [todayStatusInfo, setTodayStatusInfo] = useState<{
+    status: "Holiday" | "Weekend" | "Leave" | "Tour" | "Normal";
+    name?: string;
+  }>({ status: "Normal" });
+
+  const [monthlySummary, setMonthlySummary] = useState<any>({
+    presentDays: 0,
+    absentDays: 0,
+    leaveDays: 0,
+    tourDays: 0,
+    holidayCount: 0,
+    weekendCount: 0,
+    totalHoursStr: "00h 00m",
+    avgHoursStr: "00h 00m",
+    attendanceRate: 0
+  });
+
+  const [historyList, setHistoryList] = useState<any[]>([]);
+  const [checkoutLatitude, setCheckoutLatitude] = useState<number | undefined>(undefined);
+  const [checkoutLongitude, setCheckoutLongitude] = useState<number | undefined>(undefined);
+
+  const [selectedDetailRecord, setSelectedDetailRecord] = useState<any | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+
+  const [checkIns, setCheckIns] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCheckIns = async () => {
+      const token = localStorage.getItem("navadia_token");
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/appointments?date=${todayDate}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const mapped = data.map((a: any) => ({
+            time: a.time,
+            patient: a.patient,
+            procedure: a.procedure,
+            dentist: a.dentist,
+            status: a.status === "inChair" ? "In Chair" : a.status.charAt(0).toUpperCase() + a.status.slice(1)
+          }));
+          setCheckIns(mapped);
+        }
+      } catch (e) {
+        console.warn("Error fetching appointments for receptionist queue:", e);
+      }
+    };
+    fetchCheckIns();
+  }, [todayDate]);
+
+  const [taskStats, setTaskStats] = useState({ total: 0, completed: 0, pending: 0 });
+  const [attendanceStats, setAttendanceStats] = useState({
+    workingDays: "26/24",
+    absentPresentLeaveTour: "7/17/0/0",
+    totalAverageHours: "132h 39m/07h 48m",
+    todayBreak: "0 min",
+    todayBreakValue: "--"
+  });
+
+  const fetchTodayTasks = async () => {
+    const token = localStorage.getItem("navadia_token");
+    if (!token || !user) return;
+    try {
+      const todayDateStr = new Date().toISOString().split("T")[0];
+      const res = await fetch(`${API_BASE_URL}/api/tasks?todayDate=${todayDateStr}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const userTasks = data.filter((t: any) => 
+          t.assignedTo === user.id || 
+          t.assignedTo === user.email ||
+          (!t.assignedTo && t.role?.toLowerCase() === user.role?.toLowerCase()) ||
+          (t.isRecurring && t.role?.toLowerCase() === user.role?.toLowerCase())
+        );
+        const total = userTasks.length;
+        const completed = userTasks.filter((t: any) => t.status === "completed").length;
+        const pending = userTasks.filter((t: any) => t.status === "pending" || t.status === "in-progress").length;
+        setTaskStats({ total, completed, pending });
+      }
+    } catch (e) {
+      console.warn("Failed to fetch today's tasks:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchTodayTasks();
+  }, [user]);
+
+  const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3;
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  };
+
+  const checkTodayStatus = (settings: any, userLeaves: any[]) => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todayDateObj = new Date();
+    
+    // 1. Check if today is a Holiday
+    if (settings && settings.holidays) {
+      const holiday = settings.holidays.find((h: any) => h.date === todayStr);
+      if (holiday) {
+        return { status: "Holiday" as const, name: holiday.name };
+      }
+    }
+
+    // 2. Check if today is a Weekend
+    const dayOfWeek = todayDateObj.getDay();
+    const weekendDays = settings?.weekendDays || [0];
+    if (weekendDays.includes(dayOfWeek)) {
+      return { status: "Weekend" as const, name: dayOfWeek === 0 ? "Sunday" : "Saturday" };
+    }
+
+    // 3. Check approved leaves
+    if (userLeaves && userLeaves.length > 0) {
+      const activeLeave = userLeaves.find((l: any) => todayStr >= l.startDate && todayStr <= l.endDate);
+      if (activeLeave) {
+        const isTour = (activeLeave.type || "").toLowerCase().includes("tour");
+        return { status: isTour ? "Tour" : "Leave" as const, name: activeLeave.reason };
+      }
+    }
+
+    return { status: "Normal" as const };
+  };
+
+  const fetchAttendanceStats = async () => {
+    const token = localStorage.getItem("navadia_token");
+    if (!token || !user) return;
+    try {
+      // Fetch clinic settings
+      const settingsRes = await fetch(`${API_BASE_URL}/api/settings`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      let settings: any = null;
+      if (settingsRes.ok) {
+        settings = await settingsRes.json();
+        setClinicSettings(settings);
+      }
+
+      // Fetch attendance
+      const res = await fetch(`${API_BASE_URL}/api/attendance`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      let userLeaves: any[] = [];
+      try {
+        const leaveRes = await fetch(`${API_BASE_URL}/api/leave`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (leaveRes.ok) {
+          const leaveData = await leaveRes.json();
+          userLeaves = leaveData.filter((l: any) => l.userId === user.id && l.status === "Approved");
+        }
+      } catch (err) {
+        console.warn("Failed to fetch leaves for stats:", err);
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        const userRecords = data.filter((r: any) => r.userId === user.id);
+        
+        const todayStat = checkTodayStatus(settings, userLeaves);
+        setTodayStatusInfo(todayStat);
+
+        const currentMonthStr = new Date().toISOString().slice(0, 7);
+        const monthlyRecords = userRecords.filter((r: any) => r.date && r.date.startsWith(currentMonthStr));
+        
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const todayDateStr = now.toISOString().split("T")[0];
+
+        let presentCount = 0;
+        let absentCount = 0;
+        let leaveCount = 0;
+        let tourCount = 0;
+        let holidayCount = 0;
+        let weekendCount = 0;
+        let requiredDays = 0;
+
+        const recordsMap = new Map<string, any>();
+        monthlyRecords.forEach((r: any) => {
+          recordsMap.set(r.date, r);
+        });
+
+        const endLimit = lastDay < now ? lastDay : now;
+
+        for (let d = new Date(firstDay); d <= endLimit; d.setDate(d.getDate() + 1)) {
+          const dateStr = d.toISOString().split("T")[0];
+          const dayOfWeek = d.getDay();
+
+          const isHoliday = settings?.holidays?.some((h: any) => h.date === dateStr);
+          if (isHoliday) {
+            holidayCount++;
+            continue;
+          }
+
+          const isWeekend = (settings?.weekendDays || [0]).includes(dayOfWeek);
+          if (isWeekend) {
+            weekendCount++;
+            continue;
+          }
+
+          requiredDays++;
+
+          if (recordsMap.has(dateStr)) {
+            const r = recordsMap.get(dateStr);
+            const statusStr = (r.status || "").toLowerCase();
+            if (statusStr === "present" || statusStr === "late") {
+              presentCount++;
+            } else if (statusStr === "absent") {
+              absentCount++;
+            } else if (statusStr === "on leave" || statusStr === "on-leave" || statusStr === "leave") {
+              leaveCount++;
+            } else if (statusStr === "tour") {
+              tourCount++;
+            } else {
+              presentCount++;
+            }
+          } else {
+            const isOnApprovedLeave = userLeaves.find((l: any) => dateStr >= l.startDate && dateStr <= l.endDate);
+            if (isOnApprovedLeave) {
+              const leaveType = (isOnApprovedLeave.type || "").toLowerCase();
+              if (leaveType.includes("tour")) {
+                tourCount++;
+              } else {
+                leaveCount++;
+              }
+            } else {
+              if (dateStr < todayDateStr) {
+                absentCount++;
+              }
+            }
+          }
+        }
+
+        let totalMs = 0;
+        let workedDaysWithDuration = 0;
+        
+        monthlyRecords.forEach((r: any) => {
+          if (r.checkIn && r.checkOut) {
+            const [inH, inM] = r.checkIn.split(":").map(Number);
+            const [outH, outM] = r.checkOut.split(":").map(Number);
+            let durationMs = ((outH * 60 + outM) - (inH * 60 + inM)) * 60 * 1000;
+            if (r.breakTime) {
+              durationMs -= r.breakTime * 60 * 1000;
+            }
+            if (durationMs > 0) {
+              totalMs += durationMs;
+              workedDaysWithDuration++;
+            }
+          }
+        });
+
+        const totalHours = Math.floor(totalMs / (3600 * 1000));
+        const totalMins = Math.floor((totalMs % (3600 * 1000)) / (60 * 1000));
+        const totalHoursStr = `${totalHours}h ${totalMins}m`;
+
+        let avgHoursStr = "00h 00m";
+        if (workedDaysWithDuration > 0) {
+          const avgMs = totalMs / workedDaysWithDuration;
+          const avgHours = Math.floor(avgMs / (3600 * 1000));
+          const avgMins = Math.floor((avgMs % (3600 * 1000)) / (60 * 1000));
+          avgHoursStr = `${avgHours.toString().padStart(2, "0")}h ${avgMins.toString().padStart(2, "0")}m`;
+        }
+
+        setAttendanceStats({
+          workingDays: `${presentCount}/${requiredDays}`,
+          absentPresentLeaveTour: `${absentCount}/${presentCount}/${leaveCount}/${tourCount}`,
+          totalAverageHours: `${totalHoursStr}/${avgHoursStr}`,
+          todayBreak: "0 min",
+          todayBreakValue: "--"
+        });
+
+        setMonthlySummary({
+          presentDays: presentCount,
+          absentDays: absentCount,
+          leaveDays: leaveCount,
+          tourDays: tourCount,
+          holidayCount: holidayCount,
+          weekendCount: weekendCount,
+          totalHoursStr,
+          avgHoursStr,
+          attendanceRate: requiredDays > 0 ? Math.round((presentCount / requiredDays) * 100) : 0
+        });
+
+        const sortedRecords = [...userRecords].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
+        setHistoryList(sortedRecords);
+      }
+    } catch (e) {
+      console.warn("Failed to fetch attendance stats:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchAttendanceStats();
+    
+    const handleSync = () => {
+      setTimeout(() => fetchAttendanceStats(), 500);
+    };
+    window.addEventListener('attendance-synced', handleSync);
+    return () => window.removeEventListener('attendance-synced', handleSync);
+  }, [user]);
 
   useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(shift)); }, [shift, storageKey]);
 
@@ -130,63 +451,269 @@ export default function ReceptionDashboard() {
   };
 
   const handleCheckIn = async () => {
+    const token = localStorage.getItem("navadia_token");
+    if (!token || !user) return;
+    
+    let settings = clinicSettings;
+    if (!settings) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/settings`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          settings = await res.json();
+          setClinicSettings(settings);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch settings:", err);
+      }
+    }
+
+    if (settings && settings.geofencingEnabled && settings.gpsVerificationEnabled) {
+      toast({ title: "Verifying Location...", description: "Retrieving browser GPS coordinates." });
+      if (!navigator.geolocation) {
+        toast({
+          title: "Check In Blocked ❌",
+          description: "Geolocation is not supported by your browser.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const dist = getDistanceInMeters(lat, lon, settings.latitude, settings.longitude);
+          
+          if (dist > settings.allowedRadius) {
+            toast({
+              title: "Outside Clinic Geofence ❌",
+              description: `You are outside the clinic location (${Math.round(dist)}m away). Allowed radius is ${settings.allowedRadius}m.`,
+              variant: "destructive"
+            });
+            return;
+          }
+
+          await executeCheckIn(lat, lon);
+        },
+        (error) => {
+          toast({
+            title: "Location Permission Required 📍",
+            description: "Please enable your device location to continue.",
+            variant: "destructive"
+          });
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      await executeCheckIn();
+    }
+  };
+
+  const executeCheckIn = async (latitude?: number, longitude?: number) => {
     const now = Date.now();
     const nowTimeStr = new Date(now).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-    setShift(prev => ({ ...prev, status: "active", checkInTimestamp: now, date: todayDate }));
-    toast({ title: "Checked In ✓", description: `Shift started at ${getFormattedTime(now)}. Have a great day!` });
+    const browserInfo = navigator.userAgent;
+    const deviceInfo = `${navigator.platform} (${navigator.vendor || 'Unknown Vendor'})`;
+
+    const newShift = { 
+      status: "active" as const, 
+      checkInTimestamp: now, 
+      checkOutTimestamp: null, 
+      breakStartTime: null, 
+      accumulatedBreakTime: 0, 
+      breakCount: 0, 
+      breaks: [],
+      notes: "", 
+      date: todayDate 
+    };
+    setShift(newShift);
+    localStorage.setItem(storageKey, JSON.stringify(newShift));
+    
+    window.dispatchEvent(new CustomEvent('attendance-synced', { detail: { type: 'check-in', shift: newShift } }));
+    toast({ title: "Shift Started ✓", description: `Checked in at ${getFormattedTime(now)}.` });
+
     const token = localStorage.getItem("navadia_token");
     if (token && user) {
       try {
-        await fetch("${API_BASE_URL}/api/attendance/check-in", {
+        await fetch(`${API_BASE_URL}/api/attendance/check-in`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ userId: user.id, userName: user.name, date: todayDate, checkIn: nowTimeStr, status: nowTimeStr > "09:00" ? "Late" : "Present" })
+          body: JSON.stringify({ 
+            userId: user.id, 
+            userName: user.name, 
+            date: todayDate, 
+            checkIn: nowTimeStr, 
+            status: nowTimeStr > "09:00" ? "Late" : "Present",
+            latitude,
+            longitude,
+            deviceInfo,
+            browserInfo
+          })
         });
+        fetchAttendanceStats();
       } catch (e) { console.warn("Backend offline"); }
     }
   };
 
   const confirmLunchBreak = () => {
-    setShift(prev => ({ ...prev, status: "stepped_out", breakStartTime: Date.now() }));
+    const now = Date.now();
+    const newBreak = { start: now, end: null, duration: 0 };
+    const updatedShift = {
+      ...shift,
+      status: "stepped_out" as const,
+      breakStartTime: now,
+      breakCount: (shift.breakCount || 0) + 1,
+      breaks: [...(shift.breaks || []), newBreak]
+    };
+    setShift(updatedShift);
+    localStorage.setItem(storageKey, JSON.stringify(updatedShift));
     setLunchDialogOpen(false);
-    toast({ title: "Break Started 🍽️", description: "Enjoy your lunch!" });
+    toast({ title: "Break Started", description: "Enjoy your break! 🍽️" });
+  };
+
+  const confirmResumeDuty = () => {
+    const now = Date.now();
+    const breakStart = shift.breakStartTime || now;
+    const durationMin = Math.round((now - breakStart) / 60000);
+    
+    const updatedBreaks = [...(shift.breaks || [])];
+    if (updatedBreaks.length > 0) {
+      updatedBreaks[updatedBreaks.length - 1] = {
+        ...updatedBreaks[updatedBreaks.length - 1],
+        end: now,
+        duration: durationMin
+      };
+    }
+
+    const updatedShift = {
+      ...shift,
+      status: "active" as const,
+      breakStartTime: null,
+      accumulatedBreakTime: (shift.accumulatedBreakTime || 0) + (now - breakStart),
+      breaks: updatedBreaks
+    };
+    setShift(updatedShift);
+    localStorage.setItem(storageKey, JSON.stringify(updatedShift));
+    setResumeDialogOpen(false);
+    toast({ title: "Shift Resumed", description: "Welcome back to duty! 💪" });
   };
 
   const handleResumeDuty = () => {
-    const now = Date.now();
-    if (shift.breakStartTime) {
-      setShift(prev => ({ ...prev, status: "active", accumulatedBreakTime: prev.accumulatedBreakTime + (now - prev.breakStartTime!), breakStartTime: null }));
-      setElapsedBreakTime(0);
-      toast({ title: "Welcome Back! 👋", description: "Break ended. You're active again." });
+    setResumeDialogOpen(true);
+  };
+
+  const handleCheckOut = async () => {
+    const token = localStorage.getItem("navadia_token");
+    if (!token || !user) return;
+    
+    let settings = clinicSettings;
+    if (!settings) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/settings`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          settings = await res.json();
+          setClinicSettings(settings);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch settings:", err);
+      }
+    }
+
+    if (settings && settings.geofencingEnabled && settings.gpsVerificationEnabled) {
+      toast({ title: "Verifying Location...", description: "Retrieving browser GPS coordinates." });
+      if (!navigator.geolocation) {
+        toast({
+          title: "Check Out Blocked ❌",
+          description: "Geolocation is not supported by your browser.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const dist = getDistanceInMeters(lat, lon, settings.latitude, settings.longitude);
+          
+          if (dist > settings.allowedRadius) {
+            toast({
+              title: "Outside Clinic Geofence ❌",
+              description: `You are outside the clinic location (${Math.round(dist)}m away). Allowed radius is ${settings.allowedRadius}m.`,
+              variant: "destructive"
+            });
+            return;
+          }
+
+          setCheckoutLatitude(lat);
+          setCheckoutLongitude(lon);
+          setCheckoutDialogOpen(true);
+        },
+        (error) => {
+          toast({
+            title: "Location Permission Required 📍",
+            description: "Please enable your device location to check out.",
+            variant: "destructive"
+          });
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      setCheckoutDialogOpen(true);
     }
   };
 
   const confirmCheckOut = async () => {
     const now = Date.now();
     const nowTimeStr = new Date(now).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-    const durationStr = formatMs(now - shift.checkInTimestamp! - shift.accumulatedBreakTime);
-    setShift(prev => ({ ...prev, status: "checked_out", checkOutTimestamp: now, notes: handoverNotes }));
-    setCheckoutDialogOpen(false);
-    const todayRecord: HistoryRecord = {
-      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " (Today)",
-      checkIn: getFormattedTime(shift.checkInTimestamp),
-      checkOut: getFormattedTime(now),
-      duration: durationStr,
-      timestamp: now
+    
+    const workDurationMs = now - shift.checkInTimestamp! - shift.accumulatedBreakTime;
+    const breakTimeMins = Math.round(shift.accumulatedBreakTime / 60000);
+    const workHoursMins = Math.round(workDurationMs / 60000);
+    
+    const overtimeMins = Math.max(0, workHoursMins - 480);
+
+    const updatedShift = {
+      ...shift,
+      status: "checked_out" as const,
+      checkOutTimestamp: now,
+      notes: handoverNotes
     };
-    const updatedHistory = [todayRecord, ...history.filter(h => !h.date.includes("Today"))].slice(0, 5);
-    localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
-    setHistory(updatedHistory);
-    toast({ title: "Shift Complete 🎉", description: "Logs saved. Great work today!" });
+    setShift(updatedShift);
+    localStorage.setItem(storageKey, JSON.stringify(updatedShift));
+    
+    window.dispatchEvent(new CustomEvent('attendance-synced', { detail: { type: 'check-out', shift: updatedShift } }));
+    toast({ title: "Shift Completed ✓", description: `Checked out at ${getFormattedTime(now)}.` });
+    setCheckoutDialogOpen(false);
+
     const token = localStorage.getItem("navadia_token");
     if (token && user) {
       try {
-        await fetch("${API_BASE_URL}/api/attendance/check-out", {
+        await fetch(`${API_BASE_URL}/api/attendance/check-out`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ userId: user.id, date: todayDate, checkOut: nowTimeStr })
+          body: JSON.stringify({
+            userId: user.id,
+            date: todayDate,
+            checkOut: nowTimeStr,
+            status: "Present",
+            breakTime: breakTimeMins,
+            latitude: checkoutLatitude,
+            longitude: checkoutLongitude,
+            workingHours: workHoursMins,
+            overtime: overtimeMins,
+            breakCount: shift.breakCount,
+            breaks: shift.breaks
+          })
         });
-      } catch (e) { console.warn("Backend offline"); }
+        fetchAttendanceStats();
+      } catch (e) {
+        console.warn("Check-out post failed:", e);
+      }
     }
   };
 
@@ -195,272 +722,369 @@ export default function ReceptionDashboard() {
   const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
   const shiftProgress = shift.checkInTimestamp ? Math.min(100, (elapsedActiveTime / (9 * 3600 * 1000)) * 100) : 0;
 
+  const [workedDaysVal, requiredDaysVal] = attendanceStats.workingDays.split("/");
+  const [absentDaysVal, presentDaysVal, leaveDaysVal, tourDaysVal] = attendanceStats.absentPresentLeaveTour.split("/");
+  const [totalHoursStr, avgHoursStr] = attendanceStats.totalAverageHours.split("/");
+
+  const todayBreakMin = Math.floor(shift.accumulatedBreakTime / (60 * 1000)) + 
+    (shift.status === "stepped_out" && shift.breakStartTime ? Math.floor(elapsedBreakTime / (60 * 1000)) : 0);
+
+  const formattedDate = currentTime.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+  const formatTimeTo12h = (time24: string | null) => {
+    if (!time24) return "—";
+    if (time24.includes("AM") || time24.includes("PM")) return time24;
+    const parts = time24.split(":");
+    if (parts.length < 2) return time24;
+    const h = parseInt(parts[0], 10);
+    const m = parts[1];
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12.toString().padStart(2, "0")}:${m} ${ampm}`;
+  };
+
+  const statusHeaderColor = 
+    shift.status === "active" ? "bg-emerald-600" :
+    shift.status === "stepped_out" ? "bg-amber-500" :
+    "bg-[#707e94]";
+  
+  const statusHeaderText = 
+    shift.status === "active" ? "Active" :
+    shift.status === "stepped_out" ? "On Break" :
+    shift.status === "checked_out" ? "Checked Out" :
+    "Not Checked In";
+
   return (
-    <div className="space-y-5 font-sans">
+    <div className="space-y-6 font-sans">
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes countUp { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+        @keyframes pulse-ring { 0%{transform:scale(0.9);opacity:0.8} 70%{transform:scale(1.3);opacity:0} 100%{transform:scale(1.3);opacity:0} }
+        @keyframes tick-glow { 0%,100%{text-shadow:0 0 8px rgba(217,147,33,0.3)} 50%{text-shadow:0 0 20px rgba(217,147,33,0.6)} }
         .fade-up { animation: fadeUp 0.4s ease both; }
+        .tick-glow { animation: tick-glow 1s ease-in-out infinite; }
       ` }} />
 
-      {/* ─── HERO ────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-secondary via-secondary/95 to-secondary/90 p-6 shadow-xl text-secondary-foreground">
-        <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-primary/5 blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-5">
-          <div className="fade-up">
-            <p className="text-primary-foreground/80 text-xs font-semibold uppercase tracking-widest mb-1">Reception Desk</p>
-            <h1 className="text-2xl md:text-3xl font-bold text-white">
-              {greeting}, {user?.name?.split(" ")[0] || "Staff"} 👋
-            </h1>
-            <p className="text-primary-foreground/60 text-xs mt-2">
-              {now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
-            </p>
-
-            {/* Inline shift status in hero */}
-            <div className="flex items-center gap-3 mt-4 flex-wrap">
-              {shift.status === "idle" && (
-                <span className="text-xs text-primary-foreground/40 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">Not checked in yet</span>
-              )}
-              {shift.status === "active" && (
-                <span className="flex items-center gap-2 text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-                  </span>
-                  Active · {formatMs(elapsedActiveTime).split(" ").slice(0,2).join(" ")} worked
-                </span>
-              )}
-              {shift.status === "stepped_out" && (
-                <span className="flex items-center gap-2 text-xs font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full">
-                  <Coffee className="h-3 w-3 animate-pulse" />
-                  On Break · {formatMs(elapsedBreakTime).split(" ").slice(0,2).join(" ")}
-                </span>
-              )}
-              {shift.status === "checked_out" && (
-                <span className="flex items-center gap-2 text-xs font-semibold text-slate-300 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
-                  <CheckCircle2 className="h-3 w-3" /> Shift Complete
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Live clock */}
-          <div className="text-right fade-up shrink-0">
-            <p className="text-xs uppercase tracking-widest text-primary-foreground/60 font-semibold mb-1">Live Clock</p>
-            <p className="text-4xl font-sans font-bold text-primary tick-glow">
-              {currentTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-            </p>
-            <p className="text-xs font-sans text-primary-foreground/60 mt-0.5">
-              :{currentTime.getSeconds().toString().padStart(2, "0")}
-            </p>
-          </div>
-        </div>
+      {/* ─── GREETING HEADER ────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-0.5 fade-up">
+        <p className="text-muted-foreground text-sm font-normal">Welcome back,</p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-neutral-800 dark:text-neutral-100">
+          {user?.name}
+        </h1>
       </div>
 
       {/* ─── MAIN GRID ───────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* ── LEFT: SHIFT CARD ── */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden fade-up">
-            <div className="p-5 border-b bg-primary/5">
-              <div className="flex items-center gap-2 mb-1">
-                <Activity className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold">Attendance</h2>
+        {/* ── LEFT COLUMN: SHIFT, TASKS & QUICK ACCESS ── */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Shift Control Check-In Widget */}
+          <div className="rounded-xl border border-neutral-200/60 dark:border-neutral-800 bg-white dark:bg-card shadow-sm overflow-hidden fade-up">
+            <div className={`px-4 py-3 flex items-center justify-between text-white ${statusHeaderColor} transition-colors duration-300`}>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4.5 w-4.5 animate-pulse" />
+                <span className="text-sm font-semibold tracking-wide">{statusHeaderText}</span>
               </div>
-              <p className="text-xs text-muted-foreground">Track your daily shift</p>
+              <span className="text-xs font-medium opacity-90">{formattedDate}</span>
             </div>
-
-            <div className="p-5 space-y-4">
-              {/* Timer */}
-              {(shift.status === "active" || shift.status === "stepped_out") && (
-                <div className={`text-center py-4 rounded-xl ${shift.status === "stepped_out" ? "bg-amber-500/5 border border-amber-500/15" : "bg-primary/5 border border-primary/15"}`}>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
-                    {shift.status === "stepped_out" ? "Break Time" : "Work Time"}
-                  </p>
-                  <p className={`text-3xl font-sans font-bold ${shift.status === "stepped_out" ? "text-amber-500" : "text-primary"}`}>
-                    {shift.status === "stepped_out" ? formatMs(elapsedBreakTime) : formatMs(elapsedActiveTime)}
-                  </p>
+            
+            <div className="p-6">
+              <div className="flex flex-col items-center justify-center space-y-4">
+                {/* Check In Info */}
+                <div className="text-center">
+                  <span className="text-xs font-semibold text-neutral-400">Check In: </span>
+                  <span className="text-sm font-bold text-neutral-700 dark:text-neutral-200">
+                    {shift.status === "idle" ? "--:--" : getFormattedTime(shift.checkInTimestamp)}
+                  </span>
                 </div>
-              )}
 
-              {/* Shift progress */}
-              {shift.status === "active" && (
-                <div>
-                  <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
-                    <span>Shift Progress</span>
-                    <span>{Math.round(shiftProgress)}% of 9h target</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-primary transition-all duration-1000" style={{ width: `${shiftProgress}%` }} />
-                  </div>
-                </div>
-              )}
-
-              {/* Timestamps */}
-              {shift.checkInTimestamp && (
-                <div className="grid grid-cols-2 gap-2 text-center text-xs">
-                  <div className="bg-muted/30 rounded-lg p-2.5">
-                    <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">In</p>
-                    <p className="font-sans font-bold mt-1">{getFormattedTime(shift.checkInTimestamp)}</p>
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-2.5">
-                    <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">Out</p>
-                    <p className="font-sans font-bold mt-1">{shift.status === "checked_out" ? getFormattedTime(shift.checkOutTimestamp) : "—"}</p>
+                {/* Clock / Dial Counter */}
+                <div className="relative flex items-center justify-center w-40 h-40 rounded-full border-4 border-dashed border-blue-500/30 dark:border-blue-500/20 bg-blue-50/10 dark:bg-blue-950/5 shadow-inner">
+                  {/* Dynamic Ring or Glowing circle */}
+                  <div className="absolute inset-2 rounded-full border border-blue-500/10" />
+                  <div className="flex flex-col items-center justify-center">
+                    <span className="text-2xl font-black text-blue-600 dark:text-blue-400 font-mono tracking-wider">
+                      {shift.status === "idle" ? "00:00:00" : 
+                       shift.status === "checked_out" ? formatMs(shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime).replace("h", ":").replace("m", ":").replace("s", "").replace(/ /g, "") :
+                       formatMs(elapsedActiveTime).replace("h", ":").replace("m", ":").replace("s", "").replace(/ /g, "")}
+                    </span>
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">Active Time</span>
                   </div>
                 </div>
-              )}
 
-              {/* Buttons */}
-              {shift.status === "idle" && (
-                <Button onClick={handleCheckIn} className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold gap-2 shadow-lg shadow-primary/20">
-                  <Play className="h-4 w-4 fill-current" /> Clock In Now
-                </Button>
-              )}
+                {/* Break Tracker Display */}
+                {shift.status !== "idle" && (
+                  <div className="w-full grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                    <div className="text-center">
+                      <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Break Duration</span>
+                      <span className={`text-xs font-mono font-bold ${shift.status === "stepped_out" ? "text-amber-500 animate-pulse" : "text-neutral-500"}`}>
+                        {formatMs(shift.accumulatedBreakTime + (shift.status === "stepped_out" ? elapsedBreakTime : 0)).replace("h", ":").replace("m", ":").replace("s", "").replace(/ /g, "")}
+                      </span>
+                    </div>
+                    <div className="text-center border-l border-neutral-100 dark:border-neutral-800">
+                      <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Breaks Taken</span>
+                      <span className="text-xs font-mono font-bold text-neutral-600 dark:text-neutral-400">
+                        {shift.breakCount || 0}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-              {shift.status === "active" && (
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" onClick={() => setLunchDialogOpen(true)} className="h-10 rounded-xl border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-950/20 text-xs gap-1">
-                    <Utensils className="h-3.5 w-3.5" /> Break
-                  </Button>
-                  <Button variant="outline" onClick={() => setCheckoutDialogOpen(true)} className="h-10 rounded-xl border-red-200 text-red-500 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-950/20 text-xs gap-1">
-                    <LogOut className="h-3.5 w-3.5" /> Clock Out
-                  </Button>
-                </div>
-              )}
+              {/* Bottom Actions Slot */}
+              <div className="text-center mt-6 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+                {todayStatusInfo.status !== "Normal" ? (
+                  <div className="py-3 px-4 rounded-lg bg-amber-500/5 border border-amber-500/10 text-neutral-800 dark:text-neutral-200">
+                    <p className="text-sm font-extrabold text-amber-600 dark:text-amber-400 capitalize">{todayStatusInfo.status}</p>
+                    <p className="text-xs text-neutral-400 mt-1">
+                      {todayStatusInfo.status === "Holiday" ? `Clinic Holiday: ${todayStatusInfo.name}` :
+                       todayStatusInfo.status === "Weekend" ? `Weekend Day Off` :
+                       todayStatusInfo.status === "Leave" ? `Approved Leave: ${todayStatusInfo.name}` :
+                       `Business Tour Assigned`}
+                    </p>
+                    <p className="text-[10px] text-neutral-400/80 mt-1 font-sans">Attendance marked automatically</p>
+                  </div>
+                ) : (
+                  <>
+                    {shift.status === "idle" && (
+                      <Button 
+                        onClick={handleCheckIn} 
+                        className="w-full h-10 bg-yellow-500 hover:bg-yellow-600 text-neutral-900 rounded-lg font-bold text-sm shadow-sm gap-2"
+                      >
+                        <Play className="h-4 w-4 fill-current" /> Start Shift
+                      </Button>
+                    )}
 
-              {shift.status === "stepped_out" && (
-                <Button onClick={handleResumeDuty} className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold gap-2">
-                  <Sparkles className="h-4 w-4" /> Resume Duty
-                </Button>
-              )}
+                    {shift.status === "active" && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setLunchDialogOpen(true)} 
+                          className="h-10 rounded-lg border-amber-200 text-amber-600 hover:bg-amber-50 text-xs font-semibold gap-1.5 dark:border-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-950/20"
+                        >
+                          <Coffee className="h-4 w-4" /> Break
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={handleCheckOut} 
+                          className="h-10 rounded-lg border-red-200 text-red-500 hover:bg-red-50 text-xs font-semibold gap-1.5 dark:border-red-900/30 dark:text-red-400 dark:hover:bg-red-950/20"
+                        >
+                          <LogOut className="h-4 w-4" /> Check Out
+                        </Button>
+                      </div>
+                    )}
 
-              {shift.status === "checked_out" && (
-                <div className="text-center py-4 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
-                  <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-emerald-600">Shift Complete!</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Total: {shift.checkOutTimestamp && shift.checkInTimestamp ? formatMs(shift.checkOutTimestamp - shift.checkInTimestamp - shift.accumulatedBreakTime).split(" ").slice(0,2).join(" ") : "—"}
-                  </p>
-                </div>
-              )}
+                    {shift.status === "stepped_out" && (
+                      <div className="flex flex-col gap-2">
+                        <Button 
+                          onClick={handleResumeDuty} 
+                          className="w-full h-10 bg-yellow-500 hover:bg-yellow-600 text-neutral-900 rounded-lg font-bold text-sm shadow-sm gap-1.5"
+                        >
+                          <Sparkles className="h-4 w-4" /> Resume Duty
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={handleCheckOut} 
+                          className="w-full h-10 border-red-200 text-red-500 hover:bg-red-50 text-xs font-semibold gap-1.5 dark:border-red-900/30 dark:text-red-400 dark:hover:bg-red-950/20"
+                        >
+                          <LogOut className="h-4 w-4" /> Check Out
+                        </Button>
+                      </div>
+                    )}
+
+                    {shift.status === "checked_out" && (
+                      <div className="py-2">
+                        <p className="text-sm font-semibold text-emerald-600">Shift Completed</p>
+                        <p className="text-xs text-neutral-400 mt-0.5">Good work today!</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Quick links */}
-          <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Access</h3>
-            <div className="grid grid-cols-2 gap-2">
+          {/* Today's Tasks Summary Widget */}
+          <div className="rounded-xl border border-neutral-200/60 dark:border-neutral-800 bg-white dark:bg-card shadow-sm p-5 fade-up">
+            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3 mb-4">
+              <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Today's Tasks</span>
+              <Link 
+                to="/staff/tasks" 
+                className="text-xs font-semibold text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
+              >
+                Overview
+              </Link>
+            </div>
+            
+            <div className="flex justify-between items-center py-2 text-center">
+              {/* Total Tasks */}
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <span className="text-3xl font-extrabold text-neutral-800 dark:text-neutral-100 font-sans">{taskStats.total}</span>
+                <span className="text-xs text-muted-foreground mt-1 font-semibold">Total Tasks</span>
+              </div>
+              
+              {/* Divider */}
+              <div className="w-[1px] h-10 bg-neutral-200/60 dark:bg-neutral-800" />
+              
+              {/* Completed */}
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <span className="text-3xl font-extrabold text-emerald-500 font-sans">{taskStats.completed}</span>
+                <span className="text-xs text-muted-foreground mt-1 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Completed
+                </span>
+              </div>
+              
+              {/* Divider */}
+              <div className="w-[1px] h-10 bg-neutral-200/60 dark:bg-neutral-800" />
+              
+              {/* Pending */}
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <span className="text-3xl font-extrabold text-orange-500 font-sans">{taskStats.pending}</span>
+                <span className="text-xs text-muted-foreground mt-1 font-semibold flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3 text-orange-500" /> Pending
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Access Card */}
+          <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-5 shadow-sm fade-up">
+            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">Quick Access</h3>
+            <div className="grid grid-cols-2 gap-3">
               {quickLinks.map(link => (
-                <button
+                <Link
                   key={link.label}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted/50 border border-border/40 hover:border-border/80 transition-all duration-200 text-center"
+                  to={link.path}
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800 hover:border-neutral-300 transition-all duration-200 text-center"
                 >
                   <div className={`p-2 rounded-lg ${link.color}`}>
-                    <link.icon className="h-4 w-4" />
+                    <link.icon className="h-4.5 w-4.5" />
                   </div>
-                  <span className="text-[10px] font-semibold text-muted-foreground">{link.label}</span>
-                </button>
+                  <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">{link.label}</span>
+                </Link>
               ))}
             </div>
           </div>
         </div>
 
-        {/* ── RIGHT: SCHEDULE + HISTORY ── */}
-        <div className="lg:col-span-8 space-y-4">
+        {/* ── RIGHT COLUMN: ATTENDANCE STATS & patient arrivals ── */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Today's Ticking Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="p-4 border border-neutral-200/60 dark:border-neutral-800 shadow-sm flex flex-col justify-center items-center">
+              <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 font-sans">Today's Working Time</span>
+              <span className="text-2xl font-extrabold text-blue-600 dark:text-blue-400 font-mono tracking-tight">
+                {shift.status === "idle" ? "00h 00m 00s" : 
+                 shift.status === "checked_out" ? formatMs(shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime) :
+                 formatMs(elapsedActiveTime)}
+              </span>
+            </Card>
+            <Card className="p-4 border border-neutral-200/60 dark:border-neutral-800 shadow-sm flex flex-col justify-center items-center">
+              <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 font-sans">Today's Break Time</span>
+              <span className="text-2xl font-extrabold text-amber-500 font-mono tracking-tight">
+                {shift.status === "idle" ? "00h 00m 00s" : 
+                 formatMs(shift.accumulatedBreakTime + (shift.status === "stepped_out" ? elapsedBreakTime : 0))}
+              </span>
+            </Card>
+            <Card className="p-4 border border-neutral-200/60 dark:border-neutral-800 shadow-sm flex flex-col justify-center items-center">
+              <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 font-sans">Today's Overtime</span>
+              <span className="text-2xl font-extrabold text-purple-650 font-mono tracking-tight">
+                {shift.status === "idle" ? "00h 00m 00s" : 
+                 (shift.status === "checked_out" ? 
+                   ((shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime) > 8 * 3600 * 1000 ? 
+                     formatMs(shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime - 8 * 3600 * 1000) : "00h 00m 00s") :
+                   (elapsedActiveTime > 8 * 3600 * 1000 ? formatMs(elapsedActiveTime - 8 * 3600 * 1000) : "00h 00m 00s")
+                 )}
+              </span>
+            </Card>
+          </div>
+
+          {/* Monthly Attendance Breakdown Summary Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Present Days</span>
+              <span className="text-2xl font-extrabold text-emerald-500 font-sans">{monthlySummary.presentDays}</span>
+            </div>
+            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Absent Days</span>
+              <span className="text-2xl font-extrabold text-red-500 font-sans">{monthlySummary.absentDays}</span>
+            </div>
+            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Leave Days</span>
+              <span className="text-2xl font-extrabold text-blue-500 font-sans">{monthlySummary.leaveDays}</span>
+            </div>
+            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Tour Days</span>
+              <span className="text-2xl font-extrabold text-purple-500 font-sans">{monthlySummary.tourDays}</span>
+            </div>
+            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Holidays</span>
+              <span className="text-2xl font-extrabold text-amber-600 font-sans">{monthlySummary.holidayCount}</span>
+            </div>
+            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Weekends</span>
+              <span className="text-2xl font-extrabold text-neutral-500 font-sans">{monthlySummary.weekendCount}</span>
+            </div>
+            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Total Monthly Hours</span>
+              <span className="text-sm font-bold text-neutral-700 dark:text-neutral-300 font-mono">{monthlySummary.totalHoursStr}</span>
+            </div>
+            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Average Daily Hours</span>
+              <span className="text-sm font-bold text-neutral-700 dark:text-neutral-300 font-mono">{monthlySummary.avgHoursStr}</span>
+            </div>
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm col-span-2 sm:col-span-1">
+              <span className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1 font-sans">Attendance Percentage</span>
+              <span className="text-2xl font-extrabold text-primary font-sans">{monthlySummary.attendanceRate}%</span>
+            </div>
+          </div>
 
           {/* Patient arrivals */}
-          <div className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden fade-up">
-            <div className="flex items-center justify-between p-5 border-b">
-              <div className="flex items-center gap-2">
+          <Card className="bg-white dark:bg-neutral-900/50 border border-neutral-200/60 dark:border-neutral-800 shadow-sm rounded-xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-neutral-100 dark:border-neutral-800">
+              <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                  <CalendarDays className="h-4 w-4" />
+                  <CalendarDays className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold">Patient Queue</h2>
-                  <p className="text-xs text-muted-foreground">Track arrivals & chair assignments</p>
+                  <CardTitle className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Patient Queue</CardTitle>
+                  <p className="text-xs text-neutral-400 mt-0.5 font-normal">Track arrivals & chair assignments</p>
                 </div>
               </div>
-              <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">
-                {myCheckIns.filter(c => c.status === "Arrived").length} Arrived
+              <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+                {checkIns.filter(c => c.status === "Arrived" || c.status === "In Chair").length} Arrived
               </Badge>
-            </div>
-            <div className="divide-y divide-border/40">
-              {myCheckIns.map((c) => (
-                <div key={c.time} className="group flex items-center justify-between px-5 py-3.5 hover:bg-muted/15 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center shrink-0 w-14">
-                      <p className="text-xs font-sans font-bold text-muted-foreground">{c.time.split(" ")[0]}</p>
-                      <p className="text-[10px] text-muted-foreground">{c.time.split(" ")[1]}</p>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="divide-y divide-neutral-200/60 dark:divide-neutral-800/60">
+                {checkIns.length === 0 ? (
+                  <p className="text-center text-muted-foreground text-sm py-8">No patient arrivals recorded for today.</p>
+                ) : (
+                  checkIns.map((c, idx) => (
+                    <div key={idx} className="group flex items-center justify-between py-3.5 hover:bg-neutral-50/40 dark:hover:bg-neutral-900/40 transition-colors first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-4">
+                        <div className="text-center shrink-0 w-14">
+                          <p className="text-sm font-sans font-bold text-neutral-700 dark:text-neutral-300">{c.time}</p>
+                        </div>
+                        <div className="h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+                          {c.patient.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{c.patient}</p>
+                          <p className="text-xs text-muted-foreground">{c.procedure} · <span className="font-medium text-foreground">{c.dentist}</span></p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${statusBadge[c.status] || "bg-muted text-muted-foreground"}`}>
+                          {c.status}
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                      </div>
                     </div>
-                    <div className="h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
-                      {c.patient.split(" ").map(n => n[0]).join("").slice(0,2)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">{c.patient}</p>
-                      <p className="text-xs text-muted-foreground">{c.procedure} · <span className="font-medium text-foreground">{c.dentist}</span></p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${statusBadge[c.status] || "bg-muted text-muted-foreground"}`}>
-                      {c.status}
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Shift History Table */}
-          <div className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden fade-up">
-            <div className="flex items-center justify-between p-5 border-b">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                  <Clock className="h-4 w-4" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-semibold">Attendance Log</h2>
-                  <p className="text-xs text-muted-foreground">Your recent shift records</p>
-                </div>
+                  ))
+                )}
               </div>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-muted/30 border-b text-muted-foreground text-left">
-                    <th className="px-5 py-3 font-semibold">Date</th>
-                    <th className="px-5 py-3 font-semibold">Clock In</th>
-                    <th className="px-5 py-3 font-semibold">Clock Out</th>
-                    <th className="px-5 py-3 font-semibold text-right">Duration</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {shift.status !== "idle" && (
-                    <tr className="bg-primary/5">
-                      <td className="px-5 py-3 font-semibold text-primary">Today</td>
-                      <td className="px-5 py-3 font-sans">{getFormattedTime(shift.checkInTimestamp)}</td>
-                      <td className="px-5 py-3 font-sans text-muted-foreground">{shift.status === "checked_out" ? getFormattedTime(shift.checkOutTimestamp) : <span className="text-muted-foreground/40">—</span>}</td>
-                      <td className="px-5 py-3 font-sans text-right font-semibold text-primary">
-                        {shift.status === "checked_out" ? formatMs(shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime).split(" ").slice(0,2).join(" ") : formatMs(elapsedActiveTime).split(" ").slice(0,2).join(" ")}
-                      </td>
-                    </tr>
-                  )}
-                  {history.map((h, i) => (
-                    <tr key={i} className="hover:bg-muted/10 transition-colors">
-                      <td className="px-5 py-3 font-medium">{h.date.replace(" (Today)", "")}</td>
-                      <td className="px-5 py-3 font-sans text-muted-foreground">{h.checkIn || "—"}</td>
-                      <td className="px-5 py-3 font-sans text-muted-foreground">{h.checkOut || "—"}</td>
-                      <td className="px-5 py-3 font-sans text-right text-muted-foreground">{h.duration ? h.duration.split(" ").slice(0,2).join(" ") : "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -468,21 +1092,31 @@ export default function ReceptionDashboard() {
       <Dialog open={lunchDialogOpen} onOpenChange={setLunchDialogOpen}>
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader className="flex flex-col items-center text-center space-y-3">
-            <div className="h-14 w-14 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 flex items-center justify-center text-amber-500">
+            <div className="h-14 w-14 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 flex items-center justify-center text-amber-500">
               <Utensils className="h-7 w-7" />
             </div>
-            <DialogTitle className="text-xl">Step Out for Lunch?</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground max-w-xs">
-              Your status will update to "On Break" on all tracking boards.
-            </DialogDescription>
+            <DialogTitle className="text-xl font-bold font-sans">Start Break</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-sans">Are you sure you want to start your break?</DialogDescription>
           </DialogHeader>
-          <div className="mt-2 bg-amber-50/60 dark:bg-amber-950/10 border border-amber-100/40 rounded-xl p-3 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
-            <span><strong>Note:</strong> Ensure phone lines are covered or forwarded before stepping away.</span>
-          </div>
           <DialogFooter className="flex gap-2 sm:justify-center mt-2">
-            <Button variant="outline" onClick={() => setLunchDialogOpen(false)} className="flex-1 rounded-xl">Cancel</Button>
-            <Button onClick={confirmLunchBreak} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white rounded-xl">Confirm</Button>
+            <Button variant="outline" onClick={() => setLunchDialogOpen(false)} className="flex-1 rounded-xl font-sans">Cancel</Button>
+            <Button onClick={confirmLunchBreak} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-sans font-bold">Start Break</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={resumeDialogOpen} onOpenChange={setResumeDialogOpen}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader className="flex flex-col items-center text-center space-y-3">
+            <div className="h-14 w-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 flex items-center justify-center text-emerald-500">
+              <Play className="h-7 w-7" />
+            </div>
+            <DialogTitle className="text-xl font-bold font-sans">Resume Work</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-sans">Do you want to resume your work?</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:justify-center mt-2">
+            <Button variant="outline" onClick={() => setResumeDialogOpen(false)} className="flex-1 rounded-xl font-sans">Cancel</Button>
+            <Button onClick={confirmResumeDuty} className="flex-1 bg-emerald-550 hover:bg-emerald-600 text-white rounded-xl font-sans font-bold">Resume</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -493,28 +1127,105 @@ export default function ReceptionDashboard() {
             <div className="h-14 w-14 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-100 flex items-center justify-center text-red-500">
               <LogOut className="h-7 w-7" />
             </div>
-            <DialogTitle className="text-xl">End Shift & Clock Out?</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground max-w-xs">Finalize your attendance record for today.</DialogDescription>
+            <DialogTitle className="text-xl font-bold font-sans">Confirm Check Out</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground max-w-xs font-sans">Today's attendance will be completed. Are you sure?</DialogDescription>
           </DialogHeader>
           <div className="my-2 space-y-3">
             <div className="grid grid-cols-2 gap-3 text-center">
               <div className="bg-muted/40 rounded-xl p-3">
-                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Clock In</p>
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide font-sans">Clock In</p>
                 <p className="text-sm font-sans font-bold mt-1">{getFormattedTime(shift.checkInTimestamp)}</p>
               </div>
               <div className="bg-primary/5 rounded-xl p-3 border border-primary/15">
-                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Duration</p>
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide font-sans">Duration</p>
                 <p className="text-sm font-sans font-bold text-primary mt-1">{formatMs(elapsedActiveTime).split(" ").slice(0,2).join(" ")}</p>
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Handover Notes (Optional)</label>
-              <Textarea placeholder="Pending tasks, patient calls, unresolved issues..." value={handoverNotes} onChange={(e) => setHandoverNotes(e.target.value)} className="text-xs h-20 rounded-xl resize-none" />
+              <label className="text-xs font-semibold text-muted-foreground font-sans">Handover Notes (Optional)</label>
+              <Textarea placeholder="Pending cases, lab work, equipment notes..." value={handoverNotes} onChange={(e) => setHandoverNotes(e.target.value)} className="text-xs h-20 rounded-xl resize-none font-sans" />
             </div>
           </div>
           <DialogFooter className="flex gap-2 sm:justify-center">
-            <Button variant="outline" onClick={() => setCheckoutDialogOpen(false)} className="flex-1 rounded-xl">Cancel</Button>
-            <Button onClick={confirmCheckOut} className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl">End Shift</Button>
+            <Button variant="outline" onClick={() => setCheckoutDialogOpen(false)} className="flex-1 rounded-xl font-sans">Cancel</Button>
+            <Button onClick={confirmCheckOut} className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl font-sans font-bold">Check Out</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Attendance Details Modal */}
+      <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
+        <DialogContent className="max-w-2xl rounded-2xl overflow-y-auto max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2 font-sans">
+              <Activity className="h-5 w-5 text-primary" /> Attendance Record Details
+            </DialogTitle>
+            <DialogDescription className="font-sans">
+              Detailed logs and audits for {user?.name} on {selectedDetailRecord?.date}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedDetailRecord && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 text-sm font-sans">
+              <div className="space-y-4 border-r border-neutral-100 dark:border-neutral-800 pr-0 md:pr-6">
+                <h4 className="font-bold text-xs uppercase tracking-wider text-neutral-400 font-sans">Work Metrics</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-muted/40 p-3 rounded-xl text-center">
+                    <span className="block text-[10px] text-muted-foreground font-semibold font-sans">Check In</span>
+                    <span className="text-sm font-bold mt-1 inline-block font-mono">{selectedDetailRecord.checkIn ? formatTimeTo12h(selectedDetailRecord.checkIn) : "—"}</span>
+                  </div>
+                  <div className="bg-muted/40 p-3 rounded-xl text-center">
+                    <span className="block text-[10px] text-muted-foreground font-semibold font-sans">Check Out</span>
+                    <span className="text-sm font-bold mt-1 inline-block font-mono">{selectedDetailRecord.checkOut ? formatTimeTo12h(selectedDetailRecord.checkOut) : "—"}</span>
+                  </div>
+                  <div className="bg-muted/40 p-3 rounded-xl text-center">
+                    <span className="block text-[10px] text-muted-foreground font-semibold font-sans">Working Time</span>
+                    <span className="text-sm font-bold mt-1 inline-block font-mono">{selectedDetailRecord.workingHours ? formatMs(selectedDetailRecord.workingHours * 60 * 1000).replace("s", "").trim() : "—"}</span>
+                  </div>
+                  <div className="bg-muted/40 p-3 rounded-xl text-center">
+                    <span className="block text-[10px] text-muted-foreground font-semibold font-sans">Break Time</span>
+                    <span className="text-sm font-bold mt-1 inline-block font-mono">{selectedDetailRecord.breakTime ? `${selectedDetailRecord.breakTime}m` : "—"}</span>
+                  </div>
+                  <div className="bg-muted/40 p-3 rounded-xl text-center col-span-2">
+                    <span className="block text-[10px] text-muted-foreground font-semibold font-sans">Overtime</span>
+                    <span className="text-sm font-bold mt-1 inline-block text-purple-600 font-mono">{selectedDetailRecord.overtime ? formatMs(selectedDetailRecord.overtime * 60 * 1000).replace("s", "").trim() : "00h 00m"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-bold text-xs uppercase tracking-wider text-neutral-400 font-sans">Verification & Logs</h4>
+                <div className="space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground font-medium font-sans">GPS Verification</span>
+                    <span className={`text-xs font-bold font-sans ${selectedDetailRecord.locationVerified !== false ? "text-emerald-600" : "text-red-500"}`}>
+                      {selectedDetailRecord.locationVerified !== false ? "Verified Inside Geofence" : "Location Failed / Override"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground font-medium font-sans">Coordinates (In)</span>
+                    <span className="text-xs font-mono">{selectedDetailRecord.checkInLatitude ? `${selectedDetailRecord.checkInLatitude.toFixed(5)}, ${selectedDetailRecord.checkInLongitude?.toFixed(5)}` : "—"}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground font-medium font-sans">Coordinates (Out)</span>
+                    <span className="text-xs font-mono">{selectedDetailRecord.checkOutLatitude ? `${selectedDetailRecord.checkOutLatitude.toFixed(5)}, ${selectedDetailRecord.checkOutLongitude?.toFixed(5)}` : "—"}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground font-medium font-sans">IP Address</span>
+                    <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">{selectedDetailRecord.ipAddress || "—"}</span>
+                  </div>
+                  <div className="flex justify-between flex-col gap-1">
+                    <span className="text-xs text-muted-foreground font-medium font-sans">Device & Browser Info</span>
+                    <span className="text-[10px] bg-muted/40 p-2 rounded-lg leading-relaxed text-neutral-500 font-sans block truncate max-w-full font-mono" title={selectedDetailRecord.deviceInfo || selectedDetailRecord.browserInfo}>
+                      {selectedDetailRecord.deviceInfo || selectedDetailRecord.browserInfo || "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="mt-4 pt-4 border-t">
+            <Button onClick={() => setDetailModalOpen(false)} className="w-full font-sans">Close Details</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

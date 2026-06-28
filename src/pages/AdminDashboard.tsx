@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,13 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useChat } from "@/contexts/ChatContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-
-const stats = [
-  { label: "Today's Revenue", value: "₹24,500", icon: DollarSign, change: "+12% vs yesterday" },
-  { label: "Appointments Today", value: "8", icon: CalendarDays, change: "3 remaining" },
-  { label: "New Patients", value: "4", icon: Users, change: "12 this week" },
-  { label: "Collection Rate", value: "94%", icon: TrendingUp, change: "+2% vs last month" },
-];
+import { API_BASE_URL } from "@/config/api";
 
 export default function AdminDashboard() {
   const { user, allUsers } = useAuth();
@@ -38,6 +32,47 @@ export default function AdminDashboard() {
   const dentists = allUsers.filter((u) => u.role.toLowerCase() === "dentist");
   const staffCount = allUsers.filter((u) => u.role.toLowerCase() !== "admin").length;
   
+  const [appointmentsCount, setAppointmentsCount] = useState<number>(0);
+  const [patientsCount, setPatientsCount] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const token = localStorage.getItem("navadia_token");
+      if (!token) return;
+      try {
+        const todayDate = new Date().toISOString().split("T")[0];
+        
+        // Fetch appointments count
+        const aptRes = await fetch(`${API_BASE_URL}/api/appointments?date=${todayDate}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (aptRes.ok) {
+          const apts = await aptRes.json();
+          setAppointmentsCount(apts.length);
+        }
+
+        // Fetch patients count
+        const patRes = await fetch(`${API_BASE_URL}/api/patients`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (patRes.ok) {
+          const pats = await patRes.json();
+          setPatientsCount(pats.length);
+        }
+      } catch (e) {
+        console.warn("Error fetching dashboard statistics:", e);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const stats = [
+    { label: "Today's Revenue", value: "₹24,500", icon: DollarSign, change: "+12% vs yesterday" },
+    { label: "Appointments Today", value: String(appointmentsCount), icon: CalendarDays, change: "Updated live" },
+    { label: "New Patients", value: String(patientsCount), icon: Users, change: "Total registered" },
+    { label: "Collection Rate", value: "94%", icon: TrendingUp, change: "+2% vs last month" },
+  ];
+
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [broadcastText, setBroadcastText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -172,7 +207,23 @@ export default function AdminDashboard() {
         </Dialog>
       </div>
 
-      
+      {/* Stats Cards Section */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat, idx) => (
+          <Card key={idx} className="bg-card border border-border/50 hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-4 sm:p-6 flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-xs sm:text-sm text-muted-foreground font-medium">{stat.label}</p>
+                <p className="text-xl sm:text-2xl font-bold font-sans">{stat.value}</p>
+                <p className="text-[10px] sm:text-xs text-emerald-500 font-medium">{stat.change}</p>
+              </div>
+              <div className="p-2 sm:p-3 bg-primary/10 text-primary rounded-xl">
+                <stat.icon className="h-5 w-5 sm:h-6 sm:w-6" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       {/* Module Navigation Portal */}
       <div>

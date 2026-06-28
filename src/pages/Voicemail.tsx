@@ -49,9 +49,10 @@ export default function Voicemail() {
   // Sync with Live Express/MongoDB Backend in real-time
   const fetchVoicemails = async () => {
     const token = localStorage.getItem("navadia_token");
+    if (!token) return;
     try {
-      const res = await fetch("${API_BASE_URL}/api/voicemails", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await fetch(`${API_BASE_URL}/api/voicemails`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -123,7 +124,7 @@ export default function Voicemail() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("${API_BASE_URL}/api/voicemails", {
+        const res = await fetch(`${API_BASE_URL}/api/voicemails`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

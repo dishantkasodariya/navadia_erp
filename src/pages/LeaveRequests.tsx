@@ -47,9 +47,10 @@ export default function LeaveRequests() {
 
   const fetchLeaveRequests = async () => {
     const token = localStorage.getItem("navadia_token");
+    if (!token) return;
     try {
-      const res = await fetch("${API_BASE_URL}/api/leave", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await fetch(`${API_BASE_URL}/api/leave`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -111,7 +112,7 @@ export default function LeaveRequests() {
     const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
-        const res = await fetch("${API_BASE_URL}/api/leave", {
+        const res = await fetch(`${API_BASE_URL}/api/leave`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

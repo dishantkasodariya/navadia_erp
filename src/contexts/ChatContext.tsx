@@ -38,6 +38,7 @@ interface ChatContextType {
   socket: Socket | null;
   notifications: AppNotification[];
   markNotificationAsRead: (id: string) => void;
+  markAllNotificationsAsRead: () => void;
   clearNotifications: () => void;
 }
 
@@ -90,10 +91,42 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const markAllNotificationsAsRead = () => {
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, isRead: true }));
+      localStorage.setItem("navadia_notifications", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const clearNotifications = () => {
     setNotifications([]);
     localStorage.removeItem("navadia_notifications");
   };
+
+  const triggerNativeNotification = (title: string, body: string) => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      try {
+        new Notification(title, {
+          body,
+          icon: "/logo.png"
+        });
+      } catch (e) {
+        console.warn("Failed to trigger native notification:", e);
+      }
+    }
+  };
+
+  // Request native browser notification permission on mount/login
+  useEffect(() => {
+    if (user && typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission().then((permission) => {
+          console.log("Notification permission:", permission);
+        });
+      }
+    }
+  }, [user]);
 
   // Sync to local storage for quick access & offline mode
   useEffect(() => {
@@ -112,7 +145,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const socketInstance = io("${API_BASE_URL}", {
+    const socketInstance = io(`${API_BASE_URL}`, {
       auth: { token }
     });
 
@@ -126,10 +159,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     socketInstance.on("receive_message", (message: any) => {
       const senderId = message.sender?._id || message.sender || message.senderId;
       if (senderId !== user?.id) {
-        toast({
-          title: `New Message from ${message.senderName}`,
-          description: message.content || "Voice note received",
-        });
+        const notificationsEnabled = localStorage.getItem("navadia_push_notifications_enabled") !== "false";
+        if (notificationsEnabled) {
+          toast({
+            title: `New Message from ${message.senderName}`,
+            description: message.content || "Voice note received",
+          });
+          triggerNativeNotification(
+            `New Message from ${message.senderName}`,
+            message.content || "Voice note received"
+          );
+        }
         addNotification(
           `New Message from ${message.senderName}`,
           message.content || "Voice note received",
@@ -159,10 +199,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     socketInstance.on("leave_applied", (leave: any) => {
       if (user?.role.toLowerCase() === "admin" && leave.userId !== user?.id) {
-        toast({
-          title: "New Leave Application",
-          description: `${leave.userName} has applied for a ${leave.type} leave from ${leave.startDate} to ${leave.endDate}.`,
-        });
+        const notificationsEnabled = localStorage.getItem("navadia_push_notifications_enabled") !== "false";
+        if (notificationsEnabled) {
+          toast({
+            title: "New Leave Application",
+            description: `${leave.userName} has applied for a ${leave.type} leave from ${leave.startDate} to ${leave.endDate}.`,
+          });
+          triggerNativeNotification(
+            "New Leave Application",
+            `${leave.userName} has applied for a ${leave.type} leave from ${leave.startDate} to ${leave.endDate}.`
+          );
+        }
         addNotification(
           "New Leave Application",
           `${leave.userName} has applied for a ${leave.type} leave from ${leave.startDate} to ${leave.endDate}.`,
@@ -173,11 +220,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     socketInstance.on("leave_updated", (leave: any) => {
       if (leave.userId === user?.id) {
-        toast({
-          title: `Leave Request ${leave.status}`,
-          description: `Your leave request from ${leave.startDate} to ${leave.endDate} has been ${leave.status.toLowerCase()} by the Administrator.`,
-          variant: leave.status === "Approved" ? "default" : "destructive",
-        });
+        const notificationsEnabled = localStorage.getItem("navadia_push_notifications_enabled") !== "false";
+        if (notificationsEnabled) {
+          toast({
+            title: `Leave Request ${leave.status}`,
+            description: `Your leave request from ${leave.startDate} to ${leave.endDate} has been ${leave.status.toLowerCase()} by the Administrator.`,
+            variant: leave.status === "Approved" ? "default" : "destructive",
+          });
+          triggerNativeNotification(
+            `Leave Request ${leave.status}`,
+            `Your leave request from ${leave.startDate} to ${leave.endDate} has been ${leave.status.toLowerCase()} by the Administrator.`
+          );
+        }
         addNotification(
           `Leave Request ${leave.status}`,
           `Your leave request from ${leave.startDate} to ${leave.endDate} has been ${leave.status.toLowerCase()} by the Administrator.`,
@@ -204,10 +258,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     socketInstance.on("task_assigned", (task: any) => {
       if (task.assignedTo === user?.id && task.createdBy !== user?.id) {
-        toast({
-          title: "New Task Assigned",
-          description: `You have been assigned a new task: ${task.title}`,
-        });
+        const notificationsEnabled = localStorage.getItem("navadia_push_notifications_enabled") !== "false";
+        if (notificationsEnabled) {
+          toast({
+            title: "New Task Assigned",
+            description: `You have been assigned a new task: ${task.title}`,
+          });
+          triggerNativeNotification(
+            "New Task Assigned",
+            `You have been assigned a new task: ${task.title}`
+          );
+        }
         addNotification(
           "New Task Assigned",
           `You have been assigned a new task: ${task.title}`,
@@ -240,7 +301,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (!token) return;
 
       try {
-        const res = await fetch("${API_BASE_URL}/api/messages", {
+        const res = await fetch(`${API_BASE_URL}/api/messages`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -276,7 +337,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     
     if (token) {
       try {
-        const res = await fetch("${API_BASE_URL}/api/messages", {
+        const res = await fetch(`${API_BASE_URL}/api/messages`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -448,6 +509,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         socket,
         notifications,
         markNotificationAsRead,
+        markAllNotificationsAsRead,
         clearNotifications
       }}
     >
