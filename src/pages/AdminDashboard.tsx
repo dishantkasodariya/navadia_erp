@@ -163,10 +163,10 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl">Admin Dashboard</h1>
+          <h1 className="text-xl sm:text-2xl font-bold font-serif text-foreground">Admin Dashboard</h1>
           <p className="text-muted-foreground text-sm sm:text-base mt-1">
             Welcome back, {user?.name}. Full clinic administration overview.
           </p>
@@ -227,7 +227,7 @@ export default function AdminDashboard() {
 
       {/* Module Navigation Portal */}
       <div>
-        <h2 className="text-lg sm:text-lg mb-3">Quick Administration Hub</h2>
+        <h2 className="text-lg sm:text-lg mb-3 font-serif text-foreground">Quick Administration Hub</h2>
         <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3">
           {adminModules.map((mod) => (
             <Card 

@@ -10,12 +10,11 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Source: Local MongoDB
-const LOCAL_URI = 'mongodb://localhost:27017';
+const LOCAL_URI = 'mongodb://127.0.0.1:27017';
 const DB_NAME = 'smileflow';
 
-// Destination: MongoDB Atlas - Direct connection (non-SRV)
-// Using hosts from SRV lookup results
-const ATLAS_URI = 'mongodb://navadia:jatin%40navadiya@ac-itrfkya-shard-00-00.svkmbpx.mongodb.net:27017,ac-itrfkya-shard-00-01.svkmbpx.mongodb.net:27017,ac-itrfkya-shard-00-02.svkmbpx.mongodb.net:27017/smileflow?ssl=true&replicaSet=atlas-11lf7l-shard-0&authSource=admin&retryWrites=true&w=majority';
+// Destination: MongoDB Atlas
+const ATLAS_URI = process.env.MONGO_URI || 'mongodb://navadia:jatin%40navadiya@ac-itrfkya-shard-00-00.svkmbpx.mongodb.net:27017,ac-itrfkya-shard-00-01.svkmbpx.mongodb.net:27017,ac-itrfkya-shard-00-02.svkmbpx.mongodb.net:27017/smileflow?ssl=true&replicaSet=atlas-11lf7l-shard-0&authSource=admin&retryWrites=true&w=majority';
 
 async function migrate() {
   console.log('🔄 Migration Started: Local MongoDB → MongoDB Atlas');

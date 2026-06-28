@@ -746,7 +746,7 @@ export default function ReceptionDashboard() {
   const statusHeaderColor = 
     shift.status === "active" ? "bg-emerald-600" :
     shift.status === "stepped_out" ? "bg-amber-500" :
-    "bg-[#707e94]";
+    "bg-secondary";
   
   const statusHeaderText = 
     shift.status === "active" ? "Active" :
@@ -755,7 +755,7 @@ export default function ReceptionDashboard() {
     "Not Checked In";
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6">
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         @keyframes pulse-ring { 0%{transform:scale(0.9);opacity:0.8} 70%{transform:scale(1.3);opacity:0} 100%{transform:scale(1.3);opacity:0} }
@@ -767,7 +767,7 @@ export default function ReceptionDashboard() {
       {/* ─── GREETING HEADER ────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-0.5 fade-up">
         <p className="text-muted-foreground text-sm font-normal">Welcome back,</p>
-        <h1 className="text-3xl font-extrabold tracking-tight text-neutral-800 dark:text-neutral-100">
+        <h1 className="text-3xl font-extrabold tracking-tight text-foreground font-serif">
           {user?.name}
         </h1>
       </div>
@@ -778,7 +778,7 @@ export default function ReceptionDashboard() {
         {/* ── LEFT COLUMN: SHIFT, TASKS & QUICK ACCESS ── */}
         <div className="lg:col-span-1 space-y-6">
           {/* Shift Control Check-In Widget */}
-          <div className="rounded-xl border border-neutral-200/60 dark:border-neutral-800 bg-white dark:bg-card shadow-sm overflow-hidden fade-up">
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden fade-up">
             <div className={`px-4 py-3 flex items-center justify-between text-white ${statusHeaderColor} transition-colors duration-300`}>
               <div className="flex items-center gap-2">
                 <Clock className="h-4.5 w-4.5 animate-pulse" />
@@ -791,37 +791,37 @@ export default function ReceptionDashboard() {
               <div className="flex flex-col items-center justify-center space-y-4">
                 {/* Check In Info */}
                 <div className="text-center">
-                  <span className="text-xs font-semibold text-neutral-400">Check In: </span>
-                  <span className="text-sm font-bold text-neutral-700 dark:text-neutral-200">
+                  <span className="text-xs font-semibold text-muted-foreground">Check In: </span>
+                  <span className="text-sm font-bold text-foreground">
                     {shift.status === "idle" ? "--:--" : getFormattedTime(shift.checkInTimestamp)}
                   </span>
                 </div>
 
                 {/* Clock / Dial Counter */}
-                <div className="relative flex items-center justify-center w-40 h-40 rounded-full border-4 border-dashed border-blue-500/30 dark:border-blue-500/20 bg-blue-50/10 dark:bg-blue-950/5 shadow-inner">
+                <div className="relative flex items-center justify-center w-40 h-40 rounded-full border-4 border-dashed border-primary/30 bg-primary/5 shadow-inner">
                   {/* Dynamic Ring or Glowing circle */}
-                  <div className="absolute inset-2 rounded-full border border-blue-500/10" />
+                  <div className="absolute inset-2 rounded-full border border-primary/10" />
                   <div className="flex flex-col items-center justify-center">
-                    <span className="text-2xl font-black text-blue-600 dark:text-blue-400 font-mono tracking-wider">
+                    <span className="text-2xl font-black text-primary font-mono tracking-wider">
                       {shift.status === "idle" ? "00:00:00" : 
                        shift.status === "checked_out" ? formatMs(shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime).replace("h", ":").replace("m", ":").replace("s", "").replace(/ /g, "") :
                        formatMs(elapsedActiveTime).replace("h", ":").replace("m", ":").replace("s", "").replace(/ /g, "")}
                     </span>
-                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">Active Time</span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Active Time</span>
                   </div>
                 </div>
 
                 {/* Break Tracker Display */}
                 {shift.status !== "idle" && (
-                  <div className="w-full grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                  <div className="w-full grid grid-cols-2 gap-2 mt-2 pt-2 border-t">
                     <div className="text-center">
-                      <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Break Duration</span>
+                      <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Break Duration</span>
                       <span className={`text-xs font-mono font-bold ${shift.status === "stepped_out" ? "text-amber-500 animate-pulse" : "text-neutral-500"}`}>
                         {formatMs(shift.accumulatedBreakTime + (shift.status === "stepped_out" ? elapsedBreakTime : 0)).replace("h", ":").replace("m", ":").replace("s", "").replace(/ /g, "")}
                       </span>
                     </div>
-                    <div className="text-center border-l border-neutral-100 dark:border-neutral-800">
-                      <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Breaks Taken</span>
+                    <div className="text-center border-l">
+                      <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Breaks Taken</span>
                       <span className="text-xs font-mono font-bold text-neutral-600 dark:text-neutral-400">
                         {shift.breakCount || 0}
                       </span>
@@ -904,9 +904,9 @@ export default function ReceptionDashboard() {
           </div>
 
           {/* Today's Tasks Summary Widget */}
-          <div className="rounded-xl border border-neutral-200/60 dark:border-neutral-800 bg-white dark:bg-card shadow-sm p-5 fade-up">
-            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3 mb-4">
-              <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Today's Tasks</span>
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-5 fade-up">
+            <div className="flex items-center justify-between border-b pb-3 mb-4">
+              <span className="text-sm font-bold text-foreground font-serif">Today's Tasks</span>
               <Link 
                 to="/staff/tasks" 
                 className="text-xs font-semibold text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
@@ -947,14 +947,14 @@ export default function ReceptionDashboard() {
           </div>
 
           {/* Quick Access Card */}
-          <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-5 shadow-sm fade-up">
-            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">Quick Access</h3>
+          <div className="bg-card text-card-foreground border rounded-xl p-5 shadow-sm fade-up">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 font-serif">Quick Access</h3>
             <div className="grid grid-cols-2 gap-3">
               {quickLinks.map(link => (
                 <Link
                   key={link.label}
                   to={link.path}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-900/40 border border-neutral-200/60 dark:border-neutral-800 hover:border-neutral-300 transition-all duration-200 text-center"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted/50 border hover:border-border transition-all duration-200 text-center"
                 >
                   <div className={`p-2 rounded-lg ${link.color}`}>
                     <link.icon className="h-4.5 w-4.5" />
@@ -970,24 +970,24 @@ export default function ReceptionDashboard() {
         <div className="lg:col-span-2 space-y-6">
           {/* Today's Ticking Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-4 border border-neutral-200/60 dark:border-neutral-800 shadow-sm flex flex-col justify-center items-center">
-              <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 font-sans">Today's Working Time</span>
-              <span className="text-2xl font-extrabold text-blue-600 dark:text-blue-400 font-mono tracking-tight">
+            <Card className="p-4 border shadow-sm flex flex-col justify-center items-center">
+              <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Today's Working Time</span>
+              <span className="text-2xl font-extrabold text-primary font-mono tracking-tight">
                 {shift.status === "idle" ? "00h 00m 00s" : 
                  shift.status === "checked_out" ? formatMs(shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime) :
                  formatMs(elapsedActiveTime)}
               </span>
             </Card>
-            <Card className="p-4 border border-neutral-200/60 dark:border-neutral-800 shadow-sm flex flex-col justify-center items-center">
-              <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 font-sans">Today's Break Time</span>
+            <Card className="p-4 border shadow-sm flex flex-col justify-center items-center">
+              <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Today's Break Time</span>
               <span className="text-2xl font-extrabold text-amber-500 font-mono tracking-tight">
                 {shift.status === "idle" ? "00h 00m 00s" : 
                  formatMs(shift.accumulatedBreakTime + (shift.status === "stepped_out" ? elapsedBreakTime : 0))}
               </span>
             </Card>
-            <Card className="p-4 border border-neutral-200/60 dark:border-neutral-800 shadow-sm flex flex-col justify-center items-center">
-              <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 font-sans">Today's Overtime</span>
-              <span className="text-2xl font-extrabold text-purple-650 font-mono tracking-tight">
+            <Card className="p-4 border shadow-sm flex flex-col justify-center items-center">
+              <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Today's Overtime</span>
+              <span className="text-2xl font-black text-purple-600 font-mono tracking-tight">
                 {shift.status === "idle" ? "00h 00m 00s" : 
                  (shift.status === "checked_out" ? 
                    ((shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime) > 8 * 3600 * 1000 ? 
@@ -1000,40 +1000,40 @@ export default function ReceptionDashboard() {
 
           {/* Monthly Attendance Breakdown Summary Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Present Days</span>
-              <span className="text-2xl font-extrabold text-emerald-500 font-sans">{monthlySummary.presentDays}</span>
+            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Present Days</span>
+              <span className="text-2xl font-black text-emerald-500 font-sans">{monthlySummary.presentDays}</span>
             </div>
-            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Absent Days</span>
-              <span className="text-2xl font-extrabold text-red-500 font-sans">{monthlySummary.absentDays}</span>
+            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Absent Days</span>
+              <span className="text-2xl font-black text-red-500 font-sans">{monthlySummary.absentDays}</span>
             </div>
-            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Leave Days</span>
-              <span className="text-2xl font-extrabold text-blue-500 font-sans">{monthlySummary.leaveDays}</span>
+            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Leave Days</span>
+              <span className="text-2xl font-black text-blue-500 font-sans">{monthlySummary.leaveDays}</span>
             </div>
-            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Tour Days</span>
-              <span className="text-2xl font-extrabold text-purple-500 font-sans">{monthlySummary.tourDays}</span>
+            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Tour Days</span>
+              <span className="text-2xl font-black text-purple-500 font-sans">{monthlySummary.tourDays}</span>
             </div>
-            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Holidays</span>
-              <span className="text-2xl font-extrabold text-amber-600 font-sans">{monthlySummary.holidayCount}</span>
+            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Holidays</span>
+              <span className="text-2xl font-black text-amber-600 font-sans">{monthlySummary.holidayCount}</span>
             </div>
-            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Weekends</span>
-              <span className="text-2xl font-extrabold text-neutral-500 font-sans">{monthlySummary.weekendCount}</span>
+            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Weekends</span>
+              <span className="text-2xl font-black text-neutral-500 font-sans">{monthlySummary.weekendCount}</span>
             </div>
-            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Total Monthly Hours</span>
-              <span className="text-sm font-bold text-neutral-700 dark:text-neutral-300 font-mono">{monthlySummary.totalHoursStr}</span>
+            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Total Monthly Hours</span>
+              <span className="text-sm font-black text-foreground font-mono">{monthlySummary.totalHoursStr}</span>
             </div>
-            <div className="bg-white dark:bg-card border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 font-sans">Average Daily Hours</span>
-              <span className="text-sm font-bold text-neutral-700 dark:text-neutral-300 font-mono">{monthlySummary.avgHoursStr}</span>
+            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Average Daily Hours</span>
+              <span className="text-sm font-bold text-foreground font-mono">{monthlySummary.avgHoursStr}</span>
             </div>
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm col-span-2 sm:col-span-1">
-              <span className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1 font-sans">Attendance Percentage</span>
+              <span className="text-xs font-bold text-primary font-serif tracking-normal mb-1.5 text-center">Attendance Percentage</span>
               <span className="text-2xl font-extrabold text-primary font-sans">{monthlySummary.attendanceRate}%</span>
             </div>
           </div>
