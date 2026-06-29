@@ -118,9 +118,18 @@ export default function Tasks() {
           completedDates: t.completedDates || []
         }));
         setTasks(mapped);
+        localStorage.setItem("navadia_tasks", JSON.stringify(mapped));
       }
     } catch (e) {
       console.warn("Backend offline, using local storage tasks fallback:", e);
+      const cached = localStorage.getItem("navadia_tasks");
+      if (cached) {
+        try {
+          setTasks(JSON.parse(cached));
+        } catch (err) {
+          console.error("Failed to parse cached tasks", err);
+        }
+      }
     }
   };
 
@@ -155,7 +164,7 @@ export default function Tasks() {
       const userObj = staffOptions.find(u => u.id === t.assignedTo);
       const matchRole = roleFilter === "all" || (userObj && userObj.role.toLowerCase() === roleFilter.toLowerCase());
       const matchUser = userFilter === "all" || t.assignedTo === userFilter;
-
+ 
       const isPrivateTask = t.assignedTo === t.assignedBy;
       
       // Rule 1: Other people's private tasks must be hidden from everyone
@@ -172,7 +181,7 @@ export default function Tasks() {
       } else {
         // All other tabs exclude recurring tasks
         if (t.isRecurring) return false;
-
+ 
         if (activeTab === "private-tasks") {
           // Private Tasks tab: only show tasks created by user for themselves
           if (t.assignedTo !== user?.id || t.assignedBy !== user?.id) return false;
@@ -196,7 +205,7 @@ export default function Tasks() {
           }
         }
       }
-
+ 
       return matchSearch && matchStatus && matchPriority && matchRole && matchUser;
     });
   }, [tasks, search, filterStatus, filterPriority, roleFilter, userFilter, user, activeTab, staffOptions]);
@@ -240,6 +249,9 @@ export default function Tasks() {
     }
     
     const token = localStorage.getItem("navadia_token");
+    let proceed = false;
+    let isOffline = false;
+
     if (token) {
       try {
         const res = await fetch(`${API_BASE_URL}/api/tasks`, {
@@ -259,64 +271,73 @@ export default function Tasks() {
           })
         });
         if (res.ok) {
-          fetchTasks();
-          setDialogOpen(false);
-          setForm({ title: "", description: "", role: "all", assignedTo: "", priority: "medium", dueDate: today, isPrivate: false, isRecurring: false });
-          setVoiceNote(null);
-          toast({ title: "Task Created" });
-          return;
+          proceed = true;
         }
       } catch (e) {
         console.warn("Backend offline, falling back to local tasks:", e);
+        proceed = true;
+        isOffline = true;
       }
+    } else {
+      proceed = true;
     }
 
-    if (form.isRecurring) {
-      const localTask = {
-        id: crypto.randomUUID(),
-        title: form.title,
-        description: form.description,
-        assignedTo: "",
-        assignedToName: `${form.role} (Repeating)`,
-        assignedBy: user!.id,
-        assignedByName: user!.name,
-        priority: form.priority,
-        status: "pending" as Task["status"],
-        dueDate: "",
-        createdAt: today,
-        voiceNote: voiceNote || undefined,
-        isRecurring: true,
-        completedDates: []
-      };
-      setTasks((prev) => [localTask, ...prev]);
-    } else {
-      const newTask: Task = {
-        id: crypto.randomUUID(),
-        title: form.title,
-        description: form.description,
-        assignedTo: staff!.id,
-        assignedToName: staff!.name,
-        assignedBy: user!.id,
-        assignedByName: user!.name,
-        priority: form.priority,
-        status: "pending",
-        dueDate: form.dueDate,
-        createdAt: today,
-        voiceNote: voiceNote || undefined,
-        isRecurring: false,
-        completedDates: []
-      };
-      setTasks((prev) => [newTask, ...prev]);
+    if (proceed) {
+      let updatedTasks = [...tasks];
+      if (form.isRecurring) {
+        const localTask = {
+          id: crypto.randomUUID(),
+          title: form.title,
+          description: form.description,
+          assignedTo: "",
+          assignedToName: `${form.role} (Repeating)`,
+          assignedBy: user!.id,
+          assignedByName: user!.name,
+          priority: form.priority,
+          status: "pending" as Task["status"],
+          dueDate: "",
+          createdAt: today,
+          voiceNote: voiceNote || undefined,
+          isRecurring: true,
+          completedDates: []
+        };
+        updatedTasks = [localTask, ...updatedTasks];
+      } else {
+        const newTask: Task = {
+          id: crypto.randomUUID(),
+          title: form.title,
+          description: form.description,
+          assignedTo: staff!.id,
+          assignedToName: staff!.name,
+          assignedBy: user!.id,
+          assignedByName: user!.name,
+          priority: form.priority,
+          status: "pending",
+          dueDate: form.dueDate,
+          createdAt: today,
+          voiceNote: voiceNote || undefined,
+          isRecurring: false,
+          completedDates: []
+        };
+        updatedTasks = [newTask, ...updatedTasks];
+      }
+      setTasks(updatedTasks);
+      localStorage.setItem("navadia_tasks", JSON.stringify(updatedTasks));
+      setDialogOpen(false);
+      setForm({ title: "", description: "", role: "all", assignedTo: "", priority: "medium", dueDate: today, isPrivate: false, isRecurring: false });
+      setVoiceNote(null);
+      toast({ title: isOffline ? "Task Created Offline ⚠️" : "Task Created ✓" });
+      if (!isOffline) {
+        fetchTasks();
+      }
     }
-    
-    setDialogOpen(false);
-    setForm({ title: "", description: "", role: "all", assignedTo: "", priority: "medium", dueDate: today, isPrivate: false, isRecurring: false });
-    setVoiceNote(null);
-    toast({ title: "Task Created" });
   };
 
   const handleStatusChange = async (id: string, status: Task["status"]) => {
     const token = localStorage.getItem("navadia_token");
+    let proceed = false;
+    let isOffline = false;
+
     if (token && id.length > 20) {
       try {
         const res = await fetch(`${API_BASE_URL}/api/tasks/${id}`, {
@@ -331,33 +352,45 @@ export default function Tasks() {
           })
         });
         if (res.ok) {
-          fetchTasks();
-          toast({ title: `Task marked as ${status}` });
-          return;
+          proceed = true;
         }
       } catch (e) {
         console.warn("Backend offline, fallback status update:", e);
+        proceed = true;
+        isOffline = true;
       }
+    } else {
+      proceed = true;
     }
 
-    setTasks((prev) => prev.map((t) => {
-      if (t.id === id) {
-        if (t.isRecurring) {
-          const todayStr = new Date().toISOString().split("T")[0];
-          const newDates = status === "completed"
-            ? (t.completedDates?.includes(todayStr) ? t.completedDates : [...(t.completedDates || []), todayStr])
-            : (t.completedDates || []).filter(d => d !== todayStr);
-          return { ...t, status, completedDates: newDates };
+    if (proceed) {
+      const newTasks = tasks.map((t) => {
+        if (t.id === id) {
+          if (t.isRecurring) {
+            const todayStr = new Date().toISOString().split("T")[0];
+            const newDates = status === "completed"
+              ? (t.completedDates?.includes(todayStr) ? t.completedDates : [...(t.completedDates || []), todayStr])
+              : (t.completedDates || []).filter(d => d !== todayStr);
+            return { ...t, status, completedDates: newDates };
+          }
+          return { ...t, status };
         }
-        return { ...t, status };
+        return t;
+      });
+      setTasks(newTasks);
+      localStorage.setItem("navadia_tasks", JSON.stringify(newTasks));
+      toast({ title: isOffline ? `Task marked as ${status} Offline ⚠️` : `Task marked as ${status} ✓` });
+      if (!isOffline) {
+        fetchTasks();
       }
-      return t;
-    }));
-    toast({ title: `Task marked as ${status}` });
+    }
   };
 
   const handleDelete = async (id: string) => {
     const token = localStorage.getItem("navadia_token");
+    let proceed = false;
+    let isOffline = false;
+
     if (token && id.length > 20) {
       try {
         const res = await fetch(`${API_BASE_URL}/api/tasks/${id}`, {
@@ -365,17 +398,26 @@ export default function Tasks() {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
-          fetchTasks();
-          toast({ title: "Task Deleted", variant: "destructive" });
-          return;
+          proceed = true;
         }
       } catch (e) {
         console.warn("Backend offline, fallback task delete:", e);
+        proceed = true;
+        isOffline = true;
       }
+    } else {
+      proceed = true;
     }
 
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-    toast({ title: "Task Deleted", variant: "destructive" });
+    if (proceed) {
+      const newTasks = tasks.filter((t) => t.id !== id);
+      setTasks(newTasks);
+      localStorage.setItem("navadia_tasks", JSON.stringify(newTasks));
+      toast({ title: isOffline ? "Task Deleted Offline ⚠️" : "Task Deleted ✓", variant: "destructive" });
+      if (!isOffline) {
+        fetchTasks();
+      }
+    }
   };
 
   const handleStartEdit = (t: Task) => {
@@ -394,6 +436,9 @@ export default function Tasks() {
     if (!editTask) return;
     
     const token = localStorage.getItem("navadia_token");
+    let proceed = false;
+    let isOffline = false;
+
     if (token && editTask.id.length > 20) {
       try {
         const res = await fetch(`${API_BASE_URL}/api/tasks/${editTask.id}`, {
@@ -415,21 +460,28 @@ export default function Tasks() {
           })
          });
          if (res.ok) {
-           fetchTasks();
-           setEditTask(null);
-           setVoiceNote(null);
-           toast({ title: "Task Updated" });
-           return;
+           proceed = true;
          }
       } catch (e) {
         console.warn("Backend offline, fallback update:", e);
+        proceed = true;
+        isOffline = true;
       }
+    } else {
+      proceed = true;
     }
 
-    setTasks((prev) => prev.map((t) => t.id === editTask.id ? { ...editTask, voiceNote: voiceNote !== null ? voiceNote : t.voiceNote } : t));
-    setEditTask(null);
-    setVoiceNote(null);
-    toast({ title: "Task Updated" });
+    if (proceed) {
+      const newTasks = tasks.map((t) => t.id === editTask.id ? { ...editTask, voiceNote: voiceNote !== null ? voiceNote : t.voiceNote } : t);
+      setTasks(newTasks);
+      localStorage.setItem("navadia_tasks", JSON.stringify(newTasks));
+      setEditTask(null);
+      setVoiceNote(null);
+      toast({ title: isOffline ? "Task Updated Offline ⚠️" : "Task Updated ✓" });
+      if (!isOffline) {
+        fetchTasks();
+      }
+    }
   };
 
   const priorityColor = (p: string) => {

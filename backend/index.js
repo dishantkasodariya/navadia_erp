@@ -97,6 +97,7 @@ app.use('/api/leave', require('./routes/leaveRoutes'));
 app.use('/api/voicemails', require('./routes/voicemailRoutes'));
 app.use('/api/settings', require('./routes/clinicSettingRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
+app.use('/api/audit-logs', require('./routes/auditLogRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Smile Flow API is running...');

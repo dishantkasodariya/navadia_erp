@@ -70,9 +70,18 @@ export default function Attendance() {
             notes: ""
           }));
         setRecords(mapped);
+        localStorage.setItem("navadia_attendance", JSON.stringify(mapped));
       }
     } catch (e) {
-      console.warn("Backend offline, fallback loading mock attendance:", e);
+      console.warn("Backend offline, fallback loading cached attendance:", e);
+      const cached = localStorage.getItem("navadia_attendance");
+      if (cached) {
+        try {
+          setRecords(JSON.parse(cached));
+        } catch (err) {
+          console.error("Failed to parse cached attendance", err);
+        }
+      }
     }
   };
 
@@ -85,10 +94,20 @@ export default function Attendance() {
       });
       if (res.ok) {
         const data = await res.json();
-        setLeaves(data.filter((l: any) => l.status === "Approved"));
+        const approved = data.filter((l: any) => l.status === "Approved");
+        setLeaves(approved);
+        localStorage.setItem("navadia_leaves", JSON.stringify(approved));
       }
     } catch (e) {
-      console.warn("Failed to fetch leaves:", e);
+      console.warn("Failed to fetch leaves, loading cache:", e);
+      const cached = localStorage.getItem("navadia_leaves");
+      if (cached) {
+        try {
+          setLeaves(JSON.parse(cached));
+        } catch (err) {
+          console.error("Failed to parse cached leaves", err);
+        }
+      }
     }
   };
 
@@ -166,23 +185,28 @@ export default function Attendance() {
     const nowTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
     const isLate = nowTime > "09:00";
     const statusVal = isLate ? "Late" : "Present";
+    
+    const token = localStorage.getItem("navadia_token");
+    let proceed = false;
+    let isOffline = false;
+    let rejectMessage = "";
+    
+    let latitude: number | undefined;
+    let longitude: number | undefined;
 
-    // Sync to local storage dashboard key if current user is checking in
-    if (user && record.staffId === user.id) {
-      const storageKey = `navadia_dentist_shift_${user.id}`;
-      const shiftState = {
-        status: "active" as const,
-        checkInTimestamp: Date.now(),
-        checkOutTimestamp: null,
-        breakStartTime: null,
-        accumulatedBreakTime: 0,
-        notes: "",
-        date: record.date
-      };
-      localStorage.setItem(storageKey, JSON.stringify(shiftState));
+    if (user?.role.toLowerCase() !== "admin" && navigator.geolocation) {
+      toast({ title: "Verifying Location...", description: "Retrieving browser GPS coordinates." });
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 8000 });
+        });
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+      } catch (err) {
+        console.warn("Could not retrieve GPS coordinates:", err);
+      }
     }
 
-    const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
         const res = await fetch(`${API_BASE_URL}/api/attendance/check-in`, {
@@ -196,27 +220,67 @@ export default function Attendance() {
             userName: record.staffName,
             date: record.date,
             checkIn: nowTime,
-            status: statusVal
+            status: statusVal,
+            latitude,
+            longitude
           })
         });
         if (res.ok) {
-          fetchAttendance();
-          toast({ title: "Checked In", description: `Check-in recorded at ${nowTime}` });
-          return;
+          proceed = true;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          rejectMessage = errData.message || "Coordinates verification failed or error on server.";
         }
       } catch (e) {
         console.warn("Backend offline, fallback local checkin:", e);
+        proceed = true;
+        isOffline = true;
       }
+    } else {
+      proceed = true;
     }
 
-    setRecords((prev) => prev.map((r) => r.id === recordId ? { ...r, checkIn: nowTime, status: isLate ? "late" : "present" } : r));
-    toast({ title: "Checked In", description: `Check-in recorded at ${nowTime}` });
-    
-    // Broadcast to DentistDashboard
-    if (user && user.id) {
-      window.dispatchEvent(new CustomEvent('attendance-synced', {
-        detail: { type: 'check-in', shift: { status: "active", checkInTimestamp: Date.now(), date: record.date } }
-      }));
+    if (proceed) {
+      // Sync to local storage dashboard key if current user is checking in
+      if (user && record.staffId === user.id) {
+        const storageKey = `navadia_dentist_shift_${user.id}`;
+        const shiftState = {
+          status: "active" as const,
+          checkInTimestamp: Date.now(),
+          checkOutTimestamp: null,
+          breakStartTime: null,
+          accumulatedBreakTime: 0,
+          notes: "",
+          date: record.date
+        };
+        localStorage.setItem(storageKey, JSON.stringify(shiftState));
+      }
+
+      const newRecords = records.map((r) => r.id === recordId ? { ...r, checkIn: nowTime, status: isLate ? ("late" as const) : ("present" as const) } : r);
+      setRecords(newRecords);
+      localStorage.setItem("navadia_attendance", JSON.stringify(newRecords));
+
+      toast({ 
+        title: isOffline ? "Checked In Offline ⚠️" : "Checked In ✓", 
+        description: `Check-in recorded at ${nowTime}. ${isOffline ? "Saved locally." : ""}` 
+      });
+
+      // Broadcast to DentistDashboard
+      if (user && user.id) {
+        window.dispatchEvent(new CustomEvent('attendance-synced', {
+          detail: { type: 'check-in', shift: { status: "active", checkInTimestamp: Date.now(), date: record.date } }
+        }));
+      }
+      
+      if (!isOffline) {
+        fetchAttendance();
+      }
+    } else {
+      toast({
+        title: "Check In Failed ❌",
+        description: rejectMessage,
+        variant: "destructive"
+      });
     }
   };
 
@@ -225,33 +289,27 @@ export default function Attendance() {
     if (!record) return;
     const nowTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-    // Sync to local storage dashboard key if current user is checking out
-    if (user && record.staffId === user.id) {
-      const storageKey = `navadia_dentist_shift_${user.id}`;
-      const saved = localStorage.getItem(storageKey);
-      const nowVal = Date.now();
-      let checkInVal = nowVal - 8 * 60 * 60 * 1000;
-      let accumulatedBreak = 0;
-      let notes = "";
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        checkInVal = parsed.checkInTimestamp || checkInVal;
-        accumulatedBreak = parsed.accumulatedBreakTime || 0;
-        notes = parsed.notes || "";
+    const token = localStorage.getItem("navadia_token");
+    let proceed = false;
+    let isOffline = false;
+    let rejectMessage = "";
+
+    let latitude: number | undefined;
+    let longitude: number | undefined;
+
+    if (user?.role.toLowerCase() !== "admin" && navigator.geolocation) {
+      toast({ title: "Verifying Location...", description: "Retrieving browser GPS coordinates." });
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 8000 });
+        });
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+      } catch (err) {
+        console.warn("Could not retrieve GPS coordinates:", err);
       }
-      const shiftState = {
-        status: "checked_out" as const,
-        checkInTimestamp: checkInVal,
-        checkOutTimestamp: nowVal,
-        breakStartTime: null,
-        accumulatedBreakTime: accumulatedBreak,
-        notes: notes,
-        date: record.date
-      };
-      localStorage.setItem(storageKey, JSON.stringify(shiftState));
     }
 
-    const token = localStorage.getItem("navadia_token");
     if (token) {
       try {
         const res = await fetch(`${API_BASE_URL}/api/attendance/check-out`, {
@@ -263,27 +321,78 @@ export default function Attendance() {
           body: JSON.stringify({
             userId: record.staffId,
             date: record.date,
-            checkOut: nowTime
+            checkOut: nowTime,
+            latitude,
+            longitude
           })
         });
         if (res.ok) {
-          fetchAttendance();
-          toast({ title: "Checked Out", description: `Check-out recorded at ${nowTime}` });
-          return;
+          proceed = true;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          rejectMessage = errData.message || "Coordinates verification failed or error on server.";
         }
       } catch (e) {
         console.warn("Backend offline, fallback local checkout:", e);
+        proceed = true;
+        isOffline = true;
       }
+    } else {
+      proceed = true;
     }
 
-    setRecords((prev) => prev.map((r) => r.id === recordId ? { ...r, checkOut: nowTime } : r));
-    toast({ title: "Checked Out", description: `Check-out recorded at ${nowTime}` });
-    
-    // Broadcast to DentistDashboard
-    if (user && user.id) {
-      window.dispatchEvent(new CustomEvent('attendance-synced', {
-        detail: { type: 'check-out', shift: { status: "checked_out", checkOutTimestamp: Date.now(), date: record.date } }
-      }));
+    if (proceed) {
+      // Sync to local storage dashboard key if current user is checking out
+      if (user && record.staffId === user.id) {
+        const storageKey = `navadia_dentist_shift_${user.id}`;
+        const saved = localStorage.getItem(storageKey);
+        const nowVal = Date.now();
+        let checkInVal = nowVal - 8 * 60 * 60 * 1000;
+        let accumulatedBreak = 0;
+        let notes = "";
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          checkInVal = parsed.checkInTimestamp || checkInVal;
+          accumulatedBreak = parsed.accumulatedBreakTime || 0;
+          notes = parsed.notes || "";
+        }
+        const shiftState = {
+          status: "checked_out" as const,
+          checkInTimestamp: checkInVal,
+          checkOutTimestamp: nowVal,
+          breakStartTime: null,
+          accumulatedBreakTime: accumulatedBreak,
+          notes: notes,
+          date: record.date
+        };
+        localStorage.setItem(storageKey, JSON.stringify(shiftState));
+      }
+
+      const newRecords = records.map((r) => r.id === recordId ? { ...r, checkOut: nowTime } : r);
+      setRecords(newRecords);
+      localStorage.setItem("navadia_attendance", JSON.stringify(newRecords));
+
+      toast({ 
+        title: isOffline ? "Checked Out Offline ⚠️" : "Checked Out ✓", 
+        description: `Check-out recorded at ${nowTime}. ${isOffline ? "Saved locally." : ""}` 
+      });
+
+      // Broadcast to DentistDashboard
+      if (user && user.id) {
+        window.dispatchEvent(new CustomEvent('attendance-synced', {
+          detail: { type: 'check-out', shift: { status: "checked_out", checkOutTimestamp: Date.now(), date: record.date } }
+        }));
+      }
+      
+      if (!isOffline) {
+        fetchAttendance();
+      }
+    } else {
+      toast({
+        title: "Check Out Failed ❌",
+        description: rejectMessage,
+        variant: "destructive"
+      });
     }
   };
 
@@ -295,6 +404,9 @@ export default function Attendance() {
     const formattedStatus = formData.status === "present" ? "Present" : formData.status === "absent" ? "Absent" : formData.status === "half-day" ? "Half Day" : "On Leave";
     const nowTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
     const token = localStorage.getItem("navadia_token");
+    let proceed = false;
+    let isOffline = false;
+
     if (token) {
       try {
         const res = await fetch(`${API_BASE_URL}/api/attendance/check-in`, {
@@ -312,33 +424,40 @@ export default function Attendance() {
           })
         });
         if (res.ok) {
-          fetchAttendance();
-          setDialogOpen(false);
-          setFormData({ staffId: "", status: "present", notes: "" });
-          toast({ title: "Record Added" });
-          return;
+          proceed = true;
         }
       } catch (e) {
         console.warn("Backend offline, fallback local add:", e);
+        proceed = true;
+        isOffline = true;
       }
+    } else {
+      proceed = true;
     }
 
-    const newRecord: AttendanceRecord = {
-      id: crypto.randomUUID(),
-      staffId: staff.id,
-      staffName: staff.name,
-      role: staff.role,
-      date: selectedDate,
-      checkIn: formData.status === "present" ? nowTime : null,
-      checkOut: null,
-      breakTime: 0,
-      status: formData.status,
-      notes: formData.notes,
-    };
-    setRecords((prev) => [...prev, newRecord]);
-    setDialogOpen(false);
-    setFormData({ staffId: "", status: "present", notes: "" });
-    toast({ title: "Record Added" });
+    if (proceed) {
+      const newRecord: AttendanceRecord = {
+        id: crypto.randomUUID(),
+        staffId: staff.id,
+        staffName: staff.name,
+        role: staff.role,
+        date: selectedDate,
+        checkIn: formData.status === "present" ? nowTime : null,
+        checkOut: null,
+        breakTime: 0,
+        status: formData.status,
+        notes: formData.notes,
+      };
+      const updated = [...records, newRecord];
+      setRecords(updated);
+      localStorage.setItem("navadia_attendance", JSON.stringify(updated));
+      setDialogOpen(false);
+      setFormData({ staffId: "", status: "present", notes: "" });
+      toast({ title: isOffline ? "Record Added Offline ⚠️" : "Record Added ✓" });
+      if (!isOffline) {
+        fetchAttendance();
+      }
+    }
   };
 
   const statusColor = (s: string) => {
@@ -348,6 +467,9 @@ export default function Attendance() {
       case "absent": return "bg-destructive/15 text-destructive";
       case "half-day": return "bg-primary/10 text-primary";
       case "on-leave": return "bg-muted text-muted-foreground";
+      case "on break":
+      case "on-break":
+        return "bg-amber-500/15 text-amber-600 border border-amber-500/20";
       default: return "bg-muted text-muted-foreground";
     }
   };
@@ -372,16 +494,22 @@ export default function Attendance() {
           if (isNaN(d.getTime())) return;
           
           if (isWithinInterval(d, { start, end })) {
-            monthlyHours += calculateDuration(r.checkIn, r.checkOut);
+            const rawDuration = calculateDuration(r.checkIn, r.checkOut);
+            const breakHours = (r.breakTime || 0) / 60;
+            monthlyHours += Math.max(0, rawDuration - breakHours);
           }
         } catch (e) {
           console.error("Error calculating hours:", e);
         }
       });
 
+      const rawTodayDuration = calculateDuration(todayRecord?.checkIn || null, todayRecord?.checkOut || null);
+      const todayBreakHours = (todayRecord?.breakTime || 0) / 60;
+      const todayHoursVal = Math.max(0, rawTodayDuration - todayBreakHours);
+
       return {
         ...staff,
-        todayHours: calculateDuration(todayRecord?.checkIn || null, todayRecord?.checkOut || null),
+        todayHours: todayHoursVal,
         monthlyHours: monthlyHours,
         totalRecords: staffRecords.length
       };
@@ -403,14 +531,18 @@ export default function Attendance() {
       if (isNaN(d.getTime())) return;
       
       if (isWithinInterval(d, { start, end })) {
-        personalMonthlyHours += calculateDuration(r.checkIn, r.checkOut);
+        const rawDuration = calculateDuration(r.checkIn, r.checkOut);
+        const breakHours = (r.breakTime || 0) / 60;
+        personalMonthlyHours += Math.max(0, rawDuration - breakHours);
       }
     } catch (e) {
       console.error("Error calculating personal monthly hours:", e);
     }
   });
 
-  const personalTodayHours = calculateDuration(personalTodayRecord?.checkIn || null, personalTodayRecord?.checkOut || null);
+  const rawPersonalTodayDuration = calculateDuration(personalTodayRecord?.checkIn || null, personalTodayRecord?.checkOut || null);
+  const personalTodayBreakHours = (personalTodayRecord?.breakTime || 0) / 60;
+  const personalTodayHours = Math.max(0, rawPersonalTodayDuration - personalTodayBreakHours);
 
   const formatTimeTo12h = (time24: string | null) => {
     if (!time24) return "—";
@@ -435,6 +567,7 @@ export default function Attendance() {
       else if (statusVal === "absent") mappedStatus = "Absent";
       else if (statusVal === "on-leave" || statusVal === "on leave") mappedStatus = "On Leave";
       else if (statusVal === "tour") mappedStatus = "Tour";
+      else if (statusVal === "on break" || statusVal === "on-break") mappedStatus = "On Break";
 
       return {
         status: mappedStatus,
@@ -738,6 +871,9 @@ export default function Attendance() {
                 } else if (dayStatus.status === "Tour") {
                   bgStyle = "bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border border-purple-200/50 dark:border-purple-900/30";
                   dotStyle = "bg-purple-500";
+                } else if (dayStatus.status === "On Break") {
+                  bgStyle = "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30";
+                  dotStyle = "bg-amber-500";
                 } else if (dayStatus.status === "Holiday") {
                   bgStyle = "bg-neutral-100 dark:bg-neutral-900 text-neutral-400/70 border border-transparent";
                 }
@@ -797,6 +933,7 @@ export default function Attendance() {
                     else if (r.status === "Absent") badgeClass = "bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-400 border border-red-200/50";
                     else if (r.status === "On Leave") badgeClass = "bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-400 border border-blue-200/50";
                     else if (r.status === "Tour") badgeClass = "bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-400 border border-purple-200/50";
+                    else if (r.status === "On Break") badgeClass = "bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 border border-amber-200/50";
 
                     return (
                       <tr key={`log-${i}`} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30 transition-colors">
@@ -835,47 +972,6 @@ export default function Attendance() {
         <div>
           <h1 className="text-xl sm:text-2xl md:max-lg:text-2xl">Attendance</h1>
         </div>
-        {isAdmin && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full sm:w-fit md:max-lg:h-10 md:max-lg:px-4 md:max-lg:text-sm lg:w-auto"><Plus className="h-4 w-4 mr-2" />Mark Attendance</Button>
-            </DialogTrigger>
-            <DialogContent className="w-[calc(100vw-2rem)] max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg p-4 sm:w-[calc(100vw-3rem)] sm:max-h-[calc(100svh-3rem)] sm:p-6 lg:w-full lg:max-h-none lg:overflow-visible">
-              <DialogHeader><DialogTitle>Mark Attendance</DialogTitle></DialogHeader>
-              <div className="space-y-4 mt-2">
-                <div>
-                  <Label>Staff Member</Label>
-                  <Select value={formData.staffId} onValueChange={(v) => setFormData({ ...formData, staffId: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select staff" /></SelectTrigger>
-                    <SelectContent>
-                      {staffOptions.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.name} ({s.role})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Status</Label>
-                  <Select value={formData.status} onValueChange={(v: any) => setFormData({ ...formData, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="present">Present</SelectItem>
-                      <SelectItem value="absent">Absent</SelectItem>
-                      <SelectItem value="late">Late</SelectItem>
-                      <SelectItem value="half-day">Half Day</SelectItem>
-                      <SelectItem value="on-leave">On Leave</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Notes</Label>
-                  <Input value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Optional notes" />
-                </div>
-                <Button onClick={handleAdd} className="w-full" disabled={!formData.staffId}>Save</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
 
       {isAdmin ? (
@@ -1090,7 +1186,7 @@ export default function Attendance() {
               <SelectItem value="on-leave">On Leave</SelectItem>
             </SelectContent>
           </Select>
-          {isAdmin && <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="h-11 w-full sm:col-span-2 md:col-span-1 lg:h-10 lg:w-[170px]" />}
+          <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="h-11 w-full sm:col-span-2 md:col-span-1 lg:h-10 lg:w-[170px]" />
         </div>
 
         <Card>
@@ -1134,18 +1230,24 @@ export default function Attendance() {
                         </td>
                         <td className="p-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {!r.checkIn && (
-                              <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckIn(r.id)} title="Check In">
-                                <LogIn className="h-3.5 w-3.5" /> <span>Check In</span>
-                              </Button>
-                            )}
-                            {r.checkIn && !r.checkOut && (
-                              <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckOut(r.id)} title="Check Out">
-                                <LogOut className="h-3.5 w-3.5" /> <span>Check Out</span>
-                              </Button>
-                            )}
-                            {r.checkIn && r.checkOut && (
-                              <span className="text-xs text-muted-foreground font-medium pr-2">Done</span>
+                            {isAdmin ? (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            ) : (
+                              <>
+                                {!r.checkIn && (
+                                  <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckIn(r.id)} title="Check In">
+                                    <LogIn className="h-3.5 w-3.5" /> <span>Check In</span>
+                                  </Button>
+                                )}
+                                {r.checkIn && !r.checkOut && (
+                                  <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckOut(r.id)} title="Check Out">
+                                    <LogOut className="h-3.5 w-3.5" /> <span>Check Out</span>
+                                  </Button>
+                                )}
+                                {r.checkIn && r.checkOut && (
+                                  <span className="text-xs text-muted-foreground font-medium pr-2">Done</span>
+                                )}
+                              </>
                             )}
                           </div>
                         </td>

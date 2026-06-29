@@ -15,6 +15,7 @@ import {
   UserCheck, XCircle, RotateCcw, TrendingUp, AlertCircle
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ShiftState {
   status: "idle" | "active" | "stepped_out" | "checked_out";
@@ -74,6 +75,7 @@ export default function DentistDashboard() {
   });
 
   const [lunchDialogOpen, setLunchDialogOpen] = useState(false);
+  const [breakReason, setBreakReason] = useState("Lunch Break");
   const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [handoverNotes, setHandoverNotes] = useState("");
@@ -195,23 +197,23 @@ export default function DentistDashboard() {
   const fetchAttendanceStats = async () => {
     const token = localStorage.getItem("navadia_token");
     if (!token || !user) return;
+    
+    let settings = clinicSettings;
+    let userLeaves: any[] = [];
+    let data: any[] = [];
+    let loadFromCache = false;
+
     try {
       // Fetch clinic settings
       const settingsRes = await fetch(`${API_BASE_URL}/api/settings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      let settings: any = null;
       if (settingsRes.ok) {
         settings = await settingsRes.json();
         setClinicSettings(settings);
       }
 
-      // Fetch attendance
-      const res = await fetch(`${API_BASE_URL}/api/attendance`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      let userLeaves: any[] = [];
+      // Fetch approved leaves
       try {
         const leaveRes = await fetch(`${API_BASE_URL}/api/leave`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -224,143 +226,164 @@ export default function DentistDashboard() {
         console.warn("Failed to fetch leaves for stats:", err);
       }
 
+      // Fetch attendance
+      const res = await fetch(`${API_BASE_URL}/api/attendance`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
       if (res.ok) {
-        const data = await res.json();
-        const userRecords = data.filter((r: any) => r.userId === user.id);
-        
-        const todayStat = checkTodayStatus(settings, userLeaves);
-        setTodayStatusInfo(todayStat);
-
-        const currentMonthStr = new Date().toISOString().slice(0, 7);
-        const monthlyRecords = userRecords.filter((r: any) => r.date && r.date.startsWith(currentMonthStr));
-        
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const todayDateStr = now.toISOString().split("T")[0];
-
-        let presentCount = 0;
-        let absentCount = 0;
-        let leaveCount = 0;
-        let tourCount = 0;
-        let holidayCount = 0;
-        let weekendCount = 0;
-        let requiredDays = 0;
-
-        const recordsMap = new Map<string, any>();
-        monthlyRecords.forEach((r: any) => {
-          recordsMap.set(r.date, r);
-        });
-
-        const endLimit = lastDay < now ? lastDay : now;
-
-        for (let d = new Date(firstDay); d <= endLimit; d.setDate(d.getDate() + 1)) {
-          const dateStr = d.toISOString().split("T")[0];
-          const dayOfWeek = d.getDay();
-
-          const isHoliday = settings?.holidays?.some((h: any) => h.date === dateStr);
-          if (isHoliday) {
-            holidayCount++;
-            continue;
-          }
-
-          const isWeekend = (settings?.weekendDays || [0]).includes(dayOfWeek);
-          if (isWeekend) {
-            weekendCount++;
-            continue;
-          }
-
-          requiredDays++;
-
-          if (recordsMap.has(dateStr)) {
-            const r = recordsMap.get(dateStr);
-            const statusStr = (r.status || "").toLowerCase();
-            if (statusStr === "present" || statusStr === "late") {
-              presentCount++;
-            } else if (statusStr === "absent") {
-              absentCount++;
-            } else if (statusStr === "on leave" || statusStr === "on-leave" || statusStr === "leave") {
-              leaveCount++;
-            } else if (statusStr === "tour") {
-              tourCount++;
-            } else {
-              presentCount++;
-            }
-          } else {
-            const isOnApprovedLeave = userLeaves.find((l: any) => dateStr >= l.startDate && dateStr <= l.endDate);
-            if (isOnApprovedLeave) {
-              const leaveType = (isOnApprovedLeave.type || "").toLowerCase();
-              if (leaveType.includes("tour")) {
-                tourCount++;
-              } else {
-                leaveCount++;
-              }
-            } else {
-              if (dateStr < todayDateStr) {
-                absentCount++;
-              }
-            }
-          }
-        }
-
-        let totalMs = 0;
-        let workedDaysWithDuration = 0;
-        
-        monthlyRecords.forEach((r: any) => {
-          if (r.checkIn && r.checkOut) {
-            const [inH, inM] = r.checkIn.split(":").map(Number);
-            const [outH, outM] = r.checkOut.split(":").map(Number);
-            let durationMs = ((outH * 60 + outM) - (inH * 60 + inM)) * 60 * 1000;
-            if (r.breakTime) {
-              durationMs -= r.breakTime * 60 * 1000;
-            }
-            if (durationMs > 0) {
-              totalMs += durationMs;
-              workedDaysWithDuration++;
-            }
-          }
-        });
-
-        const totalHours = Math.floor(totalMs / (3600 * 1000));
-        const totalMins = Math.floor((totalMs % (3600 * 1000)) / (60 * 1000));
-        const totalHoursStr = `${totalHours}h ${totalMins}m`;
-
-        let avgHoursStr = "00h 00m";
-        if (workedDaysWithDuration > 0) {
-          const avgMs = totalMs / workedDaysWithDuration;
-          const avgHours = Math.floor(avgMs / (3600 * 1000));
-          const avgMins = Math.floor((avgMs % (3600 * 1000)) / (60 * 1000));
-          avgHoursStr = `${avgHours.toString().padStart(2, "0")}h ${avgMins.toString().padStart(2, "0")}m`;
-        }
-
-        setAttendanceStats({
-          workingDays: `${presentCount}/${requiredDays}`,
-          absentPresentLeaveTour: `${absentCount}/${presentCount}/${leaveCount}/${tourCount}`,
-          totalAverageHours: `${totalHoursStr}/${avgHoursStr}`,
-          todayBreak: "0 min",
-          todayBreakValue: "--"
-        });
-
-        setMonthlySummary({
-          presentDays: presentCount,
-          absentDays: absentCount,
-          leaveDays: leaveCount,
-          tourDays: tourCount,
-          holidayCount: holidayCount,
-          weekendCount: weekendCount,
-          totalHoursStr,
-          avgHoursStr,
-          attendanceRate: requiredDays > 0 ? Math.round((presentCount / requiredDays) * 100) : 0
-        });
-
-        const sortedRecords = [...userRecords].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
-        setHistoryList(sortedRecords);
+        data = await res.json();
+        localStorage.setItem("navadia_attendance_raw", JSON.stringify(data));
+      } else {
+        loadFromCache = true;
       }
     } catch (e) {
-      console.warn("Failed to fetch attendance stats:", e);
+      console.warn("Failed to fetch attendance stats from backend, falling back to local cache:", e);
+      loadFromCache = true;
     }
+
+    if (loadFromCache) {
+      const cached = localStorage.getItem("navadia_attendance_raw");
+      if (cached) {
+        try {
+          data = JSON.parse(cached);
+        } catch (err) {
+          console.error("Failed to parse cached attendance raw data", err);
+        }
+      }
+    }
+
+    // Now proceed to calculate stats using `data`
+    const userRecords = data.filter((r: any) => r.userId === user.id);
+    const todayStat = checkTodayStatus(settings, userLeaves);
+    setTodayStatusInfo(todayStat);
+
+    const currentMonthStr = new Date().toISOString().slice(0, 7);
+    const monthlyRecords = userRecords.filter((r: any) => r.date && r.date.startsWith(currentMonthStr));
+    
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const todayDateStr = now.toISOString().split("T")[0];
+
+    let presentCount = 0;
+    let absentCount = 0;
+    let leaveCount = 0;
+    let tourCount = 0;
+    let holidayCount = 0;
+    let weekendCount = 0;
+    let requiredDays = 0;
+
+    const recordsMap = new Map<string, any>();
+    monthlyRecords.forEach((r: any) => {
+      recordsMap.set(r.date, r);
+    });
+
+    const endLimit = lastDay < now ? lastDay : now;
+
+    for (let d = new Date(firstDay); d <= endLimit; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split("T")[0];
+      const dayOfWeek = d.getDay();
+
+      const isHoliday = settings?.holidays?.some((h: any) => h.date === dateStr);
+      if (isHoliday) {
+        holidayCount++;
+        continue;
+      }
+
+      const isWeekend = (settings?.weekendDays || [0]).includes(dayOfWeek);
+      if (isWeekend) {
+        weekendCount++;
+        continue;
+      }
+
+      requiredDays++;
+
+      if (recordsMap.has(dateStr)) {
+        const r = recordsMap.get(dateStr);
+        const statusStr = (r.status || "").toLowerCase();
+        if (statusStr === "present" || statusStr === "late") {
+          presentCount++;
+        } else if (statusStr === "absent") {
+          absentCount++;
+        } else if (statusStr === "on leave" || statusStr === "on-leave" || statusStr === "leave") {
+          leaveCount++;
+        } else if (statusStr === "tour") {
+          tourCount++;
+        } else {
+          presentCount++;
+        }
+      } else {
+        const isOnApprovedLeave = userLeaves.find((l: any) => dateStr >= l.startDate && dateStr <= l.endDate);
+        if (isOnApprovedLeave) {
+          const leaveType = (isOnApprovedLeave.type || "").toLowerCase();
+          if (leaveType.includes("tour")) {
+            tourCount++;
+          } else {
+            leaveCount++;
+          }
+        } else {
+          if (dateStr < todayDateStr) {
+            absentCount++;
+          }
+        }
+      }
+    }
+
+    let totalMs = 0;
+    let workedDaysWithDuration = 0;
+    
+    monthlyRecords.forEach((r: any) => {
+      if (r.checkIn && r.checkOut) {
+        const [inH, inM] = r.checkIn.split(":").map(Number);
+        const [outH, outM] = r.checkOut.split(":").map(Number);
+        let durationMs = ((outH * 60 + outM) - (inH * 60 + inM)) * 60 * 1000;
+        if (r.breakTime) {
+          durationMs -= r.breakTime * 60 * 1000;
+        }
+        if (durationMs > 0) {
+          totalMs += durationMs;
+          workedDaysWithDuration++;
+        }
+      }
+    });
+
+    const totalHours = Math.floor(totalMs / (3600 * 1000));
+    const totalMins = Math.floor((totalMs % (3600 * 1000)) / (60 * 1000));
+    const totalHoursStr = `${totalHours}h ${totalMins}m`;
+
+    let avgHoursStr = "00h 00m";
+    if (workedDaysWithDuration > 0) {
+      const avgMs = totalMs / workedDaysWithDuration;
+      const avgHours = Math.floor(avgMs / (3600 * 1000));
+      const avgMins = Math.floor((avgMs % (3600 * 1000)) / (60 * 1000));
+      avgHoursStr = `${avgHours.toString().padStart(2, "0")}h ${avgMins.toString().padStart(2, "0")}m`;
+    }
+
+    setAttendanceStats({
+      workingDays: `${presentCount}/${requiredDays}`,
+      absentPresentLeaveTour: `${absentCount}/${presentCount}/${leaveCount}/${tourCount}`,
+      totalAverageHours: `${totalHoursStr}/${avgHoursStr}`,
+      todayBreak: "0 min",
+      todayBreakValue: "--"
+    });
+
+    setMonthlySummary({
+      presentDays: presentCount,
+      absentDays: absentCount,
+      leaveDays: leaveCount,
+      tourDays: tourCount,
+      holidayCount: holidayCount,
+      weekendCount: weekendCount,
+      totalHoursStr,
+      avgHoursStr,
+      attendanceRate: requiredDays > 0 ? Math.round((presentCount / requiredDays) * 100) : 0
+    });
+
+    const sortedRecords = [...userRecords].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
+    setHistoryList(sortedRecords);
   };
 
   useEffect(() => {
@@ -519,27 +542,14 @@ export default function DentistDashboard() {
     const browserInfo = navigator.userAgent;
     const deviceInfo = `${navigator.platform} (${navigator.vendor || 'Unknown Vendor'})`;
 
-    const newShift = { 
-      status: "active" as const, 
-      checkInTimestamp: now, 
-      checkOutTimestamp: null, 
-      breakStartTime: null, 
-      accumulatedBreakTime: 0, 
-      breakCount: 0, 
-      breaks: [],
-      notes: "", 
-      date: todayDate 
-    };
-    setShift(newShift);
-    localStorage.setItem(storageKey, JSON.stringify(newShift));
-    
-    window.dispatchEvent(new CustomEvent('attendance-synced', { detail: { type: 'check-in', shift: newShift } }));
-    toast({ title: "Shift Started ✓", description: `Checked in at ${getFormattedTime(now)}.` });
-
     const token = localStorage.getItem("navadia_token");
+    let proceedWithCheckIn = false;
+    let isOfflineFallback = false;
+    let rejectMessage = "";
+
     if (token && user) {
       try {
-        await fetch(`${API_BASE_URL}/api/attendance/check-in`, {
+        const res = await fetch(`${API_BASE_URL}/api/attendance/check-in`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ 
@@ -554,14 +564,54 @@ export default function DentistDashboard() {
             browserInfo
           })
         });
-        fetchAttendanceStats();
-      } catch (e) { console.warn("Backend offline"); }
+        if (res.ok) {
+          proceedWithCheckIn = true;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          rejectMessage = errData.message || "Coordinates verification failed or error on server.";
+        }
+      } catch (e) {
+        console.warn("Backend offline during check-in, running offline mode", e);
+        proceedWithCheckIn = true;
+        isOfflineFallback = true;
+      }
+    } else {
+      proceedWithCheckIn = true;
+    }
+
+    if (proceedWithCheckIn) {
+      const newShift = { 
+        status: "active" as const, 
+        checkInTimestamp: now, 
+        checkOutTimestamp: null, 
+        breakStartTime: null, 
+        accumulatedBreakTime: 0, 
+        breakCount: 0, 
+        breaks: [],
+        notes: "", 
+        date: todayDate 
+      };
+      setShift(newShift);
+      localStorage.setItem(storageKey, JSON.stringify(newShift));
+      
+      window.dispatchEvent(new CustomEvent('attendance-synced', { detail: { type: 'check-in', shift: newShift } }));
+      toast({ 
+        title: isOfflineFallback ? "Shift Started Offline ⚠️" : "Shift Started ✓", 
+        description: `Checked in at ${getFormattedTime(now)}. ${isOfflineFallback ? "Saved locally." : ""}` 
+      });
+      fetchAttendanceStats();
+    } else {
+      toast({
+        title: "Check In Blocked ❌",
+        description: rejectMessage,
+        variant: "destructive"
+      });
     }
   };
 
-  const confirmLunchBreak = () => {
+  const confirmLunchBreak = async () => {
     const now = Date.now();
-    const newBreak = { start: now, end: null, duration: 0 };
+    const newBreak = { start: now, end: null, duration: 0, reason: breakReason };
     const updatedShift = {
       ...shift,
       status: "stepped_out" as const,
@@ -569,13 +619,38 @@ export default function DentistDashboard() {
       breakCount: (shift.breakCount || 0) + 1,
       breaks: [...(shift.breaks || []), newBreak]
     };
+
+    // Sync break status with backend in real-time
+    const token = localStorage.getItem("navadia_token");
+    if (token && user) {
+      try {
+        const todayDate = new Date().toISOString().split("T")[0];
+        await fetch(`${API_BASE_URL}/api/attendance/break`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            date: todayDate,
+            status: "On Break",
+            breakCount: updatedShift.breakCount,
+            breaks: updatedShift.breaks
+          })
+        });
+      } catch (e) {
+        console.warn("Failed to sync break status with backend:", e);
+      }
+    }
+
     setShift(updatedShift);
     localStorage.setItem(storageKey, JSON.stringify(updatedShift));
     setLunchDialogOpen(false);
     toast({ title: "Break Started", description: "Enjoy your break! 🍽️" });
   };
 
-  const confirmResumeDuty = () => {
+  const confirmResumeDuty = async () => {
     const now = Date.now();
     const breakStart = shift.breakStartTime || now;
     const durationMin = Math.round((now - breakStart) / 60000);
@@ -596,6 +671,32 @@ export default function DentistDashboard() {
       accumulatedBreakTime: (shift.accumulatedBreakTime || 0) + (now - breakStart),
       breaks: updatedBreaks
     };
+
+    // Sync break resume status with backend in real-time
+    const token = localStorage.getItem("navadia_token");
+    if (token && user) {
+      try {
+        const todayDate = new Date().toISOString().split("T")[0];
+        await fetch(`${API_BASE_URL}/api/attendance/break`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            date: todayDate,
+            status: "Present",
+            breakTime: Math.round(updatedShift.accumulatedBreakTime / 60000),
+            breakCount: updatedShift.breakCount,
+            breaks: updatedShift.breaks
+          })
+        });
+      } catch (e) {
+        console.warn("Failed to sync break resume status with backend:", e);
+      }
+    }
+
     setShift(updatedShift);
     localStorage.setItem(storageKey, JSON.stringify(updatedShift));
     setResumeDialogOpen(false);
@@ -679,23 +780,14 @@ export default function DentistDashboard() {
     
     const overtimeMins = Math.max(0, workHoursMins - 480);
 
-    const updatedShift = {
-      ...shift,
-      status: "checked_out" as const,
-      checkOutTimestamp: now,
-      notes: handoverNotes
-    };
-    setShift(updatedShift);
-    localStorage.setItem(storageKey, JSON.stringify(updatedShift));
-    
-    window.dispatchEvent(new CustomEvent('attendance-synced', { detail: { type: 'check-out', shift: updatedShift } }));
-    toast({ title: "Shift Completed ✓", description: `Checked out at ${getFormattedTime(now)}.` });
-    setCheckoutDialogOpen(false);
-
     const token = localStorage.getItem("navadia_token");
+    let proceedWithCheckOut = false;
+    let isOfflineFallback = false;
+    let rejectMessage = "";
+
     if (token && user) {
       try {
-        await fetch(`${API_BASE_URL}/api/attendance/check-out`, {
+        const res = await fetch(`${API_BASE_URL}/api/attendance/check-out`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({
@@ -712,10 +804,44 @@ export default function DentistDashboard() {
             breaks: shift.breaks
           })
         });
-        fetchAttendanceStats();
+        if (res.ok) {
+          proceedWithCheckOut = true;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          rejectMessage = errData.message || "Check out coordinates verification failed or error on server.";
+        }
       } catch (e) {
-        console.warn("Check-out post failed:", e);
+        console.warn("Check-out post failed, running offline fallback mode", e);
+        proceedWithCheckOut = true;
+        isOfflineFallback = true;
       }
+    } else {
+      proceedWithCheckOut = true;
+    }
+
+    if (proceedWithCheckOut) {
+      const updatedShift = {
+        ...shift,
+        status: "checked_out" as const,
+        checkOutTimestamp: now,
+        notes: handoverNotes
+      };
+      setShift(updatedShift);
+      localStorage.setItem(storageKey, JSON.stringify(updatedShift));
+      
+      window.dispatchEvent(new CustomEvent('attendance-synced', { detail: { type: 'check-out', shift: updatedShift } }));
+      toast({ 
+        title: isOfflineFallback ? "Shift Completed Offline ⚠️" : "Shift Completed ✓", 
+        description: `Checked out at ${getFormattedTime(now)}. ${isOfflineFallback ? "Saved locally." : ""}` 
+      });
+      setCheckoutDialogOpen(false);
+      fetchAttendanceStats();
+    } else {
+      toast({
+        title: "Check Out Blocked ❌",
+        description: rejectMessage,
+        variant: "destructive"
+      });
     }
   };
 
@@ -1035,6 +1161,20 @@ export default function DentistDashboard() {
             <DialogTitle className="text-xl font-bold font-sans">Start Break</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground font-sans">Are you sure you want to start your break?</DialogDescription>
           </DialogHeader>
+          <div className="space-y-2 mt-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-sans">Reason for leaving clinic</label>
+            <Select value={breakReason} onValueChange={setBreakReason}>
+              <SelectTrigger className="h-10 text-sm rounded-xl">
+                <SelectValue placeholder="Select reason" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Lunch Break">Lunch Break 🍽️</SelectItem>
+                <SelectItem value="Stepped Out / Personal">Stepped Out (Personal) 🚶</SelectItem>
+                <SelectItem value="Official Clinic Business">Official Clinic Duty 💼</SelectItem>
+                <SelectItem value="Emergency">Emergency 🚨</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <DialogFooter className="flex gap-2 sm:justify-center mt-2">
             <Button variant="outline" onClick={() => setLunchDialogOpen(false)} className="flex-1 rounded-xl font-sans">Cancel</Button>
             <Button onClick={confirmLunchBreak} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-sans font-bold">Start Break</Button>
