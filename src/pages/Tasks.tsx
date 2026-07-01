@@ -20,6 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { useLocation } from "react-router-dom";
 
 interface Task {
   id: string;
@@ -46,7 +47,18 @@ export default function Tasks() {
   const { user, allUsers } = useAuth();
   const { socket } = useChat();
   const { toast } = useToast();
+  const location = useLocation();
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+
+  useEffect(() => {
+    if (location.state?.selectTaskId && tasks.length > 0) {
+      const foundTask = tasks.find(t => t.id === location.state.selectTaskId);
+      if (foundTask) {
+        setSelectedViewTask(foundTask);
+        window.history.replaceState(null, '');
+      }
+    }
+  }, [location.state, tasks]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
@@ -71,9 +83,12 @@ export default function Tasks() {
   const filteredUsersForFilter = roleFilter === "all" ? staffOptions : staffOptions.filter(u => u.role.toLowerCase() === roleFilter.toLowerCase());
   const editTaskFilteredUsers = useMemo(() => {
     const staff = allUsers.filter((u) => u.role.toLowerCase() !== "admin");
+    if (editTask?.isRecurring) {
+      return staff.filter(u => u.role.toLowerCase() === "staff");
+    }
     if (editTaskRoleFilter === "all") return staff;
     return staff.filter(u => u.role.toLowerCase() === editTaskRoleFilter.toLowerCase());
-  }, [allUsers, editTaskRoleFilter]);
+  }, [allUsers, editTaskRoleFilter, editTask?.isRecurring]);
   
   const isAdmin = !!(user && user.role.toLowerCase() === "admin");
   const isDentist = !!(user && user.role.toLowerCase() === "dentist");
@@ -105,7 +120,9 @@ export default function Tasks() {
             ? (t.assignedTo
                 ? `${allUsers.find(u => u.id === t.assignedTo)?.name || t.assignedTo} (Repeating)`
                 : `${t.role} (Repeating)`)
-            : (allUsers.find(u => u.id === t.assignedTo)?.name || t.assignedTo),
+            : (t.assignedTo
+                ? (allUsers.find(u => u.id === t.assignedTo)?.name || t.assignedTo)
+                : (t.role === "all" ? "All Staff" : `${t.role}s`)),
           assignedBy: t.createdBy || "Admin",
           assignedByName: allUsers.find(u => u.id === t.createdBy)?.name || t.createdByName || t.createdBy || "Admin",
           priority: (t.priority || "medium") as Task["priority"],
@@ -162,7 +179,9 @@ export default function Tasks() {
       const matchPriority = filterPriority === "all" || t.priority === filterPriority;
       
       const userObj = staffOptions.find(u => u.id === t.assignedTo);
-      const matchRole = roleFilter === "all" || (userObj && userObj.role.toLowerCase() === roleFilter.toLowerCase());
+      const taskRole = t.assignedTo ? (userObj?.role || "") : t.role;
+      const matchRole = roleFilter === "all" || 
+                         (taskRole && (taskRole.toLowerCase() === "all" || taskRole.toLowerCase() === roleFilter.toLowerCase()));
       const matchUser = userFilter === "all" || t.assignedTo === userFilter;
  
       const isPrivateTask = t.assignedTo === t.assignedBy;
@@ -193,15 +212,23 @@ export default function Tasks() {
             if (t.assignedTo === user?.id) return false;
           } else {
             // Staff/Dentist sees tasks assigned to them by someone else
-            if (t.assignedTo !== user?.id || t.assignedBy === user?.id) return false;
+            const isExplicitlyAssignedToMe = t.assignedTo === user?.id;
+            const isAssignedToMyRoleOrAll = !t.assignedTo && 
+              (t.role?.toLowerCase() === "all" || t.role?.toLowerCase() === userRoleLower);
+            
+            if (!(isExplicitlyAssignedToMe || isAssignedToMyRoleOrAll) || t.assignedBy === user?.id) {
+              return false;
+            }
           }
         } else {
           // "all-tasks" (Admin only)
           // Shows all tasks (non-admin private tasks are already filtered out by Rule 1 above)
           const userRoleLower = user?.role.toLowerCase();
           if (userRoleLower !== "admin") {
-            // Non-admins only see tasks assigned to them or created by them
-            if (t.assignedTo !== user?.id && t.assignedBy !== user?.id) return false;
+            const isExplicitlyAssignedToMe = t.assignedTo === user?.id;
+            const isAssignedToMyRoleOrAll = !t.assignedTo && 
+              (t.role?.toLowerCase() === "all" || t.role?.toLowerCase() === userRoleLower);
+            if (!isExplicitlyAssignedToMe && !isAssignedToMyRoleOrAll && t.assignedBy !== user?.id) return false;
           }
         }
       }
@@ -243,9 +270,22 @@ export default function Tasks() {
     if (!form.title) return;
     
     let staff = null;
-    if (!form.isRecurring) {
-      staff = form.isPrivate ? user : allUsers.find((u) => u.id === form.assignedTo);
-      if (!staff) return;
+    let assignedToId = "";
+    let roleName = form.role;
+
+    if (form.isPrivate) {
+      staff = user;
+      assignedToId = user?.id || "";
+      roleName = user?.role || "";
+    } else if (!form.isRecurring) {
+      staff = allUsers.find((u) => u.id === form.assignedTo);
+      if (staff) {
+        assignedToId = staff.id;
+        roleName = staff.role;
+      } else {
+        assignedToId = "";
+        roleName = form.role;
+      }
     }
     
     const token = localStorage.getItem("navadia_token");
@@ -263,8 +303,8 @@ export default function Tasks() {
           body: JSON.stringify({
             title: form.title,
             description: form.description,
-            assignedTo: staff ? staff.id : "",
-            role: staff ? staff.role : form.role,
+            assignedTo: assignedToId,
+            role: roleName,
             priority: form.priority,
             dueDate: form.dueDate,
             isRecurring: form.isRecurring
@@ -307,8 +347,10 @@ export default function Tasks() {
           id: crypto.randomUUID(),
           title: form.title,
           description: form.description,
-          assignedTo: staff!.id,
-          assignedToName: staff!.name,
+          assignedTo: assignedToId,
+          assignedToName: staff 
+            ? staff.name 
+            : (roleName === "all" ? "All Staff" : `${roleName}s`),
           assignedBy: user!.id,
           assignedByName: user!.name,
           priority: form.priority,
@@ -422,9 +464,11 @@ export default function Tasks() {
 
   const handleStartEdit = (t: Task) => {
     const assignee = allUsers.find(u => u.id === t.assignedTo);
-    if (assignee) {
+    if (t.isRecurring) {
+      setEditTaskRoleFilter("Staff");
+    } else if (assignee) {
       setEditTaskRoleFilter(assignee.role);
-    } else if (t.isRecurring && t.role) {
+    } else if (t.role) {
       setEditTaskRoleFilter(t.role);
     } else {
       setEditTaskRoleFilter("all");
@@ -472,7 +516,15 @@ export default function Tasks() {
     }
 
     if (proceed) {
-      const newTasks = tasks.map((t) => t.id === editTask.id ? { ...editTask, voiceNote: voiceNote !== null ? voiceNote : t.voiceNote } : t);
+      const assignee = allUsers.find(u => u.id === editTask.assignedTo);
+      const assignedToName = assignee 
+        ? assignee.name 
+        : (editTask.role === "all" ? "All Staff" : `${editTask.role}s`);
+      const newTasks = tasks.map((t) => t.id === editTask.id ? { 
+        ...editTask, 
+        assignedToName,
+        voiceNote: voiceNote !== null ? voiceNote : t.voiceNote 
+      } : t);
       setTasks(newTasks);
       localStorage.setItem("navadia_tasks", JSON.stringify(newTasks));
       setEditTask(null);
@@ -701,7 +753,7 @@ export default function Tasks() {
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {!form.isRecurring && <SelectItem value="all">All Staff</SelectItem>}
-                            <SelectItem value="Dentist">Dentist</SelectItem>
+                            {!form.isRecurring && <SelectItem value="Dentist">Dentist</SelectItem>}
                             <SelectItem value="Staff">Staff</SelectItem>
                           </SelectContent>
                         </Select>
@@ -710,7 +762,7 @@ export default function Tasks() {
                     <div className="space-y-2">
                       <Label>Select Assignee</Label>
                       <Select 
-                        value={form.assignedTo || (form.isRecurring ? "all-role-members" : "")} 
+                        value={form.assignedTo || "all-role-members"} 
                         onValueChange={(v) => {
                           if (v === "all-role-members") {
                             setForm({ ...form, assignedTo: "" });
@@ -720,9 +772,9 @@ export default function Tasks() {
                           }
                         }}
                       >
-                        <SelectTrigger><SelectValue placeholder={form.isRecurring ? "All members (Default)" : "Select member"} /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="All members (Default)" /></SelectTrigger>
                         <SelectContent>
-                          {form.isRecurring && <SelectItem value="all-role-members">All Role Members</SelectItem>}
+                          <SelectItem value="all-role-members">All Role Members</SelectItem>
                           {targetUsers.map((s) => (
                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                           ))}
@@ -796,7 +848,7 @@ export default function Tasks() {
                   </div>
                 </div>
 
-                <Button onClick={handleAdd} className="w-full" disabled={(!form.isPrivate && !form.isRecurring && !form.assignedTo) || !form.title}>Create Task</Button>
+                <Button onClick={handleAdd} className="w-full" disabled={!form.title}>Create Task</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -823,7 +875,9 @@ export default function Tasks() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:max-lg:flex-row md:max-lg:justify-between">
           <TabsList>
             <TabsTrigger value="assigned-tasks">Assigned Tasks</TabsTrigger>
-            <TabsTrigger value="repeating-tasks">Repeating Tasks</TabsTrigger>
+            {user?.role.toLowerCase() !== "dentist" && (
+              <TabsTrigger value="repeating-tasks">Repeating Tasks</TabsTrigger>
+            )}
             <TabsTrigger value="private-tasks">Private Tasks</TabsTrigger>
           </TabsList>
           <div className="hidden md:max-lg:flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
@@ -984,7 +1038,7 @@ export default function Tasks() {
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {!editTask.isRecurring && <SelectItem value="all">All Staff</SelectItem>}
-                          <SelectItem value="Dentist">Dentist</SelectItem>
+                          {!editTask.isRecurring && <SelectItem value="Dentist">Dentist</SelectItem>}
                           <SelectItem value="Staff">Staff</SelectItem>
                         </SelectContent>
                       </Select>
@@ -992,26 +1046,25 @@ export default function Tasks() {
                     <div className="space-y-2">
                       <Label>Select Assignee</Label>
                       <Select 
-                        value={editTask.assignedTo || (editTask.isRecurring ? "all-role-members" : "")} 
+                        value={editTask.assignedTo || "all-role-members"} 
                         onValueChange={(v) => {
                           if (v === "all-role-members") {
-                            setEditTask({ ...editTask, assignedTo: "", assignedToName: `${editTask.role || 'Staff'} (Repeating)` });
+                            setEditTask({ ...editTask, assignedTo: "" });
                           } else {
                             const selectedUser = allUsers.find(u => u.id === v);
                             if (selectedUser) {
                               setEditTask({ 
                                 ...editTask, 
                                 assignedTo: v, 
-                                assignedToName: editTask.isRecurring ? `${selectedUser.name} (Repeating)` : selectedUser.name,
                                 role: selectedUser.role
                               });
                             }
                           }
                         }}
                       >
-                        <SelectTrigger><SelectValue placeholder={editTask.isRecurring ? "All members (Default)" : "Select member"} /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="All members (Default)" /></SelectTrigger>
                         <SelectContent>
-                          {editTask.isRecurring && <SelectItem value="all-role-members">All Role Members</SelectItem>}
+                          <SelectItem value="all-role-members">All Role Members</SelectItem>
                           {editTaskFilteredUsers.map((s) => (
                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                           ))}
@@ -1081,7 +1134,7 @@ export default function Tasks() {
                   </div>
                 )}
 
-                <Button onClick={handleUpdate} className="w-full" disabled={(!editTask.isRecurring && !editTask.assignedTo) || !editTask.title}>Update Task</Button>
+                <Button onClick={handleUpdate} className="w-full" disabled={!editTask.title}>Update Task</Button>
               </div>
             );
           })()}

@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { 
   DollarSign, 
   CalendarDays, 
@@ -26,7 +28,7 @@ import { API_BASE_URL } from "@/config/api";
 
 export default function AdminDashboard() {
   const { user, allUsers } = useAuth();
-  const { sendBroadcast } = useChat();
+  const { sendBroadcast, sendMessage } = useChat();
   const { toast } = useToast();
   const navigate = useNavigate();
   const dentists = allUsers.filter((u) => u.role.toLowerCase() === "dentist");
@@ -66,15 +68,10 @@ export default function AdminDashboard() {
     fetchStats();
   }, []);
 
-  const stats = [
-    { label: "Today's Revenue", value: "₹24,500", icon: DollarSign, change: "+12% vs yesterday" },
-    { label: "Appointments Today", value: String(appointmentsCount), icon: CalendarDays, change: "Updated live" },
-    { label: "New Patients", value: String(patientsCount), icon: Users, change: "Total registered" },
-    { label: "Collection Rate", value: "94%", icon: TrendingUp, change: "+2% vs last month" },
-  ];
 
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [broadcastText, setBroadcastText] = useState("");
+  const [broadcastTarget, setBroadcastTarget] = useState("all");
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [voiceNote, setVoiceNote] = useState<string | null>(null);
@@ -110,11 +107,23 @@ export default function AdminDashboard() {
 
   const handleBroadcast = () => {
     if (!broadcastText.trim() && !voiceNote) return;
-    sendBroadcast(broadcastText, voiceNote || undefined);
+    if (broadcastTarget === "all") {
+      sendBroadcast(broadcastText, voiceNote || undefined);
+      toast({ title: "Broadcast Sent", description: "Message sent to all staff and dentists." });
+    } else if (broadcastTarget.startsWith("broadcast_")) {
+      const roleName = broadcastTarget.replace("broadcast_", "");
+      const displayName = roleName === "dentist" ? "Dentists" : "Support Staff";
+      sendMessage(broadcastTarget, broadcastText, voiceNote || undefined);
+      toast({ title: "Broadcast Sent", description: `Message sent to all ${displayName}.` });
+    } else {
+      const targetUser = allUsers.find(u => u.id === broadcastTarget);
+      sendMessage(broadcastTarget, broadcastText, voiceNote || undefined);
+      toast({ title: "Message Sent", description: `Message sent to ${targetUser?.name || 'employee'}.` });
+    }
     setBroadcastText("");
     setVoiceNote(null);
+    setBroadcastTarget("all");
     setBroadcastOpen(false);
-    toast({ title: "Broadcast Sent", description: "Message sent to all staff." });
   };
 
   const adminModules = [
@@ -171,59 +180,84 @@ export default function AdminDashboard() {
             Welcome back, {user?.name}. Full clinic administration overview.
           </p>
         </div>
-        <Dialog open={broadcastOpen} onOpenChange={(o) => { setBroadcastOpen(o); if (!o) setVoiceNote(null); }}>
+        <Dialog open={broadcastOpen} onOpenChange={(o) => { setBroadcastOpen(o); if (!o) { setVoiceNote(null); setBroadcastTarget("all"); } }}>
           <DialogTrigger asChild>
             <Button variant="default" className="gap-2">
               <Megaphone className="h-4 w-4" /> Send Broadcast
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto rounded-lg p-4 sm:w-full sm:max-w-[480px] sm:p-6">
             <DialogHeader>
-              <DialogTitle>Send Broadcast</DialogTitle>
+              <DialogTitle>Send Broadcast / Message</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <Input 
-                placeholder="Type your message to everyone..." 
-                value={broadcastText}
-                onChange={(e) => setBroadcastText(e.target.value)}
-              />
-              <div className="flex items-center gap-2">
-                {!isRecording ? (
-                  <Button variant="outline" size="sm" onClick={startRecording}>
-                    <Mic className="h-4 w-4 mr-1" /> Record Voice Note
-                  </Button>
-                ) : (
-                  <Button variant="destructive" size="sm" onClick={stopRecording}>
-                    <Square className="h-4 w-4 mr-1" /> Stop Recording
-                  </Button>
-                )}
-                {voiceNote && <audio src={voiceNote} controls className="h-8 flex-1" />}
+              <div className="space-y-2">
+                <Label>Recipient</Label>
+                <Select value={broadcastTarget} onValueChange={setBroadcastTarget}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Staff & Dentists (Broadcast)</SelectItem>
+                    <SelectItem value="broadcast_dentist">All Dentists (Broadcast)</SelectItem>
+                    <SelectItem value="broadcast_staff">All Support Staff (Broadcast)</SelectItem>
+                    {allUsers.filter((u) => u.role.toLowerCase() !== "admin").map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.role})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Button onClick={handleBroadcast} className="w-full" disabled={!broadcastText && !voiceNote}>
-                Send to All Staff
+
+              <div className="space-y-2">
+                <Label>Message</Label>
+                <Input 
+                  placeholder={
+                    broadcastTarget === "all" 
+                      ? "Type your message to everyone..." 
+                      : broadcastTarget === "broadcast_dentist"
+                      ? "Type your message to all dentists..."
+                      : broadcastTarget === "broadcast_staff"
+                      ? "Type your message to all support staff..."
+                      : `Type your message to ${allUsers.find(u => u.id === broadcastTarget)?.name || 'employee'}...`
+                  } 
+                  value={broadcastText}
+                  onChange={(e) => setBroadcastText(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Voice Note (Optional)</Label>
+                <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
+                  {!isRecording ? (
+                    <Button variant="outline" size="sm" onClick={startRecording}>
+                      <Mic className="h-4 w-4 mr-1.5" /> Record
+                    </Button>
+                  ) : (
+                    <Button variant="destructive" size="sm" onClick={stopRecording} className="animate-pulse">
+                      <Square className="h-4 w-4 mr-1.5" /> Stop
+                    </Button>
+                  )}
+                  {voiceNote && <audio src={voiceNote} controls className="h-8 flex-1 max-w-[200px]" />}
+                  <span className="text-xs text-muted-foreground">{isRecording ? "Recording..." : voiceNote ? "Voice note captured" : "No recording"}</span>
+                </div>
+              </div>
+
+              <Button onClick={handleBroadcast} className="w-full bg-[#e7b008] hover:bg-[#c59606] text-white" disabled={!broadcastText.trim() && !voiceNote}>
+                {broadcastTarget === "all" 
+                  ? "Send to All Staff & Dentists" 
+                  : broadcastTarget === "broadcast_dentist"
+                  ? "Send to All Dentists"
+                  : broadcastTarget === "broadcast_staff"
+                  ? "Send to All Support Staff"
+                  : `Send to ${allUsers.find(u => u.id === broadcastTarget)?.name || 'Employee'}`}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Stats Cards Section */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, idx) => (
-          <Card key={idx} className="bg-card border border-border/50 hover:shadow-md transition-shadow duration-200">
-            <CardContent className="p-4 sm:p-6 flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs sm:text-sm text-muted-foreground font-medium">{stat.label}</p>
-                <p className="text-xl sm:text-2xl font-bold font-sans">{stat.value}</p>
-                <p className="text-[10px] sm:text-xs text-emerald-500 font-medium">{stat.change}</p>
-              </div>
-              <div className="p-2 sm:p-3 bg-primary/10 text-primary rounded-xl">
-                <stat.icon className="h-5 w-5 sm:h-6 sm:w-6" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       {/* Module Navigation Portal */}
       <div>

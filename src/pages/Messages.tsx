@@ -7,11 +7,20 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Mic, Square, Edit2, Check, X, Megaphone, Trash2, MessageSquare } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 export default function Messages() {
   const { user, allUsers } = useAuth();
   const { messages, getConversation, sendMessage, editMessage, deleteMessage, markAsRead } = useChat();
+  const location = useLocation();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (location.state?.selectUserId) {
+      setSelectedUserId(location.state.selectUserId);
+      window.history.replaceState(null, '');
+    }
+  }, [location.state]);
   const [inputText, setInputText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -27,8 +36,13 @@ export default function Messages() {
   // Mark messages as read when opening conversation
   useEffect(() => {
     if (selectedUserId && user) {
+      const userRoleLower = user.role.toLowerCase();
       conversation.forEach((msg) => {
-        if (!msg.isRead && (msg.receiverId === user.id || msg.receiverId === "broadcast")) {
+        const isRecipient = msg.receiverId === user.id || 
+                            msg.receiverId === "broadcast" ||
+                            (userRoleLower === "dentist" && msg.receiverId === "broadcast_dentist") ||
+                            (userRoleLower === "staff" && msg.receiverId === "broadcast_staff");
+        if (!msg.isRead && isRecipient) {
           markAsRead(msg.id);
         }
       });
@@ -159,7 +173,7 @@ export default function Messages() {
               ) : (
                 conversation.map((msg) => {
                   const isMine = msg.senderId === user?.id;
-                  const isBroadcast = msg.receiverId === "broadcast";
+                  const isBroadcast = msg.receiverId.startsWith("broadcast");
                   return (
                     <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[75%] rounded-2xl p-2 sm:p-3 text-sm sm:text-base ${
@@ -169,7 +183,13 @@ export default function Messages() {
                       }`}>
                         {isBroadcast && (
                           <div className="flex items-center gap-1 mb-2 text-accent font-bold text-xs uppercase tracking-wider">
-                            <Megaphone className="h-3 w-3" /> Broadcast from Admin
+                            <Megaphone className="h-3 w-3" /> {
+                              msg.receiverId === "broadcast_dentist" 
+                                ? "Broadcast to Dentists" 
+                                : msg.receiverId === "broadcast_staff"
+                                ? "Broadcast to Support Staff"
+                                : "Broadcast from Admin"
+                            }
                           </div>
                         )}
                         {!isMine && !isBroadcast && (

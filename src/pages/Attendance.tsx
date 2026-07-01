@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 import { API_BASE_URL } from '../config/api';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +33,8 @@ const INITIAL_RECORDS: AttendanceRecord[] = [];
 
 export default function Attendance() {
   const { user, allUsers } = useAuth();
+  const staffOptions = allUsers.filter((u) => u.role.toLowerCase() !== "admin");
+  const isAdmin = user?.role.toLowerCase() === "admin";
   const { toast } = useToast();
   const [records, setRecords] = useState<AttendanceRecord[]>(INITIAL_RECORDS);
   const [leaves, setLeaves] = useState<any[]>([]);
@@ -164,23 +166,160 @@ export default function Attendance() {
     };
   }, []);
 
-  const filtered = records.filter((r) => {
-    const matchSearch = r.staffName.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === "all" || r.status === filterStatus;
-    const matchDate = r.date === selectedDate;
-    const matchRole = roleFilter === "all" || r.role.toLowerCase() === roleFilter.toLowerCase();
-    
-    // Non-Admin employees only see their own attendance status
-    if (user?.role.toLowerCase() !== "admin" && r.staffId !== user?.id) return false;
-    return matchSearch && matchStatus && matchDate && matchRole;
-  });
+  const formatTimeTo12h = (time24: string | null) => {
+    if (!time24) return "—";
+    if (time24.includes("AM") || time24.includes("PM")) return time24; // already formatted
+    const parts = time24.split(":");
+    if (parts.length < 2) return time24;
+    const h = parseInt(parts[0], 10);
+    const m = parts[1];
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12.toString().padStart(2, "0")}:${m} ${ampm}`;
+  };
 
-  const presentCount = records.filter((r) => r.date === selectedDate && (r.status === "present" || r.status === "late")).length;
-  const absentCount = records.filter((r) => r.date === selectedDate && r.status === "absent").length;
-  const lateCount = records.filter((r) => r.date === selectedDate && r.status === "late").length;
+  const getDayStatus = (userId: string, dateStr: string) => {
+    // 1. Check records
+    const record = records.find(r => r.staffId === userId && r.date === dateStr);
+    if (record) {
+      const statusVal = record.status.toLowerCase();
+      let mappedStatus = "Present";
+      if (statusVal === "present") mappedStatus = "Present";
+      else if (statusVal === "late") mappedStatus = "Late";
+      else if (statusVal === "absent") mappedStatus = "Absent";
+      else if (statusVal === "on-leave" || statusVal === "on leave") mappedStatus = "On Leave";
+      else if (statusVal === "tour") mappedStatus = "Tour";
+      else if (statusVal === "on break" || statusVal === "on-break") mappedStatus = "On Break";
+
+      return {
+        status: mappedStatus,
+        checkIn: record.checkIn,
+        checkOut: record.checkOut,
+        breakTime: record.breakTime || 0,
+        recordId: record.id
+      };
+    }
+    
+    // 2. Check approved leaves
+    const approvedLeave = leaves.find(l => l.userId === userId && dateStr >= l.startDate && dateStr <= l.endDate);
+    if (approvedLeave) {
+      const isTour = (approvedLeave.type || "").toLowerCase().includes("tour");
+      return {
+        status: isTour ? "Tour" : "On Leave",
+        checkIn: null,
+        checkOut: null,
+        breakTime: 0,
+        recordId: null
+      };
+    }
+
+    // 3. Sundays
+    const dayOfWeek = parseISO(dateStr).getDay();
+    if (dayOfWeek === 0) {
+      return {
+        status: "Holiday",
+        checkIn: null,
+        checkOut: null,
+        breakTime: 0,
+        recordId: null
+      };
+    }
+
+    // 4. Past vs Future
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (dateStr < todayStr) {
+      return {
+        status: "Absent",
+        checkIn: null,
+        checkOut: null,
+        breakTime: 0,
+        recordId: null
+      };
+    }
+
+    return {
+      status: "Pending",
+      checkIn: null,
+      checkOut: null,
+      breakTime: 0,
+      recordId: null
+    };
+  };
+
+  const adminDailyLogs = useMemo(() => {
+    if (!isAdmin) return [];
+    return staffOptions.map((s) => {
+      const dayStatus = getDayStatus(s.id, selectedDate);
+      return {
+        id: dayStatus.recordId || `placeholder-${s.id}-${selectedDate}`,
+        staffId: s.id,
+        staffName: s.name,
+        role: s.role,
+        date: selectedDate,
+        checkIn: dayStatus.checkIn,
+        checkOut: dayStatus.checkOut,
+        breakTime: dayStatus.breakTime,
+        status: dayStatus.status.toLowerCase() as AttendanceRecord["status"],
+        notes: ""
+      };
+    });
+  }, [isAdmin, staffOptions, records, selectedDate, leaves]);
+
+  const filtered = useMemo(() => {
+    if (isAdmin) {
+      return adminDailyLogs.filter((r) => {
+        const matchSearch = r.staffName.toLowerCase().includes(search.toLowerCase());
+        const matchStatus = filterStatus === "all" || r.status === filterStatus;
+        const matchRole = roleFilter === "all" || r.role.toLowerCase() === roleFilter.toLowerCase();
+        return matchSearch && matchStatus && matchRole;
+      });
+    } else {
+      return records.filter((r) => r.staffId === user?.id && r.date === selectedDate);
+    }
+  }, [isAdmin, adminDailyLogs, records, user, selectedDate, search, filterStatus, roleFilter]);
+
+  const presentCount = useMemo(() => {
+    if (isAdmin) {
+      return adminDailyLogs.filter(r => r.status === "present" || r.status === "late").length;
+    }
+    return records.filter((r) => r.staffId === user?.id && r.date === selectedDate && (r.status === "present" || r.status === "late")).length;
+  }, [isAdmin, adminDailyLogs, records, user, selectedDate]);
+
+  const absentCount = useMemo(() => {
+    if (isAdmin) {
+      return adminDailyLogs.filter(r => r.status === "absent").length;
+    }
+    return records.filter((r) => r.staffId === user?.id && r.date === selectedDate && r.status === "absent").length;
+  }, [isAdmin, adminDailyLogs, records, user, selectedDate]);
+
+  const lateCount = useMemo(() => {
+    if (isAdmin) {
+      return adminDailyLogs.filter(r => r.status === "late").length;
+    }
+    return records.filter((r) => r.staffId === user?.id && r.date === selectedDate && r.status === "late").length;
+  }, [isAdmin, adminDailyLogs, records, user, selectedDate]);
 
   const handleCheckIn = async (recordId: string) => {
-    const record = records.find(r => r.id === recordId);
+    let record = records.find(r => r.id === recordId);
+    if (!record && recordId.startsWith("placeholder-")) {
+      const staffId = recordId.substring("placeholder-".length, recordId.length - 11);
+      const dateVal = recordId.substring(recordId.length - 10);
+      const staff = allUsers.find(u => u.id === staffId);
+      if (staff) {
+        record = {
+          id: recordId,
+          staffId,
+          staffName: staff.name,
+          role: staff.role,
+          date: dateVal,
+          checkIn: null,
+          checkOut: null,
+          breakTime: 0,
+          status: "absent",
+          notes: ""
+        };
+      }
+    }
     if (!record) return;
     const nowTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
     const isLate = nowTime > "09:00";
@@ -285,7 +424,26 @@ export default function Attendance() {
   };
 
   const handleCheckOut = async (recordId: string) => {
-    const record = records.find(r => r.id === recordId);
+    let record = records.find(r => r.id === recordId);
+    if (!record && recordId.startsWith("placeholder-")) {
+      const staffId = recordId.substring("placeholder-".length, recordId.length - 11);
+      const dateVal = recordId.substring(recordId.length - 10);
+      const staff = allUsers.find(u => u.id === staffId);
+      if (staff) {
+        record = {
+          id: recordId,
+          staffId,
+          staffName: staff.name,
+          role: staff.role,
+          date: dateVal,
+          checkIn: null,
+          checkOut: null,
+          breakTime: 0,
+          status: "absent",
+          notes: ""
+        };
+      }
+    }
     if (!record) return;
     const nowTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 
@@ -474,8 +632,6 @@ export default function Attendance() {
     }
   };
 
-  const staffOptions = allUsers.filter((u) => u.role.toLowerCase() !== "admin");
-  const isAdmin = user?.role.toLowerCase() === "admin";
   const now = new Date();
   const start = startOfMonth(now);
   const end = endOfMonth(now);
@@ -543,86 +699,6 @@ export default function Attendance() {
   const rawPersonalTodayDuration = calculateDuration(personalTodayRecord?.checkIn || null, personalTodayRecord?.checkOut || null);
   const personalTodayBreakHours = (personalTodayRecord?.breakTime || 0) / 60;
   const personalTodayHours = Math.max(0, rawPersonalTodayDuration - personalTodayBreakHours);
-
-  const formatTimeTo12h = (time24: string | null) => {
-    if (!time24) return "—";
-    if (time24.includes("AM") || time24.includes("PM")) return time24; // already formatted
-    const parts = time24.split(":");
-    if (parts.length < 2) return time24;
-    const h = parseInt(parts[0], 10);
-    const m = parts[1];
-    const ampm = h >= 12 ? "PM" : "AM";
-    const h12 = h % 12 === 0 ? 12 : h % 12;
-    return `${h12.toString().padStart(2, "0")}:${m} ${ampm}`;
-  };
-
-  const getDayStatus = (userId: string, dateStr: string) => {
-    // 1. Check records
-    const record = records.find(r => r.staffId === userId && r.date === dateStr);
-    if (record) {
-      const statusVal = record.status.toLowerCase();
-      let mappedStatus = "Present";
-      if (statusVal === "present") mappedStatus = "Present";
-      else if (statusVal === "late") mappedStatus = "Late";
-      else if (statusVal === "absent") mappedStatus = "Absent";
-      else if (statusVal === "on-leave" || statusVal === "on leave") mappedStatus = "On Leave";
-      else if (statusVal === "tour") mappedStatus = "Tour";
-      else if (statusVal === "on break" || statusVal === "on-break") mappedStatus = "On Break";
-
-      return {
-        status: mappedStatus,
-        checkIn: record.checkIn,
-        checkOut: record.checkOut,
-        breakTime: record.breakTime || 0,
-        recordId: record.id
-      };
-    }
-    
-    // 2. Check approved leaves
-    const approvedLeave = leaves.find(l => l.userId === userId && dateStr >= l.startDate && dateStr <= l.endDate);
-    if (approvedLeave) {
-      const isTour = (approvedLeave.type || "").toLowerCase().includes("tour");
-      return {
-        status: isTour ? "Tour" : "On Leave",
-        checkIn: null,
-        checkOut: null,
-        breakTime: 0,
-        recordId: null
-      };
-    }
-
-    // 3. Sundays
-    const dayOfWeek = parseISO(dateStr).getDay();
-    if (dayOfWeek === 0) {
-      return {
-        status: "Holiday",
-        checkIn: null,
-        checkOut: null,
-        breakTime: 0,
-        recordId: null
-      };
-    }
-
-    // 4. Past vs Future
-    const todayStr = new Date().toISOString().split("T")[0];
-    if (dateStr < todayStr) {
-      return {
-        status: "Absent",
-        checkIn: null,
-        checkOut: null,
-        breakTime: 0,
-        recordId: null
-      };
-    }
-
-    return {
-      status: "Pending",
-      checkIn: null,
-      checkOut: null,
-      breakTime: 0,
-      recordId: null
-    };
-  };
 
   const renderStaffAttendanceOverview = (userId: string) => {
     // 1. Calculate dates for selected month
@@ -1230,24 +1306,18 @@ export default function Attendance() {
                         </td>
                         <td className="p-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {isAdmin ? (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            ) : (
-                              <>
-                                {!r.checkIn && (
-                                  <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckIn(r.id)} title="Check In">
-                                    <LogIn className="h-3.5 w-3.5" /> <span>Check In</span>
-                                  </Button>
-                                )}
-                                {r.checkIn && !r.checkOut && (
-                                  <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckOut(r.id)} title="Check Out">
-                                    <LogOut className="h-3.5 w-3.5" /> <span>Check Out</span>
-                                  </Button>
-                                )}
-                                {r.checkIn && r.checkOut && (
-                                  <span className="text-xs text-muted-foreground font-medium pr-2">Done</span>
-                                )}
-                              </>
+                            {!r.checkIn && (
+                              <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckIn(r.id)} title="Check In">
+                                <LogIn className="h-3.5 w-3.5" /> <span>Check In</span>
+                              </Button>
+                            )}
+                            {r.checkIn && !r.checkOut && (
+                              <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckOut(r.id)} title="Check Out">
+                                <LogOut className="h-3.5 w-3.5" /> <span>Check Out</span>
+                              </Button>
+                            )}
+                            {r.checkIn && r.checkOut && (
+                              <span className="text-xs text-muted-foreground font-medium pr-2">Done</span>
                             )}
                           </div>
                         </td>

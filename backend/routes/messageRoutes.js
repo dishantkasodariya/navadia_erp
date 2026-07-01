@@ -6,8 +6,10 @@ const { verifyJWT } = require('../middleware/authMiddleware');
 // All message routes are protected
 router.use(verifyJWT);
 
+const User = require('../models/User');
+
 // Helper to broadcast socket event to recipient and sender
-const emitSocketEvent = (req, eventName, data, receiverId, senderId) => {
+const emitSocketEvent = async (req, eventName, data, receiverId, senderId) => {
   const io = req.io;
   const onlineUsers = req.onlineUsers;
   
@@ -15,6 +17,30 @@ const emitSocketEvent = (req, eventName, data, receiverId, senderId) => {
 
   if (receiverId === 'broadcast') {
     io.emit(eventName, data);
+  } else if (receiverId.startsWith('broadcast_')) {
+    const targetRole = receiverId.replace('broadcast_', '');
+    try {
+      const users = await User.find({ role: { $regex: new RegExp(`^${targetRole}$`, 'i') } });
+      const userIds = users.map(u => u._id.toString());
+      
+      // Emit to each online user of this role
+      userIds.forEach(uId => {
+        const receiverSockets = onlineUsers.get(uId) || [];
+        receiverSockets.forEach(socketId => {
+          io.to(socketId).emit(eventName, data);
+        });
+      });
+      
+      // Also emit to sender (Admin)
+      if (senderId) {
+        const senderSockets = onlineUsers.get(senderId) || [];
+        senderSockets.forEach(socketId => {
+          io.to(socketId).emit(eventName, data);
+        });
+      }
+    } catch (err) {
+      console.error('Error broadcasting to role sockets:', err);
+    }
   } else {
     // Send to receiver sockets
     const receiverSockets = onlineUsers.get(receiverId) || [];
@@ -37,11 +63,13 @@ const emitSocketEvent = (req, eventName, data, receiverId, senderId) => {
 router.get('/', async (req, res) => {
   try {
     const userIdStr = req.user._id.toString();
+    const userRoleLower = req.user.role.toLowerCase();
     const messages = await Message.find({
       $or: [
         { sender: req.user._id },
         { receiver: userIdStr },
-        { receiver: 'broadcast' }
+        { receiver: 'broadcast' },
+        { receiver: `broadcast_${userRoleLower}` }
       ]
     }).sort({ timestamp: 1 });
 

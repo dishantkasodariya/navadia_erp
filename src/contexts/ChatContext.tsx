@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../config/api';
 import { useAuth } from "./AuthContext";
 import { io, Socket } from "socket.io-client";
 import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export interface ChatMessage {
   id: string;
@@ -24,6 +25,7 @@ export interface AppNotification {
   timestamp: string;
   isRead: boolean;
   type: "message" | "leave" | "attendance" | "general" | "task";
+  targetId?: string;
 }
 
 interface ChatContextType {
@@ -63,18 +65,20 @@ function getStoredNotifications(): AppNotification[] {
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>(getStoredMessages);
   const [notifications, setNotifications] = useState<AppNotification[]>(getStoredNotifications);
-  const { user } = useAuth();
+  const { user, allUsers } = useAuth();
+  const navigate = useNavigate();
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  const addNotification = (title: string, description: string, type: AppNotification["type"]) => {
+  const addNotification = (title: string, description: string, type: AppNotification["type"], targetId?: string) => {
     const newNotif: AppNotification = {
       id: crypto.randomUUID(),
       title,
       description,
       timestamp: new Date().toISOString(),
       isRead: false,
-      type
+      type,
+      targetId
     };
     setNotifications((prev) => {
       const updated = [newNotif, ...prev].slice(0, 50);
@@ -104,13 +108,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("navadia_notifications");
   };
 
-  const triggerNativeNotification = (title: string, body: string) => {
+  const triggerNativeNotification = (title: string, body: string, targetPath?: string, navigationState?: any) => {
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
       try {
-        new Notification(title, {
+        const notification = new Notification(title, {
           body,
           icon: "/logo.png"
         });
+        notification.onclick = () => {
+          window.focus();
+          if (targetPath) {
+            navigate(targetPath, { state: navigationState });
+          }
+        };
       } catch (e) {
         console.warn("Failed to trigger native notification:", e);
       }
@@ -158,23 +168,34 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     socketInstance.on("receive_message", (message: any) => {
       const senderId = message.sender?._id || message.sender || message.senderId;
+      const receiverId = message.receiver || message.receiverId;
       if (senderId !== user?.id) {
-        const notificationsEnabled = localStorage.getItem("navadia_push_notifications_enabled") !== "false";
-        if (notificationsEnabled) {
-          toast({
-            title: `New Message from ${message.senderName}`,
-            description: message.content || "Voice note received",
-          });
-          triggerNativeNotification(
+        const isRecipient = receiverId === user?.id || 
+                            receiverId === "broadcast" || 
+                            (user?.role.toLowerCase() === "dentist" && receiverId === "broadcast_dentist") ||
+                            (user?.role.toLowerCase() === "staff" && receiverId === "broadcast_staff");
+        if (isRecipient) {
+          const notificationsEnabled = localStorage.getItem("navadia_push_notifications_enabled") !== "false";
+          if (notificationsEnabled) {
+            toast({
+              title: `New Message from ${message.senderName}`,
+              description: message.content || "Voice note received",
+            });
+            const prefix = user?.role.toLowerCase() === "receptionist" ? "/reception" : `/${user?.role.toLowerCase()}`;
+            triggerNativeNotification(
+              `New Message from ${message.senderName}`,
+              message.content || "Voice note received",
+              `${prefix}/messages`,
+              { selectUserId: senderId }
+            );
+          }
+          addNotification(
             `New Message from ${message.senderName}`,
-            message.content || "Voice note received"
+            message.content || "Voice note received",
+            "message",
+            senderId
           );
         }
-        addNotification(
-          `New Message from ${message.senderName}`,
-          message.content || "Voice note received",
-          "message"
-        );
       }
       setMessages((prev) => {
         const id = message._id || message.id;
@@ -205,9 +226,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             title: "New Leave Application",
             description: `${leave.userName} has applied for a ${leave.type} leave from ${leave.startDate} to ${leave.endDate}.`,
           });
+          const prefix = user?.role.toLowerCase() === "receptionist" ? "/reception" : `/${user?.role.toLowerCase()}`;
           triggerNativeNotification(
             "New Leave Application",
-            `${leave.userName} has applied for a ${leave.type} leave from ${leave.startDate} to ${leave.endDate}.`
+            `${leave.userName} has applied for a ${leave.type} leave from ${leave.startDate} to ${leave.endDate}.`,
+            `${prefix}/leave-requests`
           );
         }
         addNotification(
@@ -227,9 +250,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             description: `Your leave request from ${leave.startDate} to ${leave.endDate} has been ${leave.status.toLowerCase()} by the Administrator.`,
             variant: leave.status === "Approved" ? "default" : "destructive",
           });
+          const prefix = user?.role.toLowerCase() === "receptionist" ? "/reception" : `/${user?.role.toLowerCase()}`;
           triggerNativeNotification(
             `Leave Request ${leave.status}`,
-            `Your leave request from ${leave.startDate} to ${leave.endDate} has been ${leave.status.toLowerCase()} by the Administrator.`
+            `Your leave request from ${leave.startDate} to ${leave.endDate} has been ${leave.status.toLowerCase()} by the Administrator.`,
+            `${prefix}/leave-requests`
           );
         }
         addNotification(
@@ -264,15 +289,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             title: "New Task Assigned",
             description: `You have been assigned a new task: ${task.title}`,
           });
+          const prefix = user?.role.toLowerCase() === "receptionist" ? "/reception" : `/${user?.role.toLowerCase()}`;
           triggerNativeNotification(
             "New Task Assigned",
-            `You have been assigned a new task: ${task.title}`
+            `You have been assigned a new task: ${task.title}`,
+            `${prefix}/tasks`,
+            { selectTaskId: task._id || task.id }
           );
         }
         addNotification(
           "New Task Assigned",
           `You have been assigned a new task: ${task.title}`,
-          "task"
+          "task",
+          task._id || task.id
         );
       }
     });
@@ -483,16 +512,33 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const getConversation = (otherUserId: string) => {
     if (!user) return [];
+    const userRoleLower = user.role.toLowerCase();
+    const otherUser = allUsers.find(u => u.id === otherUserId);
+    const otherUserRoleLower = otherUser?.role.toLowerCase() || "";
+
     return messages.filter(
-      (m) =>
-        m.receiverId === "broadcast" ||
-        (m.senderId === user.id && m.receiverId === otherUserId) ||
-        (m.senderId === otherUserId && m.receiverId === user.id)
+      (m) => {
+        if (m.receiverId === "broadcast") return true;
+        if (m.receiverId === "broadcast_dentist") {
+          return userRoleLower === "dentist" || otherUserRoleLower === "dentist";
+        }
+        if (m.receiverId === "broadcast_staff") {
+          return userRoleLower === "staff" || otherUserRoleLower === "staff";
+        }
+        return (m.senderId === user.id && m.receiverId === otherUserId) ||
+               (m.senderId === otherUserId && m.receiverId === user.id);
+      }
     );
   };
 
   const unreadCountContext = messages.filter(
-    (m) => (m.receiverId === user?.id || m.receiverId === "broadcast") && !m.isRead && m.senderId !== user?.id
+    (m) => {
+      const isRecipient = m.receiverId === user?.id || 
+                          m.receiverId === "broadcast" || 
+                          (user?.role.toLowerCase() === "dentist" && m.receiverId === "broadcast_dentist") ||
+                          (user?.role.toLowerCase() === "staff" && m.receiverId === "broadcast_staff");
+      return isRecipient && !m.isRead && m.senderId !== user?.id;
+    }
   ).length;
 
   return (

@@ -61,7 +61,13 @@ export default function Voicemail() {
           fromId: "admin-1",
           fromName: v.createdBy || "Admin",
           toId: v.assignedTo,
-          toName: allUsers.find(u => u.id === v.assignedTo)?.name || v.assignedTo,
+          toName: v.assignedTo === "all" 
+            ? "All Staff & Dentists" 
+            : v.assignedTo === "broadcast_dentist" 
+            ? "All Dentists" 
+            : v.assignedTo === "broadcast_staff" 
+            ? "All Support Staff" 
+            : (allUsers.find(u => u.id === v.assignedTo)?.name || v.assignedTo),
           audioUrl: v.audioFile || "",
           duration: 0,
           subject: v.message || "Voice Note Attachment",
@@ -80,13 +86,28 @@ export default function Voicemail() {
   }, [allUsers]);
 
   const myMessages = messages.filter((m) => {
-    const isRelevant = user?.role.toLowerCase() === "admin" ? true : m.toId === user?.id;
+    const userRoleLower = user?.role.toLowerCase();
+    const isRecipient = m.toId === user?.id || 
+                        m.toId === "all" || 
+                        (userRoleLower === "dentist" && m.toId === "broadcast_dentist") ||
+                        (userRoleLower === "staff" && m.toId === "broadcast_staff");
+    const isRelevant = userRoleLower === "admin" ? true : isRecipient;
     const matchSearch = m.subject.toLowerCase().includes(search.toLowerCase()) || m.fromName.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === "all" || (filter === "unread" && !m.isRead) || (filter === "sent" && m.fromId === user?.id) || (filter === "received" && m.toId === user?.id);
+    const matchFilter = filter === "all" || 
+                        (filter === "unread" && !m.isRead) || 
+                        (filter === "sent" && m.fromId === user?.id) || 
+                        (filter === "received" && (m.toId === user?.id || isRecipient));
     return isRelevant && matchSearch && matchFilter;
   });
 
-  const unreadCount = messages.filter((m) => m.toId === user?.id && !m.isRead).length;
+  const unreadCount = messages.filter((m) => {
+    const userRoleLower = user?.role.toLowerCase();
+    const isRecipient = m.toId === user?.id || 
+                        m.toId === "all" || 
+                        (userRoleLower === "dentist" && m.toId === "broadcast_dentist") ||
+                        (userRoleLower === "staff" && m.toId === "broadcast_staff");
+    return isRecipient && !m.isRead;
+  }).length;
 
   const startRecording = async () => {
     try {
@@ -118,8 +139,20 @@ export default function Voicemail() {
   };
 
   const handleSend = async () => {
-    const to = allUsers.find((u) => u.id === form.toId);
-    if (!to || !user || (!recordedAudio && !form.subject)) return;
+    if (!user || (!recordedAudio && !form.subject)) return;
+
+    let targetName = "";
+    if (form.toId === "all") {
+      targetName = "All Staff & Dentists";
+    } else if (form.toId === "broadcast_dentist") {
+      targetName = "All Dentists";
+    } else if (form.toId === "broadcast_staff") {
+      targetName = "All Support Staff";
+    } else {
+      const toUser = allUsers.find(u => u.id === form.toId);
+      if (!toUser) return;
+      targetName = toUser.name;
+    }
 
     const token = localStorage.getItem("navadia_token");
     if (token) {
@@ -132,18 +165,33 @@ export default function Voicemail() {
           },
           body: JSON.stringify({
             audioFile: recordedAudio || "sample-note-audio",
-            assignedTo: to.id,
+            assignedTo: form.toId,
             message: form.subject,
             createdBy: user.name
           })
         });
+
+        // Also post as a Chat Message so it shows up in messages!
+        await fetch(`${API_BASE_URL}/api/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            receiver: form.toId === "all" ? "broadcast" : form.toId,
+            content: form.subject,
+            voiceNote: recordedAudio || undefined
+          })
+        });
+
         if (res.ok) {
           fetchVoicemails();
           setDialogOpen(false);
           setForm({ toId: "", subject: "" });
           setRecordedAudio(null);
           setRecordingDuration(0);
-          toast({ title: "Voicemail Sent", description: `Message sent to ${to.name}` });
+          toast({ title: "Voicemail Sent", description: `Voicemail and chat message sent to ${targetName}.` });
           return;
         }
       } catch (e) {
@@ -155,8 +203,8 @@ export default function Voicemail() {
       id: crypto.randomUUID(),
       fromId: user.id,
       fromName: user.name,
-      toId: to.id,
-      toName: to.name,
+      toId: form.toId,
+      toName: targetName,
       audioUrl: recordedAudio || "",
       duration: recordingDuration,
       subject: form.subject,
@@ -164,11 +212,34 @@ export default function Voicemail() {
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [msg, ...prev]);
+
+    // Fallback offline message storage
+    const cachedMessages = localStorage.getItem("navadia_chat_messages");
+    if (cachedMessages) {
+      try {
+        const parsed = JSON.parse(cachedMessages);
+        const newMsg = {
+          id: crypto.randomUUID(),
+          senderId: user.id,
+          senderName: user.name,
+          receiverId: form.toId === "all" ? "broadcast" : form.toId,
+          content: form.subject,
+          voiceNote: recordedAudio || undefined,
+          isEdited: false,
+          timestamp: new Date().toISOString(),
+          isRead: false
+        };
+        localStorage.setItem("navadia_chat_messages", JSON.stringify([...parsed, newMsg]));
+      } catch (err) {
+        console.error("Failed to update cached messages", err);
+      }
+    }
+
     setDialogOpen(false);
     setForm({ toId: "", subject: "" });
     setRecordedAudio(null);
     setRecordingDuration(0);
-    toast({ title: "Voicemail Sent", description: `Message sent to ${to.name}` });
+    toast({ title: "Voicemail Sent", description: `Voicemail and chat message sent to ${targetName}.` });
   };
 
   const handleMarkRead = (id: string) => {
@@ -228,6 +299,9 @@ export default function Voicemail() {
                   <Select value={form.toId} onValueChange={(v) => setForm({ ...form, toId: v })}>
                     <SelectTrigger><SelectValue placeholder="Select recipient" /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="all">All Staff & Dentists</SelectItem>
+                      <SelectItem value="broadcast_dentist">All Dentists</SelectItem>
+                      <SelectItem value="broadcast_staff">All Support Staff</SelectItem>
                       {staffOptions.map((s) => (
                         <SelectItem key={s.id} value={s.id}>{s.name} ({s.role})</SelectItem>
                       ))}

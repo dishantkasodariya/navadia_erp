@@ -76,13 +76,13 @@ export function AppLayout() {
                                 const roleLower = user.role.toLowerCase();
                                 const prefix = roleLower === "receptionist" ? "/reception" : `/${roleLower}`;
                                 if (n.type === "message") {
-                                  navigate(`${prefix}/messages`);
+                                  navigate(`${prefix}/messages`, { state: { selectUserId: n.targetId } });
                                 } else if (n.type === "leave") {
                                   navigate(`${prefix}/leave-requests`);
                                 } else if (n.type === "attendance") {
                                   navigate(`${prefix}/attendance`);
                                 } else if (n.type === "task") {
-                                  navigate(`${prefix}/tasks`);
+                                  navigate(`${prefix}/tasks`, { state: { selectTaskId: n.targetId } });
                                 }
                               }
                             }}

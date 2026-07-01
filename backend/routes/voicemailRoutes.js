@@ -7,8 +7,15 @@ const { verifyJWT, checkRole } = require('../middleware/authMiddleware');
 router.get('/', verifyJWT, async (req, res) => {
   try {
     let query = {};
-    if (req.user.role.toLowerCase() !== 'admin') {
-      query = { assignedTo: req.user._id.toString() };
+    const userRoleLower = req.user.role.toLowerCase();
+    if (userRoleLower !== 'admin') {
+      query = {
+        $or: [
+          { assignedTo: req.user._id.toString() },
+          { assignedTo: 'all' },
+          { assignedTo: `broadcast_${userRoleLower}` }
+        ]
+      };
     }
     const voicemails = await Voicemail.find(query).sort({ createdAt: -1 });
     res.json(voicemails);
