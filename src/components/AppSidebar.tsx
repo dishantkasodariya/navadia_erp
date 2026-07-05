@@ -87,7 +87,11 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <div className={`flex items-center gap-3 py-4 transition-all duration-200 ${collapsed ? "px-2 justify-center" : "px-4"}`}>
+      <Link
+        to={`/${rolePrefix}/dashboard`}
+        onClick={handleMobileNavigate}
+        className={`flex items-center gap-3 py-4 transition-all duration-200 hover:opacity-80 focus:outline-none ${collapsed ? "px-2 justify-center" : "px-4"}`}
+      >
         <div className="flex h-8 w-8 items-center justify-center">
           <img src="/logo.png" alt="Navadia logo" className="h-12 w-12 object-contain" />
         </div>
@@ -96,7 +100,7 @@ export function AppSidebar() {
             Navadia
           </span>
         )}
-      </div>
+      </Link>
 
       <SidebarContent>
         <SidebarGroup>

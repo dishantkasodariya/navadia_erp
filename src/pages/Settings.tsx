@@ -65,7 +65,7 @@ export default function Settings() {
   const [clinicName, setClinicName] = useState("Navadia Dental Clinic");
   const [clinicEmail, setClinicEmail] = useState("contact@navadia.com");
   const [clinicPhone, setClinicPhone] = useState("+91 98765 43210");
-  const [clinicAddress, setClinicAddress] = useState("101, Medical Plaza, Surat, Gujarat");
+  const [clinicAddress, setClinicAddress] = useState("29, Siddheshwar Society, Ved Rd, Opp. Swaminarayan Mandir, Dabholi Char Rasta, Gayatri Nagar, Katargam, Surat, Gujarat - 395004");
   const [clinicHours, setClinicHours] = useState("09:00 AM - 08:00 PM");
 
   // Location & Geofencing parameters

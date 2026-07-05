@@ -5,7 +5,8 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import {AppLayout} from "@/components/AppLayout";
+import { AppLayout } from "@/components/AppLayout";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { AuthProvider, useAuth, UserRole } from "@/contexts/AuthContext";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -75,6 +76,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <PWAInstallPrompt />
       <BrowserRouter>
         <AuthProvider>
           <ChatProvider>

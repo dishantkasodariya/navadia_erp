@@ -1279,7 +1279,7 @@ export default function Attendance() {
                     <th className="p-3 font-semibold font-sans">Working Hours</th>
                     <th className="p-3 font-semibold font-sans">Break Time</th>
                     <th className="p-3 font-semibold font-sans">Status</th>
-                    <th className="p-3 font-semibold font-sans text-right">Actions</th>
+                    {!isAdmin && <th className="p-3 font-semibold font-sans text-right">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -1304,29 +1304,31 @@ export default function Attendance() {
                             {r.status}
                           </span>
                         </td>
-                        <td className="p-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {!r.checkIn && (
-                              <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckIn(r.id)} title="Check In">
-                                <LogIn className="h-3.5 w-3.5" /> <span>Check In</span>
-                              </Button>
-                            )}
-                            {r.checkIn && !r.checkOut && (
-                              <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckOut(r.id)} title="Check Out">
-                                <LogOut className="h-3.5 w-3.5" /> <span>Check Out</span>
-                              </Button>
-                            )}
-                            {r.checkIn && r.checkOut && (
-                              <span className="text-xs text-muted-foreground font-medium pr-2">Done</span>
-                            )}
-                          </div>
-                        </td>
+                        {!isAdmin && (
+                          <td className="p-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {!r.checkIn && (
+                                <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckIn(r.id)} title="Check In">
+                                  <LogIn className="h-3.5 w-3.5" /> <span>Check In</span>
+                                </Button>
+                              )}
+                              {r.checkIn && !r.checkOut && (
+                                <Button variant="outline" size="sm" className="gap-1 h-9 text-xs px-2" onClick={() => handleCheckOut(r.id)} title="Check Out">
+                                  <LogOut className="h-3.5 w-3.5" /> <span>Check Out</span>
+                                </Button>
+                              )}
+                              {r.checkIn && r.checkOut && (
+                                <span className="text-xs text-muted-foreground font-medium pr-2">Done</span>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={isAdmin ? 9 : 7} className="p-8 text-center text-muted-foreground font-sans">
+                      <td colSpan={isAdmin ? 8 : 7} className="p-8 text-center text-muted-foreground font-sans">
                         No attendance records found
                       </td>
                     </tr>

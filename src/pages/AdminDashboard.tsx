@@ -36,36 +36,69 @@ export default function AdminDashboard() {
   
   const [appointmentsCount, setAppointmentsCount] = useState<number>(0);
   const [patientsCount, setPatientsCount] = useState<number>(0);
+  const [todayAttendance, setTodayAttendance] = useState<any[]>([]);
+
+  const fetchStats = async () => {
+    const token = localStorage.getItem("navadia_token");
+    if (!token) return;
+    try {
+      const todayDate = new Date().toISOString().split("T")[0];
+      
+      // Fetch appointments count
+      const aptRes = await fetch(`${API_BASE_URL}/api/appointments?date=${todayDate}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (aptRes.ok) {
+        const apts = await aptRes.json();
+        setAppointmentsCount(apts.length);
+      }
+
+      // Fetch patients count
+      const patRes = await fetch(`${API_BASE_URL}/api/patients`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (patRes.ok) {
+        const pats = await patRes.json();
+        setPatientsCount(pats.length);
+      }
+
+      // Fetch today's attendance
+      const attRes = await fetch(`${API_BASE_URL}/api/attendance?date=${todayDate}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (attRes.ok) {
+        const atts = await attRes.json();
+        setTodayAttendance(atts);
+      }
+    } catch (e) {
+      console.warn("Error fetching dashboard statistics:", e);
+      // Fallback to local storage cached attendance
+      const cached = localStorage.getItem("navadia_attendance");
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            const todayStr = new Date().toISOString().split("T")[0];
+            const todayAtts = parsed.filter((r: any) => r.date === todayStr);
+            setTodayAttendance(todayAtts);
+          }
+        } catch (err) {
+          console.error("Failed to parse cached attendance", err);
+        }
+      }
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      const token = localStorage.getItem("navadia_token");
-      if (!token) return;
-      try {
-        const todayDate = new Date().toISOString().split("T")[0];
-        
-        // Fetch appointments count
-        const aptRes = await fetch(`${API_BASE_URL}/api/appointments?date=${todayDate}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (aptRes.ok) {
-          const apts = await aptRes.json();
-          setAppointmentsCount(apts.length);
-        }
-
-        // Fetch patients count
-        const patRes = await fetch(`${API_BASE_URL}/api/patients`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (patRes.ok) {
-          const pats = await patRes.json();
-          setPatientsCount(pats.length);
-        }
-      } catch (e) {
-        console.warn("Error fetching dashboard statistics:", e);
-      }
-    };
     fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const handleSync = () => {
+      fetchStats();
+    };
+    window.addEventListener('attendance-synced', handleSync);
+    return () => window.removeEventListener('attendance-synced', handleSync);
   }, []);
 
 
@@ -288,21 +321,85 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <Stethoscope className="h-5 w-5 text-primary" /> Dentists On Duty
+              <Users className="h-5 w-5 text-primary" /> Dentists & Staff On Duty
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {dentists.map((d) => (
-                <div key={d.id} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/10 transition-colors">
-                  <div>
-                    <p className="text-md font-medium">{d.name}</p>
-                    <p className="text-sm text-muted-foreground">{d.specialization || "General Dentistry"}</p>
+            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+              {(() => {
+                const onDutyPersonnel = todayAttendance
+                  .map((a: any) => {
+                    const userId = a.userId || a.staffId;
+                    const userName = a.userName || a.staffName;
+                    const checkIn = a.checkIn || null;
+                    const checkOut = a.checkOut || null;
+                    const rawStatus = a.status || "Present";
+                    
+                    const matchedUser = allUsers.find(u => u.id === userId);
+                    const role = matchedUser?.role || "Staff";
+                    const specialization = matchedUser?.specialization || (role === "Dentist" ? "General Dentistry" : role);
+                    
+                    let displayStatus = "On Duty";
+                    let statusColorClass = "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20";
+                    
+                    const lowerStatus = rawStatus.toLowerCase();
+                    if (lowerStatus === "absent") {
+                      displayStatus = "Absent";
+                      statusColorClass = "bg-destructive/15 text-destructive border border-destructive/20";
+                    } else if (lowerStatus === "on break" || lowerStatus === "on-break" || lowerStatus === "stepped_out") {
+                      displayStatus = "On Break";
+                      statusColorClass = "bg-amber-500/15 text-amber-600 border border-amber-500/20";
+                    } else if (checkOut) {
+                      displayStatus = "Checked Out";
+                      statusColorClass = "bg-muted text-muted-foreground border border-muted/20";
+                    } else if (lowerStatus === "late") {
+                      displayStatus = "Late";
+                      statusColorClass = "bg-accent/15 text-accent border border-accent/20";
+                    }
+
+                    return {
+                      userId,
+                      userName,
+                      role,
+                      specialization,
+                      checkIn,
+                      checkOut,
+                      status: displayStatus,
+                      statusColorClass,
+                      rawStatus: lowerStatus
+                    };
+                  })
+                  .filter((p) => p.checkIn && p.rawStatus !== "absent" && p.role.toLowerCase() !== "admin");
+
+                if (onDutyPersonnel.length === 0) {
+                  return (
+                    <p className="text-center text-muted-foreground text-sm py-8 font-sans">
+                      No dentists or staff checked in today.
+                    </p>
+                  );
+                }
+
+                return onDutyPersonnel.map((p) => (
+                  <div key={p.userId} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/10 transition-colors">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-md font-semibold text-foreground">{p.userName}</p>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground capitalize border border-muted-foreground/10 font-sans">
+                          {p.role}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {p.specialization}
+                        {p.checkIn && ` • In: ${p.checkIn}`}
+                        {p.checkOut && ` • Out: ${p.checkOut}`}
+                      </p>
+                    </div>
+                    <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium ${p.statusColorClass}`}>
+                      {p.status}
+                    </span>
                   </div>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">On Duty</span>
-                </div>
-              ))}
-              {dentists.length === 0 && <p className="text-center text-muted-foreground text-sm py-4">No dentists registered.</p>}
+                ));
+              })()}
             </div>
           </CardContent>
         </Card>

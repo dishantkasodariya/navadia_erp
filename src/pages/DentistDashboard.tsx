@@ -1294,7 +1294,7 @@ export default function DentistDashboard() {
                   </div>
                   <div className="flex justify-between flex-col gap-1">
                     <span className="text-xs text-muted-foreground font-medium font-sans">Device & Browser Info</span>
-                    <span className="text-[10px] bg-muted/40 p-2 rounded-lg leading-relaxed text-neutral-500 font-sans block truncate max-w-full font-mono" title={selectedDetailRecord.deviceInfo || selectedDetailRecord.browserInfo}>
+                    <span className="text-[10px] bg-muted/40 p-2 rounded-lg leading-relaxed text-neutral-500 block truncate max-w-full font-mono" title={selectedDetailRecord.deviceInfo || selectedDetailRecord.browserInfo}>
                       {selectedDetailRecord.deviceInfo || selectedDetailRecord.browserInfo || "—"}
                     </span>
                   </div>
