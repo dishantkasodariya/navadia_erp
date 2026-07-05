@@ -24,6 +24,29 @@ const connectDB = async () => {
         await User.create(u);
       }
     }
+
+    // Seed/update clinic settings coordinates for Gayatri Nagar, Katargam geofencing
+    const ClinicSetting = require('../models/ClinicSetting');
+    let settings = await ClinicSetting.findOne();
+    if (!settings) {
+      console.log('Seeding default clinic settings...');
+      await ClinicSetting.create({
+        clinicName: 'Dental Clinic',
+        address: '29, Siddheshwar Society, Ved Rd, Opp. Swaminarayan Mandir, Dabholi Char Rasta, Gayatri Nagar, Katargam, Surat, Gujarat - 395004',
+        latitude: 21.2335,
+        longitude: 72.8275,
+        allowedRadius: 100,
+        geofencingEnabled: true,
+        gpsVerificationEnabled: true,
+        weekendDays: [0]
+      });
+    } else {
+      console.log('Updating clinic settings coordinates for Katargam geofencing...');
+      settings.address = '29, Siddheshwar Society, Ved Rd, Opp. Swaminarayan Mandir, Dabholi Char Rasta, Gayatri Nagar, Katargam, Surat, Gujarat - 395004';
+      settings.latitude = 21.2335;
+      settings.longitude = 72.8275;
+      await settings.save();
+    }
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);

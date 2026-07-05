@@ -78,7 +78,7 @@ router.post('/check-in', verifyJWT, async (req, res) => {
         const distance = getDistanceInMeters(latitude, longitude, settings.latitude, settings.longitude);
         if (distance > settings.allowedRadius) {
           if (settings.gpsVerificationEnabled) {
-            return res.status(400).json({ message: "You are outside the clinic location. Please go to the clinic to mark attendance." });
+            return res.status(400).json({ message: `You are outside the clinic location (approx. ${Math.round(distance)}m away). Please go to the clinic to mark attendance.` });
           } else {
             locationVerified = false;
           }
@@ -150,7 +150,7 @@ router.post('/check-out', verifyJWT, async (req, res) => {
         const distance = getDistanceInMeters(latitude, longitude, settings.latitude, settings.longitude);
         if (distance > settings.allowedRadius) {
           if (settings.gpsVerificationEnabled) {
-            return res.status(400).json({ message: "You are outside the clinic location. Please return to the clinic before checking out." });
+            return res.status(400).json({ message: `You are outside the clinic location (approx. ${Math.round(distance)}m away). Please return to the clinic before checking out.` });
           } else {
             locationVerified = false;
           }
