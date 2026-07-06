@@ -15,10 +15,11 @@ services:
         value: smileflow_secret_key_2025
 
   # React Frontend (Static Site)
-  - type: static
+  - type: web
     name: smileflow-frontend
+    runtime: static
     buildCommand: npm install && npm run build
-    publishPath: dist
+    staticPublishPath: dist
     routes:
       - type: rewrite
         source: /*
