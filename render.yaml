@@ -1,0 +1,31 @@
+services:
+  # Node.js Backend API
+  - type: web
+    name: smileflow-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    rootDir: backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        value: smileflow_secret_key_2025
+
+  # React Frontend (Static Site)
+  - type: static
+    name: smileflow-frontend
+    buildCommand: npm install && npm run build
+    publishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: smileflow-backend
+          property: host
