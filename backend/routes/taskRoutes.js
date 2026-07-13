@@ -18,14 +18,20 @@ router.get('/', verifyJWT, async (req, res) => {
           { assignedTo: req.user._id.toString() },
           { createdBy: req.user._id.toString() },
           {
-            $or: [
-              { role: 'all' },
-              { role: { $regex: new RegExp(`^${req.user.role}$`, 'i') } }
-            ],
-            $or: [
-              { assignedTo: { $exists: false } },
-              { assignedTo: "" },
-              { assignedTo: null }
+            $and: [
+              {
+                $or: [
+                  { role: 'all' },
+                  { role: { $regex: new RegExp(`^${req.user.role}$`, 'i') } }
+                ]
+              },
+              {
+                $or: [
+                  { assignedTo: { $exists: false } },
+                  { assignedTo: "" },
+                  { assignedTo: null }
+                ]
+              }
             ]
           }
         ]
@@ -46,14 +52,20 @@ router.get('/', verifyJWT, async (req, res) => {
           },
           {
             isRecurring: { $ne: true },
-            $or: [
-              { role: 'all' },
-              { role: { $regex: new RegExp(`^${req.user.role}$`, 'i') } }
-            ],
-            $or: [
-              { assignedTo: { $exists: false } },
-              { assignedTo: "" },
-              { assignedTo: null }
+            $and: [
+              {
+                $or: [
+                  { role: 'all' },
+                  { role: { $regex: new RegExp(`^${req.user.role}$`, 'i') } }
+                ]
+              },
+              {
+                $or: [
+                  { assignedTo: { $exists: false } },
+                  { assignedTo: "" },
+                  { assignedTo: null }
+                ]
+              }
             ]
           }
         ]

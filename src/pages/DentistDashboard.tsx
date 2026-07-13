@@ -495,40 +495,52 @@ export default function DentistDashboard() {
       }
     }
 
-    if (settings && settings.geofencingEnabled && settings.gpsVerificationEnabled) {
+    if (settings && settings.geofencingEnabled) {
       toast({ title: "Verifying Location...", description: "Retrieving browser GPS coordinates." });
       if (!navigator.geolocation) {
-        toast({
-          title: "Check In Blocked ❌",
-          description: "Geolocation is not supported by your browser.",
-          variant: "destructive"
-        });
-        return;
+        if (settings.gpsVerificationEnabled) {
+          toast({
+            title: "Check In Blocked ❌",
+            description: "Geolocation is not supported by your browser.",
+            variant: "destructive"
+          });
+          return;
+        } else {
+          await executeCheckIn();
+          return;
+        }
       }
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
-          const dist = getDistanceInMeters(lat, lon, settings.latitude, settings.longitude);
           
-          if (dist > settings.allowedRadius) {
-            toast({
-              title: "Outside Clinic Geofence ❌",
-              description: `You are outside the clinic location (${Math.round(dist)}m away). Allowed radius is ${settings.allowedRadius}m.`,
-              variant: "destructive"
-            });
-            return;
+          if (settings.gpsVerificationEnabled) {
+            const dist = getDistanceInMeters(lat, lon, settings.latitude, settings.longitude);
+            if (dist > settings.allowedRadius) {
+              toast({
+                title: "Outside Clinic Geofence ❌",
+                description: `You are outside the clinic location (${Math.round(dist)}m away). Allowed radius is ${settings.allowedRadius}m.`,
+                variant: "destructive"
+              });
+              return;
+            }
           }
 
           await executeCheckIn(lat, lon);
         },
-        (error) => {
-          toast({
-            title: "Location Permission Required 📍",
-            description: "Please enable your device location to continue.",
-            variant: "destructive"
-          });
+        async (error) => {
+          if (settings.gpsVerificationEnabled) {
+            toast({
+              title: "Location Permission Required 📍",
+              description: "Please enable your device location to continue.",
+              variant: "destructive"
+            });
+          } else {
+            console.warn("Could not retrieve GPS coordinates:", error);
+            await executeCheckIn();
+          }
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -727,46 +739,64 @@ export default function DentistDashboard() {
       }
     }
 
-    if (settings && settings.geofencingEnabled && settings.gpsVerificationEnabled) {
+    if (settings && settings.geofencingEnabled) {
       toast({ title: "Verifying Location...", description: "Retrieving browser GPS coordinates." });
       if (!navigator.geolocation) {
-        toast({
-          title: "Check Out Blocked ❌",
-          description: "Geolocation is not supported by your browser.",
-          variant: "destructive"
-        });
-        return;
+        if (settings.gpsVerificationEnabled) {
+          toast({
+            title: "Check Out Blocked ❌",
+            description: "Geolocation is not supported by your browser.",
+            variant: "destructive"
+          });
+          return;
+        } else {
+          setCheckoutLatitude(undefined);
+          setCheckoutLongitude(undefined);
+          setCheckoutDialogOpen(true);
+          return;
+        }
       }
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
-          const dist = getDistanceInMeters(lat, lon, settings.latitude, settings.longitude);
           
-          if (dist > settings.allowedRadius) {
-            toast({
-              title: "Outside Clinic Geofence ❌",
-              description: `You are outside the clinic location (${Math.round(dist)}m away). Allowed radius is ${settings.allowedRadius}m.`,
-              variant: "destructive"
-            });
-            return;
+          if (settings.gpsVerificationEnabled) {
+            const dist = getDistanceInMeters(lat, lon, settings.latitude, settings.longitude);
+            if (dist > settings.allowedRadius) {
+              toast({
+                title: "Outside Clinic Geofence ❌",
+                description: `You are outside the clinic location (${Math.round(dist)}m away). Allowed radius is ${settings.allowedRadius}m.`,
+                variant: "destructive"
+              });
+              return;
+            }
           }
 
           setCheckoutLatitude(lat);
           setCheckoutLongitude(lon);
           setCheckoutDialogOpen(true);
         },
-        (error) => {
-          toast({
-            title: "Location Permission Required 📍",
-            description: "Please enable your device location to check out.",
-            variant: "destructive"
-          });
+        async (error) => {
+          if (settings.gpsVerificationEnabled) {
+            toast({
+              title: "Location Permission Required 📍",
+              description: "Please enable your device location to check out.",
+              variant: "destructive"
+            });
+          } else {
+            console.warn("Could not retrieve GPS coordinates:", error);
+            setCheckoutLatitude(undefined);
+            setCheckoutLongitude(undefined);
+            setCheckoutDialogOpen(true);
+          }
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else {
+      setCheckoutLatitude(undefined);
+      setCheckoutLongitude(undefined);
       setCheckoutDialogOpen(true);
     }
   };

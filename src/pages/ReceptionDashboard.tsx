@@ -48,8 +48,7 @@ const statusBadge: Record<string, string> = {
 
 const quickLinks = [
   { label: "Appointments", icon: CalendarDays, color: "text-primary bg-primary/10", path: "/staff/appointments" },
-  { label: "Patients", icon: Users, color: "text-secondary bg-secondary/10", path: "/staff/patients" },
-  { label: "Leave Request", icon: Briefcase, color: "text-primary bg-primary/10", path: "/staff/leave-requests" },
+  { label: "Leave", icon: Briefcase, color: "text-primary bg-primary/10", path: "/staff/leave-requests" },
   { label: "Messages", icon: Phone, color: "text-secondary bg-secondary/10", path: "/staff/messages" },
 ];
 
@@ -492,40 +491,52 @@ export default function ReceptionDashboard() {
       }
     }
 
-    if (settings && settings.geofencingEnabled && settings.gpsVerificationEnabled) {
+    if (settings && settings.geofencingEnabled) {
       toast({ title: "Verifying Location...", description: "Retrieving browser GPS coordinates." });
       if (!navigator.geolocation) {
-        toast({
-          title: "Check In Blocked ❌",
-          description: "Geolocation is not supported by your browser.",
-          variant: "destructive"
-        });
-        return;
+        if (settings.gpsVerificationEnabled) {
+          toast({
+            title: "Check In Blocked ❌",
+            description: "Geolocation is not supported by your browser.",
+            variant: "destructive"
+          });
+          return;
+        } else {
+          await executeCheckIn();
+          return;
+        }
       }
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
-          const dist = getDistanceInMeters(lat, lon, settings.latitude, settings.longitude);
           
-          if (dist > settings.allowedRadius) {
-            toast({
-              title: "Outside Clinic Geofence ❌",
-              description: `You are outside the clinic location (${Math.round(dist)}m away). Allowed radius is ${settings.allowedRadius}m.`,
-              variant: "destructive"
-            });
-            return;
+          if (settings.gpsVerificationEnabled) {
+            const dist = getDistanceInMeters(lat, lon, settings.latitude, settings.longitude);
+            if (dist > settings.allowedRadius) {
+              toast({
+                title: "Outside Clinic Geofence ❌",
+                description: `You are outside the clinic location (${Math.round(dist)}m away). Allowed radius is ${settings.allowedRadius}m.`,
+                variant: "destructive"
+              });
+              return;
+            }
           }
 
           await executeCheckIn(lat, lon);
         },
-        (error) => {
-          toast({
-            title: "Location Permission Required 📍",
-            description: "Please enable your device location to continue.",
-            variant: "destructive"
-          });
+        async (error) => {
+          if (settings.gpsVerificationEnabled) {
+            toast({
+              title: "Location Permission Required 📍",
+              description: "Please enable your device location to continue.",
+              variant: "destructive"
+            });
+          } else {
+            console.warn("Could not retrieve GPS coordinates:", error);
+            await executeCheckIn();
+          }
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -724,46 +735,64 @@ export default function ReceptionDashboard() {
       }
     }
 
-    if (settings && settings.geofencingEnabled && settings.gpsVerificationEnabled) {
+    if (settings && settings.geofencingEnabled) {
       toast({ title: "Verifying Location...", description: "Retrieving browser GPS coordinates." });
       if (!navigator.geolocation) {
-        toast({
-          title: "Check Out Blocked ❌",
-          description: "Geolocation is not supported by your browser.",
-          variant: "destructive"
-        });
-        return;
+        if (settings.gpsVerificationEnabled) {
+          toast({
+            title: "Check Out Blocked ❌",
+            description: "Geolocation is not supported by your browser.",
+            variant: "destructive"
+          });
+          return;
+        } else {
+          setCheckoutLatitude(undefined);
+          setCheckoutLongitude(undefined);
+          setCheckoutDialogOpen(true);
+          return;
+        }
       }
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
-          const dist = getDistanceInMeters(lat, lon, settings.latitude, settings.longitude);
           
-          if (dist > settings.allowedRadius) {
-            toast({
-              title: "Outside Clinic Geofence ❌",
-              description: `You are outside the clinic location (${Math.round(dist)}m away). Allowed radius is ${settings.allowedRadius}m.`,
-              variant: "destructive"
-            });
-            return;
+          if (settings.gpsVerificationEnabled) {
+            const dist = getDistanceInMeters(lat, lon, settings.latitude, settings.longitude);
+            if (dist > settings.allowedRadius) {
+              toast({
+                title: "Outside Clinic Geofence ❌",
+                description: `You are outside the clinic location (${Math.round(dist)}m away). Allowed radius is ${settings.allowedRadius}m.`,
+                variant: "destructive"
+              });
+              return;
+            }
           }
 
           setCheckoutLatitude(lat);
           setCheckoutLongitude(lon);
           setCheckoutDialogOpen(true);
         },
-        (error) => {
-          toast({
-            title: "Location Permission Required 📍",
-            description: "Please enable your device location to check out.",
-            variant: "destructive"
-          });
+        async (error) => {
+          if (settings.gpsVerificationEnabled) {
+            toast({
+              title: "Location Permission Required 📍",
+              description: "Please enable your device location to check out.",
+              variant: "destructive"
+            });
+          } else {
+            console.warn("Could not retrieve GPS coordinates:", error);
+            setCheckoutLatitude(undefined);
+            setCheckoutLongitude(undefined);
+            setCheckoutDialogOpen(true);
+          }
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else {
+      setCheckoutLatitude(undefined);
+      setCheckoutLongitude(undefined);
       setCheckoutDialogOpen(true);
     }
   };
@@ -1075,7 +1104,7 @@ export default function ReceptionDashboard() {
           {/* Quick Access Card */}
           <div className="bg-card text-card-foreground border rounded-xl p-5 shadow-sm fade-up">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 font-serif">Quick Access</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {quickLinks.map(link => (
                 <Link
                   key={link.label}
