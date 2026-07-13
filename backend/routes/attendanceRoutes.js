@@ -67,7 +67,9 @@ router.post('/check-in', verifyJWT, async (req, res) => {
     const settings = await ClinicSetting.findOne();
     let locationVerified = true;
 
-    if (settings && settings.geofencingEnabled && req.user.role.toLowerCase() !== 'admin') {
+    const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1' || (req.headers.host && (req.headers.host.includes('localhost') || req.headers.host.includes('127.0.0.1')));
+
+    if (settings && settings.geofencingEnabled && req.user.role.toLowerCase() !== 'admin' && !isLocal) {
       if (latitude === undefined || longitude === undefined) {
         if (settings.gpsVerificationEnabled) {
           return res.status(400).json({ message: "GPS coordinates are required to verify location." });
@@ -139,7 +141,9 @@ router.post('/check-out', verifyJWT, async (req, res) => {
     const settings = await ClinicSetting.findOne();
     let locationVerified = true;
 
-    if (settings && settings.geofencingEnabled && req.user.role.toLowerCase() !== 'admin') {
+    const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1' || (req.headers.host && (req.headers.host.includes('localhost') || req.headers.host.includes('127.0.0.1')));
+
+    if (settings && settings.geofencingEnabled && req.user.role.toLowerCase() !== 'admin' && !isLocal) {
       if (latitude === undefined || longitude === undefined) {
         if (settings.gpsVerificationEnabled) {
           return res.status(400).json({ message: "GPS coordinates are required to verify location." });
