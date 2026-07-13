@@ -495,7 +495,8 @@ export default function DentistDashboard() {
       }
     }
 
-    if (settings && settings.geofencingEnabled) {
+    const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    if (settings && settings.geofencingEnabled && !isLocal) {
       toast({ title: "Verifying Location...", description: "Retrieving browser GPS coordinates." });
       if (!navigator.geolocation) {
         if (settings.gpsVerificationEnabled) {
@@ -739,7 +740,8 @@ export default function DentistDashboard() {
       }
     }
 
-    if (settings && settings.geofencingEnabled) {
+    const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    if (settings && settings.geofencingEnabled && !isLocal) {
       toast({ title: "Verifying Location...", description: "Retrieving browser GPS coordinates." });
       if (!navigator.geolocation) {
         if (settings.gpsVerificationEnabled) {
