@@ -122,7 +122,7 @@ export default function Tasks() {
                 : `${t.role} (Repeating)`)
             : (t.assignedTo
                 ? (allUsers.find(u => u.id === t.assignedTo)?.name || t.assignedTo)
-                : (t.role === "all" ? "All Staff" : `${t.role}s`)),
+                : (t.role === "all" ? "All Team" : `${t.role}s`)),
           assignedBy: t.createdBy || "Admin",
           assignedByName: allUsers.find(u => u.id === t.createdBy)?.name || t.createdByName || t.createdBy || "Admin",
           priority: (t.priority || "medium") as Task["priority"],
@@ -134,15 +134,18 @@ export default function Tasks() {
           role: t.role,
           completedDates: t.completedDates || []
         }));
-        setTasks(mapped);
-        localStorage.setItem("navadia_tasks", JSON.stringify(mapped));
+        const unique = Array.from(new Map(mapped.map((item: any) => [item.id, item])).values()) as Task[];
+        setTasks(unique);
+        localStorage.setItem("navadia_tasks", JSON.stringify(unique));
       }
     } catch (e) {
       console.warn("Backend offline, using local storage tasks fallback:", e);
       const cached = localStorage.getItem("navadia_tasks");
       if (cached) {
         try {
-          setTasks(JSON.parse(cached));
+          const cachedList = JSON.parse(cached);
+          const uniqueCached = Array.from(new Map(cachedList.map((item: any) => [item.id, item])).values()) as Task[];
+          setTasks(uniqueCached);
         } catch (err) {
           console.error("Failed to parse cached tasks", err);
         }
@@ -752,7 +755,7 @@ export default function Tasks() {
                         <Select value={form.role === "all" && form.isRecurring ? "Staff" : form.role} onValueChange={(v) => setForm({ ...form, role: v, assignedTo: "" })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {!form.isRecurring && <SelectItem value="all">All Staff</SelectItem>}
+                            {!form.isRecurring && <SelectItem value="all">All Team (Staff & Dentists)</SelectItem>}
                             {!form.isRecurring && <SelectItem value="Dentist">Dentist</SelectItem>}
                             <SelectItem value="Staff">Staff</SelectItem>
                           </SelectContent>
@@ -1037,7 +1040,7 @@ export default function Tasks() {
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {!editTask.isRecurring && <SelectItem value="all">All Staff</SelectItem>}
+                          {!editTask.isRecurring && <SelectItem value="all">All Team (Staff & Dentists)</SelectItem>}
                           {!editTask.isRecurring && <SelectItem value="Dentist">Dentist</SelectItem>}
                           <SelectItem value="Staff">Staff</SelectItem>
                         </SelectContent>
