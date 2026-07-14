@@ -22,6 +22,12 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { useLocation } from "react-router-dom";
 
+interface Attachment {
+  name: string;
+  mimeType: string;
+  dataUrl: string;
+}
+
 interface Task {
   id: string;
   title: string;
@@ -38,6 +44,7 @@ interface Task {
   isRecurring?: boolean;
   role?: string;
   completedDates?: string[];
+  attachments?: Attachment[];
 }
 
 const today = new Date().toISOString().split("T")[0];
@@ -78,17 +85,16 @@ export default function Tasks() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [voiceNote, setVoiceNote] = useState<string | null>(null);
   const [, setAudioChunks] = useState<Blob[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [editAttachments, setEditAttachments] = useState<Attachment[]>([]);
 
   const staffOptions = allUsers.filter((u) => u.role.toLowerCase() !== "admin");
   const filteredUsersForFilter = roleFilter === "all" ? staffOptions : staffOptions.filter(u => u.role.toLowerCase() === roleFilter.toLowerCase());
   const editTaskFilteredUsers = useMemo(() => {
     const staff = allUsers.filter((u) => u.role.toLowerCase() !== "admin");
-    if (editTask?.isRecurring) {
-      return staff.filter(u => u.role.toLowerCase() === "staff");
-    }
     if (editTaskRoleFilter === "all") return staff;
     return staff.filter(u => u.role.toLowerCase() === editTaskRoleFilter.toLowerCase());
-  }, [allUsers, editTaskRoleFilter, editTask?.isRecurring]);
+  }, [allUsers, editTaskRoleFilter]);
   
   const isAdmin = !!(user && user.role.toLowerCase() === "admin");
   const isDentist = !!(user && user.role.toLowerCase() === "dentist");
@@ -131,8 +137,9 @@ export default function Tasks() {
           createdAt: t.createdAt || today,
           voiceNote: t.voiceNote,
           isRecurring: t.isRecurring || false,
-          role: t.role,
-          completedDates: t.completedDates || []
+          role: t.role || (allUsers.find((u: any) => u.id === t.assignedTo)?.role) || "Staff",
+          completedDates: t.completedDates || [],
+          attachments: t.attachments || []
         }));
         const unique = Array.from(new Map(mapped.map((item: any) => [item.id, item])).values()) as Task[];
         setTasks(unique);
@@ -310,7 +317,8 @@ export default function Tasks() {
             role: roleName,
             priority: form.priority,
             dueDate: form.dueDate,
-            isRecurring: form.isRecurring
+            isRecurring: form.isRecurring,
+            attachments
           })
         });
         if (res.ok) {
@@ -342,7 +350,8 @@ export default function Tasks() {
           createdAt: today,
           voiceNote: voiceNote || undefined,
           isRecurring: true,
-          completedDates: []
+          completedDates: [],
+          attachments: attachments
         };
         updatedTasks = [localTask, ...updatedTasks];
       } else {
@@ -362,7 +371,8 @@ export default function Tasks() {
           createdAt: today,
           voiceNote: voiceNote || undefined,
           isRecurring: false,
-          completedDates: []
+          completedDates: [],
+          attachments: attachments
         };
         updatedTasks = [newTask, ...updatedTasks];
       }
@@ -371,6 +381,7 @@ export default function Tasks() {
       setDialogOpen(false);
       setForm({ title: "", description: "", role: "all", assignedTo: "", priority: "medium", dueDate: today, isPrivate: false, isRecurring: false });
       setVoiceNote(null);
+      setAttachments([]);
       toast({ title: isOffline ? "Task Created Offline ⚠️" : "Task Created ✓" });
       if (!isOffline) {
         fetchTasks();
@@ -477,6 +488,7 @@ export default function Tasks() {
       setEditTaskRoleFilter("all");
     }
     setEditTask(t);
+    setEditAttachments(t.attachments || []);
   };
 
   const handleUpdate = async () => {
@@ -503,7 +515,8 @@ export default function Tasks() {
             status: editTask.status,
             dueDate: editTask.dueDate,
             isRecurring: editTask.isRecurring,
-            completedDate: new Date().toISOString().split("T")[0]
+            completedDate: new Date().toISOString().split("T")[0],
+            attachments: editAttachments
           })
          });
          if (res.ok) {
@@ -526,12 +539,14 @@ export default function Tasks() {
       const newTasks = tasks.map((t) => t.id === editTask.id ? { 
         ...editTask, 
         assignedToName,
-        voiceNote: voiceNote !== null ? voiceNote : t.voiceNote 
+        voiceNote: voiceNote !== null ? voiceNote : t.voiceNote,
+        attachments: editAttachments
       } : t);
       setTasks(newTasks);
       localStorage.setItem("navadia_tasks", JSON.stringify(newTasks));
       setEditTask(null);
       setVoiceNote(null);
+      setEditAttachments([]);
       toast({ title: isOffline ? "Task Updated Offline ⚠️" : "Task Updated ✓" });
       if (!isOffline) {
         fetchTasks();
@@ -586,8 +601,15 @@ export default function Tasks() {
                       {t.description && <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-[200px]">{t.description}</p>}
                     </td>
                     <td className="p-2 sm:p-3 hidden sm:table-cell">
-                      <p className="font-medium text-xs">{t.assignedToName}</p>
-                      <p className="text-sm text-muted-foreground">by {t.assignedByName}</p>
+                      <div className="flex flex-col gap-1">
+                        <p className="font-medium text-xs">{t.assignedToName}</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded capitalize font-semibold text-muted-foreground border">
+                            {t.role && t.role.toLowerCase() === "all" ? "All Team" : t.role || "All Team"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">by {t.assignedByName}</span>
+                        </div>
+                      </div>
                     </td>
                     <td className="p-2 sm:p-3">
                       <Badge variant="outline" className={`text-xs sm:text-xs ${priorityColor(t.priority)}`}>
@@ -640,9 +662,14 @@ export default function Tasks() {
                   <p className="font-medium leading-none mb-1 text-sm sm:text-base">{t.title}</p>
                   <p className="text-xs sm:text-sm text-muted-foreground">Due: {t.dueDate}</p>
                 </div>
-                <Badge variant="outline" className={`text-xs sm:text-xs shrink-0 ${priorityColor(t.priority)}`}>
-                  {t.priority}
-                </Badge>
+                <div className="flex flex-col gap-1 items-end shrink-0">
+                  <Badge variant="outline" className={`text-[10px] sm:text-[11px] shrink-0 font-medium py-0.5 px-1.5 ${priorityColor(t.priority)}`}>
+                    {t.priority}
+                  </Badge>
+                  <Badge variant="secondary" className="text-[10px] capitalize font-medium py-0.5 px-1.5 border border-muted-foreground/10 shrink-0">
+                    {t.role && t.role.toLowerCase() === "all" ? "All Team" : t.role || "All Team"}
+                  </Badge>
+                </div>
               </div>
 
               {t.description && <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4 line-clamp-2">{t.description}</p>}
@@ -735,7 +762,7 @@ export default function Tasks() {
               </Button>
             )}
 
-            <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setVoiceNote(null); }}>
+            <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setVoiceNote(null); setAttachments([]); } }}>
               <DialogContent className="w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto rounded-lg p-4 sm:w-full sm:max-w-[480px] sm:p-6">
                 <DialogHeader><DialogTitle>{form.isPrivate ? "Create Private Task" : (form.isRecurring ? "Create Repeating Task" : "Create New Task")}</DialogTitle></DialogHeader>
                 <div className="space-y-4 mt-2">
@@ -756,7 +783,7 @@ export default function Tasks() {
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {!form.isRecurring && <SelectItem value="all">All Team (Staff & Dentists)</SelectItem>}
-                            {!form.isRecurring && <SelectItem value="Dentist">Dentist</SelectItem>}
+                            <SelectItem value="Dentist">Dentist</SelectItem>
                             <SelectItem value="Staff">Staff</SelectItem>
                           </SelectContent>
                         </Select>
@@ -851,6 +878,61 @@ export default function Tasks() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Attachments (Optional)</Label>
+                  <div className="flex items-center gap-3 p-3 border rounded-xl bg-muted/30">
+                    <Input
+                      type="file"
+                      multiple
+                      onChange={(e) => {
+                        if (!e.target.files) return;
+                        const filesArray = Array.from(e.target.files);
+                        filesArray.forEach((file) => {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setAttachments((prev) => [
+                              ...prev,
+                              {
+                                name: file.name,
+                                mimeType: file.type,
+                                dataUrl: reader.result as string
+                              }
+                            ]);
+                          };
+                          reader.readAsDataURL(file);
+                        });
+                      }}
+                      className="hidden"
+                      id="task-file-upload"
+                    />
+                    <Label
+                      htmlFor="task-file-upload"
+                      className="inline-flex items-center justify-center rounded-xl text-sm font-medium border border-muted bg-[#f5f5f4] text-[#1c1917] hover:bg-[#e7b008] hover:text-white transition-all h-10 px-4 cursor-pointer"
+                    >
+                      Choose Files
+                    </Label>
+                    <span className="text-xs text-muted-foreground">Images, PDFs, documents...</span>
+                  </div>
+                  {attachments.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {attachments.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between border p-2 rounded-xl bg-muted/40 text-xs">
+                          <span className="truncate max-w-[120px]">{file.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                            onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <Button onClick={handleAdd} className="w-full" disabled={!form.title}>Create Task</Button>
               </div>
             </DialogContent>
@@ -878,9 +960,7 @@ export default function Tasks() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:max-lg:flex-row md:max-lg:justify-between">
           <TabsList>
             <TabsTrigger value="assigned-tasks">Assigned Tasks</TabsTrigger>
-            {user?.role.toLowerCase() !== "dentist" && (
-              <TabsTrigger value="repeating-tasks">Repeating Tasks</TabsTrigger>
-            )}
+            <TabsTrigger value="repeating-tasks">Repeating Tasks</TabsTrigger>
             <TabsTrigger value="private-tasks">Private Tasks</TabsTrigger>
           </TabsList>
           <div className="hidden md:max-lg:flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
@@ -1005,7 +1085,7 @@ export default function Tasks() {
         </div>
       </Tabs>
 
-      <Dialog open={!!editTask} onOpenChange={(o) => { if (!o) { setEditTask(null); setVoiceNote(null); } }}>
+      <Dialog open={!!editTask} onOpenChange={(o) => { if (!o) { setEditTask(null); setVoiceNote(null); setEditAttachments([]); } }}>
         <DialogContent className="w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto rounded-lg p-4 sm:w-full sm:max-w-[480px] sm:p-6">
           <DialogHeader><DialogTitle>Edit {editTask?.assignedTo === editTask?.assignedBy ? "Private Task" : (editTask?.isRecurring ? "Repeating Task" : "Task")}</DialogTitle></DialogHeader>
           {editTask && (() => {
@@ -1041,7 +1121,7 @@ export default function Tasks() {
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {!editTask.isRecurring && <SelectItem value="all">All Team (Staff & Dentists)</SelectItem>}
-                          {!editTask.isRecurring && <SelectItem value="Dentist">Dentist</SelectItem>}
+                          <SelectItem value="Dentist">Dentist</SelectItem>
                           <SelectItem value="Staff">Staff</SelectItem>
                         </SelectContent>
                       </Select>
@@ -1137,6 +1217,61 @@ export default function Tasks() {
                   </div>
                 )}
 
+                <div className="space-y-2">
+                  <Label>Attachments (Optional)</Label>
+                  <div className="flex items-center gap-3 p-3 border rounded-xl bg-muted/30">
+                    <Input
+                      type="file"
+                      multiple
+                      onChange={(e) => {
+                        if (!e.target.files) return;
+                        const filesArray = Array.from(e.target.files);
+                        filesArray.forEach((file) => {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setEditAttachments((prev) => [
+                              ...prev,
+                              {
+                                name: file.name,
+                                mimeType: file.type,
+                                dataUrl: reader.result as string
+                              }
+                            ]);
+                          };
+                          reader.readAsDataURL(file);
+                        });
+                      }}
+                      className="hidden"
+                      id="edit-task-file-upload"
+                    />
+                    <Label
+                      htmlFor="edit-task-file-upload"
+                      className="inline-flex items-center justify-center rounded-xl text-sm font-medium border border-muted bg-[#f5f5f4] text-[#1c1917] hover:bg-[#e7b008] hover:text-white transition-all h-10 px-4 cursor-pointer"
+                    >
+                      Choose Files
+                    </Label>
+                    <span className="text-xs text-muted-foreground">Images, PDFs, documents...</span>
+                  </div>
+                  {editAttachments.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {editAttachments.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between border p-2 rounded-xl bg-muted/40 text-xs">
+                          <span className="truncate max-w-[120px]">{file.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                            onClick={() => setEditAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <Button onClick={handleUpdate} className="w-full" disabled={!editTask.title}>Update Task</Button>
               </div>
             );
@@ -1215,6 +1350,39 @@ export default function Tasks() {
                 <div className="space-y-2 bg-primary/5 p-3.5 rounded-xl border border-primary/10">
                   <span className="text-xs font-semibold text-primary uppercase tracking-wider block">Voice Instructions</span>
                   <audio src={selectedViewTask.voiceNote} className="h-8 w-full" controls />
+                </div>
+              )}
+
+              {/* Attachments Section */}
+              {selectedViewTask.attachments && selectedViewTask.attachments.length > 0 && (
+                <div className="space-y-2 bg-muted/20 p-3.5 rounded-xl border">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Attachments ({selectedViewTask.attachments.length})</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedViewTask.attachments.map((att, idx) => {
+                      const isImage = att.mimeType && att.mimeType.startsWith('image/');
+                      return (
+                        <div key={idx} className="flex flex-col border rounded-xl bg-card overflow-hidden shadow-sm">
+                          {isImage ? (
+                            <img src={att.dataUrl} alt={att.name} className="h-24 w-full object-cover border-b" />
+                          ) : (
+                            <div className="h-24 w-full bg-muted flex items-center justify-center border-b">
+                              <span className="text-xs font-bold text-muted-foreground uppercase">{att.name.split('.').pop() || 'file'}</span>
+                            </div>
+                          )}
+                          <div className="p-2 flex items-center justify-between gap-1">
+                            <span className="text-xs truncate font-medium flex-1" title={att.name}>{att.name}</span>
+                            <a
+                              href={att.dataUrl}
+                              download={att.name}
+                              className="text-xs font-bold text-[#e7b008] hover:text-[#c59606] transition-colors hover:underline shrink-0"
+                            >
+                              Download
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

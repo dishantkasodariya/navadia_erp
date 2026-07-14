@@ -47,6 +47,14 @@ const TaskSchema = new mongoose.Schema({
     }],
     default: []
   },
+  attachments: {
+    type: [{
+      name: String,
+      mimeType: String,
+      dataUrl: String
+    }],
+    default: []
+  },
   createdAt: { 
     type: Date, 
     default: Date.now 

@@ -11,31 +11,6 @@ router.get('/', verifyJWT, async (req, res) => {
     if (userRoleLower === 'admin') {
       // Admins see all tasks (non-recurring and recurring) to allow full CRUD
       query = {};
-    } else if (userRoleLower === 'dentist') {
-      query = {
-        isRecurring: { $ne: true },
-        $or: [
-          { assignedTo: req.user._id.toString() },
-          { createdBy: req.user._id.toString() },
-          {
-            $and: [
-              {
-                $or: [
-                  { role: 'all' },
-                  { role: { $regex: new RegExp(`^${req.user.role}$`, 'i') } }
-                ]
-              },
-              {
-                $or: [
-                  { assignedTo: { $exists: false } },
-                  { assignedTo: "" },
-                  { assignedTo: null }
-                ]
-              }
-            ]
-          }
-        ]
-      };
     } else {
       query = {
         $or: [
@@ -92,19 +67,9 @@ router.get('/', verifyJWT, async (req, res) => {
 
 // Create task (Admin, Dentist, Staff)
 router.post('/', verifyJWT, async (req, res) => {
-  const { title, description, assignedTo, role, priority, dueDate, isRecurring } = req.body;
+  const { title, description, assignedTo, role, priority, dueDate, isRecurring, attachments } = req.body;
   try {
     if (isRecurring && req.user.role.toLowerCase() === 'admin') {
-      if (role && role.toLowerCase() === 'dentist') {
-        return res.status(400).json({ message: 'Repeating tasks cannot be assigned to Dentists' });
-      }
-      if (assignedTo) {
-        const User = require('../models/User');
-        const assignedUser = await User.findById(assignedTo);
-        if (assignedUser && assignedUser.role.toLowerCase() === 'dentist') {
-          return res.status(400).json({ message: 'Repeating tasks cannot be assigned to Dentists' });
-        }
-      }
       // Admin creates exactly one repeating task assigned to a role group or a specific user
       const task = new Task({
         title,
@@ -115,7 +80,8 @@ router.post('/', verifyJWT, async (req, res) => {
         dueDate: '',
         isRecurring: true,
         createdBy: req.user._id,
-        createdByName: req.user.name
+        createdByName: req.user.name,
+        attachments: attachments || []
       });
       const created = await task.save();
 
@@ -136,7 +102,8 @@ router.post('/', verifyJWT, async (req, res) => {
       dueDate,
       isRecurring: !!isRecurring,
       createdBy: req.user._id,
-      createdByName: req.user.name
+      createdByName: req.user.name,
+      attachments: attachments || []
     });
     const created = await task.save();
 
@@ -169,18 +136,6 @@ router.put('/:id', verifyJWT, async (req, res) => {
     }
 
     if (isAdmin || isCreator) {
-      if ((task.isRecurring || req.body.isRecurring) && req.user.role.toLowerCase() === 'admin') {
-        if (req.body.role && req.body.role.toLowerCase() === 'dentist') {
-          return res.status(400).json({ message: 'Repeating tasks cannot be assigned to Dentists' });
-        }
-        if (req.body.assignedTo) {
-          const User = require('../models/User');
-          const assignedUser = await User.findById(req.body.assignedTo);
-          if (assignedUser && assignedUser.role.toLowerCase() === 'dentist') {
-            return res.status(400).json({ message: 'Repeating tasks cannot be assigned to Dentists' });
-          }
-        }
-      }
       // Admin or Creator can edit everything
       Object.assign(task, req.body);
     } else if (isAssignee || isRoleMatch) {

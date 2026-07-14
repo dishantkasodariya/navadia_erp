@@ -1,8 +1,18 @@
-// Central API configuration
-// In development: uses localhost:5000
-// In production: uses the deployed backend URL from environment variable
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && !envUrl.includes("localhost")) {
+    return envUrl;
+  }
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const hostname = window.location.hostname;
+  if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+    return "https://smileflow-backend.onrender.com";
+  }
+
+  return envUrl || "http://localhost:5000";
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 // Helper to build API endpoints
 export const api = (path: string) => `${API_BASE_URL}${path}`;
