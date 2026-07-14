@@ -202,10 +202,14 @@ export default function Tasks() {
       // Handle Repeating Tasks isolation
       if (activeTab === "repeating-tasks") {
         if (!t.isRecurring) return false;
-        // Repeating tasks show for the assigned user, or show all for Admin,
-        // or show if it's role-based (empty assignedTo) since backend already filtered by role
         if (user?.role.toLowerCase() !== "admin") {
-          if (t.assignedTo && t.assignedTo !== user?.id) return false;
+          if (t.assignedTo) {
+            if (t.assignedTo !== user?.id) return false;
+          } else {
+            const userRoleLower = user?.role?.toLowerCase();
+            const taskRoleLower = t.role?.toLowerCase();
+            if (taskRoleLower !== "all" && taskRoleLower !== userRoleLower) return false;
+          }
         }
       } else {
         // All other tabs exclude recurring tasks
@@ -287,7 +291,7 @@ export default function Tasks() {
       staff = user;
       assignedToId = user?.id || "";
       roleName = user?.role || "";
-    } else if (!form.isRecurring) {
+    } else {
       staff = allUsers.find((u) => u.id === form.assignedTo);
       if (staff) {
         assignedToId = staff.id;

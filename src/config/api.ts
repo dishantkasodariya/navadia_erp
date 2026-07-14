@@ -1,7 +1,13 @@
 const getApiBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl && !envUrl.includes("localhost")) {
-    return envUrl;
+  let envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    envUrl = envUrl.trim();
+    if (!envUrl.startsWith("http://") && !envUrl.startsWith("https://")) {
+      envUrl = `https://${envUrl}`;
+    }
+    if (!envUrl.includes("localhost")) {
+      return envUrl;
+    }
   }
 
   const hostname = window.location.hostname;

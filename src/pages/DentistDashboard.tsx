@@ -129,11 +129,10 @@ export default function DentistDashboard() {
       if (res.ok) {
         const data = await res.json();
         const userTasks = data.filter((t: any) => 
-          !t.isRecurring && (
-            t.assignedTo === user.id || 
-            t.assignedTo === user.email ||
-            (!t.assignedTo && t.role?.toLowerCase() === user.role?.toLowerCase())
-          )
+          t.assignedTo === user.id || 
+          t.assignedTo === user.email ||
+          (!t.assignedTo && t.role?.toLowerCase() === user.role?.toLowerCase()) ||
+          (t.isRecurring && t.role?.toLowerCase() === user.role?.toLowerCase())
         );
         const total = userTasks.length;
         const completed = userTasks.filter((t: any) => t.status === "completed").length;
