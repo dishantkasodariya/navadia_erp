@@ -20,7 +20,7 @@ export function PWAInstallPrompt() {
       setTimeout(() => {
         setShowPrompt(false);
       }, 500); // Matches the 500ms CSS transition duration
-    }, 5000); // 5 seconds
+    }, 3000); // 5 seconds
   };
 
   const clearTimer = () => {
@@ -120,7 +120,7 @@ export function PWAInstallPrompt() {
 
   return (
     <div 
-      className={`fixed bottom-4 right-4 z-50 w-[310px] sm:w-[350px] md:w-[380px] transition-all duration-500 ease-in-out ${
+      className={`fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[350px] md:w-[380px] z-50 transition-all duration-500 ease-in-out ${
         isTransitionActive 
           ? "opacity-100 translate-y-0 scale-100" 
           : "opacity-0 translate-y-8 scale-95 pointer-events-none"
