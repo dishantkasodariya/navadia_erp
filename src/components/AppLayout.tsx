@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet, useNavigate } from "react-router-dom";
@@ -20,13 +21,42 @@ export function AppLayout() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const navigate = useNavigate();
 
+  const [showHeader, setShowHeader] = useState(true);
+  const lastScrollY = useRef(0);
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!mainRef.current) return;
+      const currentScrollY = mainRef.current.scrollTop;
+
+      if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+        setShowHeader(false);
+      } else if (currentScrollY < lastScrollY.current) {
+        setShowHeader(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    const mainElement = mainRef.current;
+    if (mainElement) {
+      mainElement.addEventListener("scroll", handleScroll, { passive: true });
+    }
+    return () => {
+      if (mainElement) {
+        mainElement.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, []);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           {/* Premium Unified Header for all roles (Admin, Dentist, Staff) */}
-          <header className="sticky top-0 z-40 h-14 flex items-center justify-between border-b bg-card/80 backdrop-blur-md px-4 shrink-0 shadow-sm">
+          <header className={`sticky top-0 z-40 h-14 flex items-center justify-between border-b bg-card/80 backdrop-blur-md px-4 shrink-0 shadow-sm transition-all duration-300 ease-in-out ${showHeader ? "mt-0 opacity-100" : "-mt-14 opacity-0 pointer-events-none"}`}>
             <div className="flex items-center gap-2">
               <SidebarTrigger />
             </div>
@@ -67,9 +97,8 @@ export function AppLayout() {
                         notifications.map((n) => (
                           <DropdownMenuItem
                             key={n.id}
-                            className={`flex flex-col items-start gap-1 p-2.5 rounded-lg cursor-pointer transition-colors focus:bg-primary/5 focus:text-card-foreground ${
-                              !n.isRead ? "bg-primary/5 border-l-2 border-primary" : ""
-                            }`}
+                            className={`flex flex-col items-start gap-1 p-2.5 rounded-lg cursor-pointer transition-colors focus:bg-primary/5 focus:text-card-foreground ${!n.isRead ? "bg-primary/5 border-l-2 border-primary" : ""
+                              }`}
                             onClick={() => {
                               markNotificationAsRead(n.id);
                               if (user) {
@@ -101,9 +130,9 @@ export function AppLayout() {
                   </ScrollArea>
                   {notifications.length > 0 && (
                     <div className="pt-2 mt-1 border-t border-muted/30 flex justify-center">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-8 text-xs w-full text-primary hover:bg-primary/10 hover:text-primary transition-all font-semibold rounded-lg"
                         onClick={markAllNotificationsAsRead}
                       >
@@ -120,7 +149,7 @@ export function AppLayout() {
             </div>
           </header>
 
-          <main className="flex-1 overflow-auto p-6">
+          <main ref={mainRef} className="flex-1 overflow-auto p-4">
             <Outlet />
           </main>
         </div>

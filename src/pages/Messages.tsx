@@ -110,13 +110,13 @@ export default function Messages() {
   const getInitials = (name: string) => name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] flex-col gap-2 sm:gap-3 lg:gap-4 xl:grid xl:grid-cols-4 xl:h-[calc(100vh-8rem)]">
+    <div className="flex h-[calc(100dvh-5rem)] -mx-3 -my-3 flex-col gap-2 xl:mx-0 xl:my-0 xl:h-[calc(100dvh-7rem)] xl:grid xl:grid-cols-4 xl:gap-4">
       {/* Sidebar Contacts */}
-      <Card className={`flex-col overflow-hidden xl:col-span-1 ${selectedUserId ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-2 sm:p-3 lg:p-4 border-b bg-muted/30">
-          <h2 className="font-medium text-sm sm:text-base lg:text-lg">Contacts</h2>
-        </div>
+      <Card className={`flex-col overflow-hidden flex-1 min-h-0 rounded-xl border xl:col-span-1 ${selectedUserId ? 'hidden xl:flex' : 'flex'}`}>
         <ScrollArea className="flex-1 min-h-0">
+          <div className="p-2 sm:p-3 lg:p-4 border-b bg-muted/30 mb-2">
+            <h2 className="font-medium text-sm sm:text-base lg:text-lg">Contacts</h2>
+          </div>
           <div className="p-1.5 sm:p-2 lg:p-2 space-y-0.5 sm:space-y-1">
             {otherUsers.map((u) => {
               const unread = messages.filter(m => m.senderId === u.id && m.receiverId === user?.id && !m.isRead).length;
@@ -148,15 +148,15 @@ export default function Messages() {
       </Card>
 
       {/* Main Chat Area */}
-      <Card className={`flex-col overflow-hidden min-h-0 xl:col-span-3 ${selectedUserId ? 'flex' : 'hidden md:flex'}`}>
+      <Card className={`flex-col overflow-hidden flex-1 min-h-0 rounded-xl border xl:col-span-3 ${selectedUserId ? 'flex' : 'hidden xl:flex'}`}>
         {selectedUserId ? (
           <>
             <div className="p-2 sm:p-3 lg:p-4 border-b bg-muted/30 flex items-center gap-2 sm:gap-3">
-              <Button variant="ghost" className="md:hidden h-8 w-8 p-0" onClick={() => setSelectedUserId(null)}>
+              <Button variant="ghost" className="xl:hidden h-8 w-8 p-0" onClick={() => setSelectedUserId(null)}>
                 <X className="h-4 w-4" />
               </Button>
               <Avatar className="h-10 w-10 shrink-0">
-                <AvatarFallback className="bg-primary/10 text-primary text-xs">{getInitials(selectedUser?.name || "")}</AvatarFallback>
+                <AvatarFallback className="bg-[#f8f5eb] text-[#e0b743] text-xs font-semibold xl:bg-primary/10 xl:text-primary xl:font-normal">{getInitials(selectedUser?.name || "")}</AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
                 <h2 className="font-bold text-sm sm:text-base truncate">{selectedUser?.name}</h2>
@@ -258,14 +258,14 @@ export default function Messages() {
                   </Button>
                 </div>
               )}
-              <div className="flex items-end gap-1 sm:gap-2">
+              <div className="flex items-center xl:items-end gap-1 sm:gap-2">
                 <div className="flex-1 relative">
                   <Input
                     placeholder="Type a message..."
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                    className="pr-10 sm:pr-12 bg-muted/50 text-sm sm:text-base h-10"
+                    className="pr-10 sm:pr-12 bg-muted/50 text-sm sm:text-base h-10 rounded-xl xl:rounded-md"
                   />
                   {!isRecording ? (
                     <button 
@@ -283,8 +283,12 @@ export default function Messages() {
                     </button>
                   )}
                 </div>
-                <Button onClick={handleSend} disabled={!inputText.trim() && !voiceNote} className="shrink-0 h-10 w-10 p-0">
-                  <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <Button 
+                  onClick={handleSend} 
+                  disabled={!inputText.trim() && !voiceNote} 
+                  className="shrink-0 h-10 w-10 p-0 bg-[#e0b743] hover:bg-[#c8a135] text-white rounded-xl xl:bg-primary xl:text-primary-foreground xl:rounded-md xl:hover:bg-primary/90"
+                >
+                  <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
                 </Button>
               </div>
             </div>
