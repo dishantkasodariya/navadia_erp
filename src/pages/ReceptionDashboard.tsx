@@ -204,7 +204,10 @@ export default function ReceptionDashboard() {
     return R * c;
   };
 
-  const checkTodayStatus = (settings: any, userLeaves: any[]) => {
+  const checkTodayStatus = (settings: any, userLeaves: any[]): {
+    status: "Holiday" | "Weekend" | "Leave" | "Tour" | "Normal";
+    name?: string;
+  } => {
     const todayStr = new Date().toISOString().split("T")[0];
     const todayDateObj = new Date();
     
@@ -212,7 +215,7 @@ export default function ReceptionDashboard() {
     if (settings && settings.holidays) {
       const holiday = settings.holidays.find((h: any) => h.date === todayStr);
       if (holiday) {
-        return { status: "Holiday" as const, name: holiday.name };
+        return { status: "Holiday", name: holiday.name };
       }
     }
 
@@ -220,7 +223,7 @@ export default function ReceptionDashboard() {
     const dayOfWeek = todayDateObj.getDay();
     const weekendDays = settings?.weekendDays || [0];
     if (weekendDays.includes(dayOfWeek)) {
-      return { status: "Weekend" as const, name: dayOfWeek === 0 ? "Sunday" : "Saturday" };
+      return { status: "Weekend", name: dayOfWeek === 0 ? "Sunday" : "Saturday" };
     }
 
     // 3. Check approved leaves
@@ -228,11 +231,11 @@ export default function ReceptionDashboard() {
       const activeLeave = userLeaves.find((l: any) => todayStr >= l.startDate && todayStr <= l.endDate);
       if (activeLeave) {
         const isTour = (activeLeave.type || "").toLowerCase().includes("tour");
-        return { status: isTour ? "Tour" : "Leave" as const, name: activeLeave.reason };
+        return { status: isTour ? "Tour" : "Leave", name: activeLeave.reason };
       }
     }
 
-    return { status: "Normal" as const };
+    return { status: "Normal" };
   };
 
   const fetchAttendanceStats = async () => {
