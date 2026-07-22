@@ -82,8 +82,9 @@ const App = () => (
           <ChatProvider>
             <Routes>
               <Route path="/" element={<RoleRedirect />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
+              <Route path="/login" element={<Login isAdmin={false} />} />
+              <Route path="/admin/login" element={<Login isAdmin={true} />} />
+              <Route path="/admin/signup" element={<Signup />} />
 
               <Route path="/superadmin" element={<ProtectedLayout allowedRoles={["Admin"]} />}>
                 <Route path="dashboard" element={<AdminDashboard />} />

@@ -24,11 +24,11 @@ const ClinicSettingSchema = new mongoose.Schema({
   },
   latitude: {
     type: Number,
-    default: 21.2335
+    default: 21.2301438
   },
   longitude: {
     type: Number,
-    default: 72.8275
+    default: 72.8213966
   },
   allowedRadius: {
     type: Number,

@@ -14,7 +14,8 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    const isAdminRoute = window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/superadmin");
+    return <Navigate to={isAdminRoute ? "/admin/login" : "/login"} replace />;
   }
 
   const userRoleLower = user.role.toLowerCase();

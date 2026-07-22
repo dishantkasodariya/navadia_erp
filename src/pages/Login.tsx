@@ -6,13 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function Login() {
+export default function Login({ isAdmin = false }: { isAdmin?: boolean }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [activePortal, setActivePortal] = useState("staff"); // "staff" or "admin"
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -58,18 +56,15 @@ export default function Login() {
 
         <Card className="border-none shadow-md bg-card/50 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-2xl text-center">Login Portal</CardTitle>
+            <CardTitle className="text-2xl text-center">
+              {isAdmin ? "Admin Login Portal" : "Dentist & Staff Login"}
+            </CardTitle>
           </CardHeader>
+
+          <div className="mx-4 pt-2 border-t border-dashed border-muted-foreground/20"></div>
+
+
           <CardContent className="space-y-4">
-            <Tabs value={activePortal} onValueChange={setActivePortal} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="staff">Dentist & Staff</TabsTrigger>
-                <TabsTrigger value="admin">Admin Portal</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <div className="pt-2 border-t border-dashed border-muted-foreground/20"></div>
-
             <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -102,10 +97,10 @@ export default function Login() {
               </Button>
             </form>
             
-            {activePortal === "admin" && (
-              <div className="mt-6 text-center text-sm text-muted-foreground pt-2">
+            {isAdmin && (
+              <div className="mt-6 text-center text-sm text-muted-foreground pt-2 border-t border-dashed border-muted-foreground/20">
                 Don't have an account?{" "}
-                <Link to="/signup" className="text-primary hover:underline font-bold transition-colors">Sign up</Link>
+                <Link to="/admin/signup" className="text-primary hover:underline font-bold transition-colors">Sign up</Link>
               </div>
             )}
           </CardContent>

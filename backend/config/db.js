@@ -57,8 +57,8 @@ const connectDB = async () => {
       await ClinicSetting.create({
         clinicName: 'Dental Clinic',
         address: '29, Siddheshwar Society, Ved Rd, Opp. Swaminarayan Mandir, Dabholi Char Rasta, Gayatri Nagar, Katargam, Surat, Gujarat - 395004',
-        latitude: 21.2335,
-        longitude: 72.8275,
+        latitude: 21.2301438,
+        longitude: 72.8213966,
         allowedRadius: 100,
         geofencingEnabled: true,
         gpsVerificationEnabled: true,
@@ -67,8 +67,9 @@ const connectDB = async () => {
     } else {
       console.log('Updating clinic settings coordinates for Katargam geofencing...');
       settings.address = '29, Siddheshwar Society, Ved Rd, Opp. Swaminarayan Mandir, Dabholi Char Rasta, Gayatri Nagar, Katargam, Surat, Gujarat - 395004';
-      settings.latitude = 21.2335;
-      settings.longitude = 72.8275;
+      settings.latitude = 21.2301438;
+      settings.longitude = 72.8213966;
+      settings.gpsVerificationEnabled = true;
       await settings.save();
     }
   } catch (error) {

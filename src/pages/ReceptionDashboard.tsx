@@ -439,6 +439,23 @@ export default function ReceptionDashboard() {
 
   useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(shift)); }, [shift, storageKey]);
 
+  // Automatically reset shift status if the current date changes (e.g. overnight when tab is kept open)
+  useEffect(() => {
+    if (shift.date !== todayDate) {
+      setShift({
+        status: "idle",
+        checkInTimestamp: null,
+        checkOutTimestamp: null,
+        breakStartTime: null,
+        accumulatedBreakTime: 0,
+        breakCount: 0,
+        breaks: [],
+        notes: "",
+        date: todayDate
+      });
+    }
+  }, [todayDate, shift.date]);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
