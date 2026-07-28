@@ -58,8 +58,8 @@ export default function Voicemail() {
         const data = await res.json();
         const mapped = data.map((v: any) => ({
           id: v._id,
-          fromId: "admin-1",
-          fromName: v.createdBy || "Admin",
+          fromId: v.createdBy || "admin-1",
+          fromName: allUsers.find(u => u.id === v.createdBy)?.name || v.createdBy || "Admin",
           toId: v.assignedTo,
           toName: v.assignedTo === "all" 
             ? "All Staff & Dentists" 
