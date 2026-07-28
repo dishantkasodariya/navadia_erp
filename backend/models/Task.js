@@ -36,6 +36,10 @@ const TaskSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isPrivate: {
+    type: Boolean,
+    default: false
+  },
   completedDates: {
     type: [String],
     default: []

@@ -128,12 +128,17 @@ export default function DentistDashboard() {
       });
       if (res.ok) {
         const data = await res.json();
-        const userTasks = data.filter((t: any) => 
-          t.assignedTo === user.id || 
-          t.assignedTo === user.email ||
-          (!t.assignedTo && t.role?.toLowerCase() === user.role?.toLowerCase()) ||
-          (t.isRecurring && t.role?.toLowerCase() === user.role?.toLowerCase())
-        );
+        const userTasks = data.filter((t: any) => {
+          if (!t) return false;
+          if (t.isPrivate && t.assignedTo !== user.id && t.createdBy !== user.id) return false;
+          const userRoleLower = user.role?.toLowerCase();
+          const taskRoleLower = t.role?.toLowerCase();
+          const isExplicitlyAssignedToMe = t.assignedTo === user.id || t.assignedTo === user.email;
+          const isAssignedToMyRoleOrAll = !t.assignedTo && 
+            (taskRoleLower === "all" || taskRoleLower === userRoleLower);
+          const isRecurringMatch = t.isRecurring && (taskRoleLower === "all" || taskRoleLower === userRoleLower);
+          return isExplicitlyAssignedToMe || isAssignedToMyRoleOrAll || isRecurringMatch;
+        });
         const total = userTasks.length;
         const completed = userTasks.filter((t: any) => t.status === "completed").length;
         const pending = userTasks.filter((t: any) => t.status === "pending" || t.status === "in-progress").length;

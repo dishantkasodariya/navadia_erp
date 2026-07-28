@@ -67,7 +67,7 @@ router.get('/', verifyJWT, async (req, res) => {
 
 // Create task (Admin, Dentist, Staff)
 router.post('/', verifyJWT, async (req, res) => {
-  const { title, description, assignedTo, role, priority, dueDate, isRecurring, attachments } = req.body;
+  const { title, description, assignedTo, role, priority, dueDate, isRecurring, attachments, isPrivate } = req.body;
   try {
     if (isRecurring && req.user.role.toLowerCase() === 'admin') {
       // Admin creates exactly one repeating task assigned to a role group or a specific user
@@ -79,6 +79,7 @@ router.post('/', verifyJWT, async (req, res) => {
         priority,
         dueDate: '',
         isRecurring: true,
+        isPrivate: false,
         createdBy: req.user._id,
         createdByName: req.user.name,
         attachments: attachments || []
@@ -96,11 +97,12 @@ router.post('/', verifyJWT, async (req, res) => {
     const task = new Task({
       title,
       description,
-      assignedTo: assignedTo || req.user._id.toString(),
+      assignedTo: isPrivate ? req.user._id.toString() : (assignedTo || ''),
       role: role,
       priority,
       dueDate,
       isRecurring: !!isRecurring,
+      isPrivate: !!isPrivate,
       createdBy: req.user._id,
       createdByName: req.user.name,
       attachments: attachments || []
