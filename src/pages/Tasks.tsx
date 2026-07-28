@@ -42,6 +42,7 @@ interface Task {
   createdAt: string;
   voiceNote?: string;
   isRecurring?: boolean;
+  isPrivate?: boolean;
   role?: string;
   completedDates?: string[];
   attachments?: Attachment[];
@@ -95,12 +96,12 @@ export default function Tasks() {
     if (editTaskRoleFilter === "all") return staff;
     return staff.filter(u => u.role.toLowerCase() === editTaskRoleFilter.toLowerCase());
   }, [allUsers, editTaskRoleFilter]);
-  
+
   const isAdmin = !!(user && user.role.toLowerCase() === "admin");
   const isDentist = !!(user && user.role.toLowerCase() === "dentist");
   const canAssignOthers = isAdmin || isDentist;
 
-  const targetUsers = canAssignOthers 
+  const targetUsers = canAssignOthers
     ? (form.role === "all" ? staffOptions : staffOptions.filter(u => u.role.toLowerCase() === form.role.toLowerCase()))
     : (user ? [user] : []);
 
@@ -124,11 +125,11 @@ export default function Tasks() {
           assignedTo: t.assignedTo,
           assignedToName: t.isRecurring
             ? (t.assignedTo
-                ? `${allUsers.find(u => u.id === t.assignedTo)?.name || t.assignedTo} (Repeating)`
-                : `${t.role} (Repeating)`)
+              ? `${allUsers.find(u => u.id === t.assignedTo)?.name || t.assignedTo} (Repeating)`
+              : `${t.role} (Repeating)`)
             : (t.assignedTo
-                ? (allUsers.find(u => u.id === t.assignedTo)?.name || t.assignedTo)
-                : (t.role === "all" ? "All Team" : `${t.role}s`)),
+              ? (allUsers.find(u => u.id === t.assignedTo)?.name || t.assignedTo)
+              : (t.role === "all" ? "All Team" : `${t.role}s`)),
           assignedBy: t.createdBy || "Admin",
           assignedByName: allUsers.find(u => u.id === t.createdBy)?.name || t.createdByName || t.createdBy || "Admin",
           priority: (t.priority || "medium") as Task["priority"],
@@ -137,6 +138,7 @@ export default function Tasks() {
           createdAt: t.createdAt || today,
           voiceNote: t.voiceNote,
           isRecurring: t.isRecurring || false,
+          isPrivate: t.isPrivate || false,
           role: t.role || (allUsers.find((u: any) => u.id === t.assignedTo)?.role) || "Staff",
           completedDates: t.completedDates || [],
           attachments: t.attachments || []
@@ -182,23 +184,23 @@ export default function Tasks() {
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
       if (!t) return false;
-      const matchSearch = (t.title?.toLowerCase().includes(search.toLowerCase())) || 
-                         (t.assignedToName?.toLowerCase().includes(search.toLowerCase())) ||
-                         (t.assignedByName?.toLowerCase().includes(search.toLowerCase()));
+      const matchSearch = (t.title?.toLowerCase().includes(search.toLowerCase())) ||
+        (t.assignedToName?.toLowerCase().includes(search.toLowerCase())) ||
+        (t.assignedByName?.toLowerCase().includes(search.toLowerCase()));
       const matchStatus = filterStatus === "all" || t.status === filterStatus;
       const matchPriority = filterPriority === "all" || t.priority === filterPriority;
-      
+
       const userObj = staffOptions.find(u => u.id === t.assignedTo);
       const taskRole = t.assignedTo ? (userObj?.role || "") : t.role;
-      const matchRole = roleFilter === "all" || 
-                         (taskRole && (taskRole.toLowerCase() === "all" || taskRole.toLowerCase() === roleFilter.toLowerCase()));
+      const matchRole = roleFilter === "all" ||
+        (taskRole && (taskRole.toLowerCase() === "all" || taskRole.toLowerCase() === roleFilter.toLowerCase()));
       const matchUser = userFilter === "all" || t.assignedTo === userFilter;
- 
-      const isPrivateTask = t.assignedTo === t.assignedBy;
-      
-      // Rule 1: Other people's private tasks must be hidden from everyone
-      if (isPrivateTask && t.assignedTo !== user?.id) return false;
-      
+
+      const isPrivateTask = t.isPrivate || false;
+
+      // Rule 1: Other people's private tasks must be hidden from everyone except owner/creator
+      if (isPrivateTask && t.assignedTo !== user?.id && t.assignedBy !== user?.id) return false;
+
       // Handle Repeating Tasks isolation
       if (activeTab === "repeating-tasks") {
         if (!t.isRecurring) return false;
@@ -214,39 +216,40 @@ export default function Tasks() {
       } else {
         // All other tabs exclude recurring tasks
         if (t.isRecurring) return false;
- 
+
         if (activeTab === "private-tasks") {
-          // Private Tasks tab: only show tasks created by user for themselves
-          if (t.assignedTo !== user?.id || t.assignedBy !== user?.id) return false;
+          // Private Tasks tab: only show explicit private tasks for current user
+          if (!isPrivateTask || (t.assignedTo !== user?.id && t.assignedBy !== user?.id)) return false;
         } else if (activeTab === "assigned-tasks") {
-          // Assigned Tasks tab
-          const userRoleLower = user?.role.toLowerCase();
-          if (userRoleLower === "admin") {
-            // Admin sees tasks assigned to others in the clinic
-            if (t.assignedTo === user?.id) return false;
-          } else {
-            // Staff/Dentist sees tasks assigned to them by someone else
+          // Assigned Tasks tab: hide private tasks
+          if (isPrivateTask) return false;
+
+          const userRoleLower = user?.role?.toLowerCase();
+          if (userRoleLower !== "admin") {
+            // Staff/Dentist sees tasks assigned to them, assigned to their role/all, or assigned by them to others
             const isExplicitlyAssignedToMe = t.assignedTo === user?.id;
-            const isAssignedToMyRoleOrAll = !t.assignedTo && 
+            const isAssignedToMyRoleOrAll = !t.assignedTo &&
               (t.role?.toLowerCase() === "all" || t.role?.toLowerCase() === userRoleLower);
-            
-            if (!(isExplicitlyAssignedToMe || isAssignedToMyRoleOrAll) || t.assignedBy === user?.id) {
+            const isAssignedByMe = t.assignedBy === user?.id;
+
+            if (!isExplicitlyAssignedToMe && !isAssignedToMyRoleOrAll && !isAssignedByMe) {
               return false;
             }
           }
         } else {
           // "all-tasks" (Admin only)
-          // Shows all tasks (non-admin private tasks are already filtered out by Rule 1 above)
-          const userRoleLower = user?.role.toLowerCase();
+          if (isPrivateTask && t.assignedTo !== user?.id && t.assignedBy !== user?.id) return false;
+          const userRoleLower = user?.role?.toLowerCase();
           if (userRoleLower !== "admin") {
             const isExplicitlyAssignedToMe = t.assignedTo === user?.id;
-            const isAssignedToMyRoleOrAll = !t.assignedTo && 
+            const isAssignedToMyRoleOrAll = !t.assignedTo &&
               (t.role?.toLowerCase() === "all" || t.role?.toLowerCase() === userRoleLower);
-            if (!isExplicitlyAssignedToMe && !isAssignedToMyRoleOrAll && t.assignedBy !== user?.id) return false;
+            const isAssignedByMe = t.assignedBy === user?.id;
+            if (!isExplicitlyAssignedToMe && !isAssignedToMyRoleOrAll && !isAssignedByMe) return false;
           }
         }
       }
- 
+
       return matchSearch && matchStatus && matchPriority && matchRole && matchUser;
     });
   }, [tasks, search, filterStatus, filterPriority, roleFilter, userFilter, user, activeTab, staffOptions]);
@@ -282,7 +285,7 @@ export default function Tasks() {
 
   const handleAdd = async () => {
     if (!form.title) return;
-    
+
     let staff = null;
     let assignedToId = "";
     let roleName = form.role;
@@ -301,7 +304,7 @@ export default function Tasks() {
         roleName = form.role;
       }
     }
-    
+
     const token = localStorage.getItem("navadia_token");
     let proceed = false;
     let isOffline = false;
@@ -322,6 +325,7 @@ export default function Tasks() {
             priority: form.priority,
             dueDate: form.dueDate,
             isRecurring: form.isRecurring,
+            isPrivate: form.isPrivate,
             attachments
           })
         });
@@ -354,6 +358,7 @@ export default function Tasks() {
           createdAt: today,
           voiceNote: voiceNote || undefined,
           isRecurring: true,
+          isPrivate: false,
           completedDates: [],
           attachments: attachments
         };
@@ -364,9 +369,9 @@ export default function Tasks() {
           title: form.title,
           description: form.description,
           assignedTo: assignedToId,
-          assignedToName: staff 
-            ? staff.name 
-            : (roleName === "all" ? "All Staff" : `${roleName}s`),
+          assignedToName: staff
+            ? staff.name
+            : (roleName === "all" ? "All Team" : `${roleName}s`),
           assignedBy: user!.id,
           assignedByName: user!.name,
           priority: form.priority,
@@ -375,6 +380,7 @@ export default function Tasks() {
           createdAt: today,
           voiceNote: voiceNote || undefined,
           isRecurring: false,
+          isPrivate: form.isPrivate,
           completedDates: [],
           attachments: attachments
         };
@@ -497,7 +503,7 @@ export default function Tasks() {
 
   const handleUpdate = async () => {
     if (!editTask) return;
-    
+
     const token = localStorage.getItem("navadia_token");
     let proceed = false;
     let isOffline = false;
@@ -519,13 +525,14 @@ export default function Tasks() {
             status: editTask.status,
             dueDate: editTask.dueDate,
             isRecurring: editTask.isRecurring,
+            isPrivate: editTask.isPrivate,
             completedDate: new Date().toISOString().split("T")[0],
             attachments: editAttachments
           })
-         });
-         if (res.ok) {
-           proceed = true;
-         }
+        });
+        if (res.ok) {
+          proceed = true;
+        }
       } catch (e) {
         console.warn("Backend offline, fallback update:", e);
         proceed = true;
@@ -537,11 +544,11 @@ export default function Tasks() {
 
     if (proceed) {
       const assignee = allUsers.find(u => u.id === editTask.assignedTo);
-      const assignedToName = assignee 
-        ? assignee.name 
+      const assignedToName = assignee
+        ? assignee.name
         : (editTask.role === "all" ? "All Staff" : `${editTask.role}s`);
-      const newTasks = tasks.map((t) => t.id === editTask.id ? { 
-        ...editTask, 
+      const newTasks = tasks.map((t) => t.id === editTask.id ? {
+        ...editTask,
         assignedToName,
         voiceNote: voiceNote !== null ? voiceNote : t.voiceNote,
         attachments: editAttachments
@@ -656,8 +663,8 @@ export default function Tasks() {
           <Card key={t.id} className="hover:shadow-md hover:border-primary/20 transition-all cursor-pointer" onClick={() => setSelectedViewTask(t)}>
             <CardContent className="p-3 sm:p-4 flex flex-col h-full">
               <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleStatusChange(t.id, t.status === "completed" ? "pending" : "completed"); }} 
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleStatusChange(t.id, t.status === "completed" ? "pending" : "completed"); }}
                   className="mt-1 shrink-0"
                 >
                   {statusIcon(t.status)}
@@ -778,169 +785,169 @@ export default function Tasks() {
                     <Label>Description</Label>
                     <Textarea placeholder="Details about the task..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                   </div>
-                {!form.isPrivate && (
-                  <div className={canAssignOthers ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : "space-y-2"}>
-                    {canAssignOthers && (
+                  {!form.isPrivate && (
+                    <div className={canAssignOthers ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : "space-y-2"}>
+                      {canAssignOthers && (
+                        <div className="space-y-2">
+                          <Label>Assign by Role</Label>
+                          <Select value={form.role === "all" && form.isRecurring ? "Staff" : form.role} onValueChange={(v) => setForm({ ...form, role: v, assignedTo: "" })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {!form.isRecurring && <SelectItem value="all">All Team (Staff & Dentists)</SelectItem>}
+                              <SelectItem value="Dentist">Dentist</SelectItem>
+                              <SelectItem value="Staff">Staff</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="space-y-2">
-                        <Label>Assign by Role</Label>
-                        <Select value={form.role === "all" && form.isRecurring ? "Staff" : form.role} onValueChange={(v) => setForm({ ...form, role: v, assignedTo: "" })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                        <Label>Select Assignee</Label>
+                        <Select
+                          value={form.assignedTo || "all-role-members"}
+                          onValueChange={(v) => {
+                            if (v === "all-role-members") {
+                              setForm({ ...form, assignedTo: "" });
+                            } else {
+                              const selectedUser = allUsers.find(u => u.id === v);
+                              setForm({ ...form, assignedTo: v, role: selectedUser ? selectedUser.role : form.role });
+                            }
+                          }}
+                        >
+                          <SelectTrigger><SelectValue placeholder="All members (Default)" /></SelectTrigger>
                           <SelectContent>
-                            {!form.isRecurring && <SelectItem value="all">All Team (Staff & Dentists)</SelectItem>}
-                            <SelectItem value="Dentist">Dentist</SelectItem>
-                            <SelectItem value="Staff">Staff</SelectItem>
+                            <SelectItem value="all-role-members">All Role Members</SelectItem>
+                            {targetUsers.map((s) => (
+                              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
+                    </div>
+                  )}
+                  <div className={form.isRecurring ? "space-y-2" : "grid grid-cols-1 gap-4 sm:grid-cols-2"}>
                     <div className="space-y-2">
-                      <Label>Select Assignee</Label>
-                      <Select 
-                        value={form.assignedTo || "all-role-members"} 
-                        onValueChange={(v) => {
-                          if (v === "all-role-members") {
-                            setForm({ ...form, assignedTo: "" });
-                          } else {
-                            const selectedUser = allUsers.find(u => u.id === v);
-                            setForm({ ...form, assignedTo: v, role: selectedUser ? selectedUser.role : form.role });
-                          }
-                        }}
-                      >
-                        <SelectTrigger><SelectValue placeholder="All members (Default)" /></SelectTrigger>
+                      <Label>Priority</Label>
+                      <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v as Task["priority"] })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all-role-members">All Role Members</SelectItem>
-                          {targetUsers.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                          ))}
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                )}
-                <div className={form.isRecurring ? "space-y-2" : "grid grid-cols-1 gap-4 sm:grid-cols-2"}>
-                  <div className="space-y-2">
-                    <Label>Priority</Label>
-                    <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v as Task["priority"] })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {!form.isRecurring && (
-                    <div className="space-y-2">
-                      <Label className="block mb-1.5">Due Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "group w-full min-w-0 justify-start overflow-hidden text-left font-normal h-10 rounded-xl border-muted bg-[#f5f5f4] text-[#1c1917] hover:bg-[#e7b008] hover:text-white transition-all",
-                              !form.dueDate && "text-muted-foreground hover:text-white"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4 text-[#e7b008] group-hover:text-white transition-colors" />
-                            <span className="min-w-0 truncate">{form.dueDate ? format(parseISO(form.dueDate), "PPP") : "Pick a date"}</span>
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 rounded-xl shadow-lg border bg-popover z-[100]" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={form.dueDate ? parseISO(form.dueDate) : undefined}
-                            onSelect={(newDate) => {
-                              if (newDate) {
-                                const localDateStr = format(newDate, "yyyy-MM-dd");
-                                setForm({ ...form, dueDate: localDateStr });
-                              }
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Voice Instructions (Optional)</Label>
-                  <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
-                    {!isRecording && !voiceNote && (
-                      <Button type="button" size="sm" onClick={startRecording}><Mic className="h-4 w-4 mr-1.5" /> Record</Button>
-                    )}
-                    {isRecording && (
-                      <Button type="button" variant="destructive" size="sm" onClick={stopRecording} className="animate-pulse"><Square className="h-4 w-4 mr-1.5" /> Stop</Button>
-                    )}
-                    {voiceNote && (
-                      <div className="flex items-center gap-2 w-full">
-                        <audio src={voiceNote} className="h-6 w-full max-w-[200px]" controls />
-                        <Button type="button" variant="outline" size="sm" onClick={() => setVoiceNote(null)}>Clear</Button>
+                    {!form.isRecurring && (
+                      <div className="space-y-2">
+                        <Label className="block mb-1.5">Due Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "group w-full min-w-0 justify-start overflow-hidden text-left font-normal h-10 rounded-xl border-muted bg-[#f5f5f4] text-[#1c1917] hover:bg-[#e7b008] hover:text-white transition-all",
+                                !form.dueDate && "text-muted-foreground hover:text-white"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4 text-[#e7b008] group-hover:text-white transition-colors" />
+                              <span className="min-w-0 truncate">{form.dueDate ? format(parseISO(form.dueDate), "PPP") : "Pick a date"}</span>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 rounded-xl shadow-lg border bg-popover z-[100]" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={form.dueDate ? parseISO(form.dueDate) : undefined}
+                              onSelect={(newDate) => {
+                                if (newDate) {
+                                  const localDateStr = format(newDate, "yyyy-MM-dd");
+                                  setForm({ ...form, dueDate: localDateStr });
+                                }
+                              }}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     )}
-                    <span className="text-sm text-muted-foreground">{isRecording ? "Recording..." : voiceNote ? "Voice note captured" : "No recording"}</span>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label>Attachments (Optional)</Label>
-                  <div className="flex items-center gap-3 p-3 border rounded-xl bg-muted/30">
-                    <Input
-                      type="file"
-                      multiple
-                      onChange={(e) => {
-                        if (!e.target.files) return;
-                        const filesArray = Array.from(e.target.files);
-                        filesArray.forEach((file) => {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setAttachments((prev) => [
-                              ...prev,
-                              {
-                                name: file.name,
-                                mimeType: file.type,
-                                dataUrl: reader.result as string
-                              }
-                            ]);
-                          };
-                          reader.readAsDataURL(file);
-                        });
-                      }}
-                      className="hidden"
-                      id="task-file-upload"
-                    />
-                    <Label
-                      htmlFor="task-file-upload"
-                      className="inline-flex items-center justify-center rounded-xl text-sm font-medium border border-muted bg-[#f5f5f4] text-[#1c1917] hover:bg-[#e7b008] hover:text-white transition-all h-10 px-4 cursor-pointer"
-                    >
-                      Choose Files
-                    </Label>
-                    <span className="text-xs text-muted-foreground">Images, PDFs, documents...</span>
-                  </div>
-                  {attachments.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {attachments.map((file, idx) => (
-                        <div key={idx} className="flex items-center justify-between border p-2 rounded-xl bg-muted/40 text-xs">
-                          <span className="truncate max-w-[120px]">{file.name}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                            onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
-                          >
-                            ×
-                          </Button>
+                  <div className="space-y-2">
+                    <Label>Voice Instructions (Optional)</Label>
+                    <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
+                      {!isRecording && !voiceNote && (
+                        <Button type="button" size="sm" onClick={startRecording}><Mic className="h-4 w-4 mr-1.5" /> Record</Button>
+                      )}
+                      {isRecording && (
+                        <Button type="button" variant="destructive" size="sm" onClick={stopRecording} className="animate-pulse"><Square className="h-4 w-4 mr-1.5" /> Stop</Button>
+                      )}
+                      {voiceNote && (
+                        <div className="flex items-center gap-2 w-full">
+                          <audio src={voiceNote} className="h-6 w-full max-w-[200px]" controls />
+                          <Button type="button" variant="outline" size="sm" onClick={() => setVoiceNote(null)}>Clear</Button>
                         </div>
-                      ))}
+                      )}
+                      <span className="text-sm text-muted-foreground">{isRecording ? "Recording..." : voiceNote ? "Voice note captured" : "No recording"}</span>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                <Button onClick={handleAdd} className="w-full" disabled={!form.title}>Create Task</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+                  <div className="space-y-2">
+                    <Label>Attachments (Optional)</Label>
+                    <div className="flex items-center gap-3 p-3 border rounded-xl bg-muted/30">
+                      <Input
+                        type="file"
+                        multiple
+                        onChange={(e) => {
+                          if (!e.target.files) return;
+                          const filesArray = Array.from(e.target.files);
+                          filesArray.forEach((file) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setAttachments((prev) => [
+                                ...prev,
+                                {
+                                  name: file.name,
+                                  mimeType: file.type,
+                                  dataUrl: reader.result as string
+                                }
+                              ]);
+                            };
+                            reader.readAsDataURL(file);
+                          });
+                        }}
+                        className="hidden"
+                        id="task-file-upload"
+                      />
+                      <Label
+                        htmlFor="task-file-upload"
+                        className="inline-flex items-center justify-center rounded-xl text-sm font-medium border border-muted bg-[#f5f5f4] text-[#1c1917] hover:bg-[#e7b008] hover:text-white transition-all h-10 px-4 cursor-pointer"
+                      >
+                        Choose Files
+                      </Label>
+                      <span className="text-xs text-muted-foreground">Images, PDFs, documents...</span>
+                    </div>
+                    {attachments.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {attachments.map((file, idx) => (
+                          <div key={idx} className="flex items-center justify-between border p-2 rounded-xl bg-muted/40 text-xs">
+                            <span className="truncate max-w-[120px]">{file.name}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                              onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <Button onClick={handleAdd} className="w-full" disabled={!form.title}>Create Task</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </div>
@@ -1062,7 +1069,7 @@ export default function Tasks() {
                   </Select>
                 </>
               )}
-              
+
               {/* Grid/Table Toggle - Hidden on mobile, shown on tablet+ */}
               <div className="hidden lg:flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
                 <Button
@@ -1110,16 +1117,16 @@ export default function Tasks() {
                   <Label>Description</Label>
                   <Textarea disabled={!canEditAllFields} placeholder="Details about the task..." value={editTask.description} onChange={(e) => setEditTask({ ...editTask, description: e.target.value })} />
                 </div>
-                
+
                 {!(editTask.assignedTo === editTask.assignedBy) && canAssignOthers && canEditAllFields && (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Assign by Role</Label>
-                      <Select 
-                        value={editTaskRoleFilter === "all" && editTask.isRecurring ? "Staff" : editTaskRoleFilter} 
-                        onValueChange={(v) => { 
-                          setEditTaskRoleFilter(v); 
-                          setEditTask({ ...editTask, role: v, assignedTo: "" }); 
+                      <Select
+                        value={editTaskRoleFilter === "all" && editTask.isRecurring ? "Staff" : editTaskRoleFilter}
+                        onValueChange={(v) => {
+                          setEditTaskRoleFilter(v);
+                          setEditTask({ ...editTask, role: v, assignedTo: "" });
                         }}
                       >
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1132,17 +1139,17 @@ export default function Tasks() {
                     </div>
                     <div className="space-y-2">
                       <Label>Select Assignee</Label>
-                      <Select 
-                        value={editTask.assignedTo || "all-role-members"} 
+                      <Select
+                        value={editTask.assignedTo || "all-role-members"}
                         onValueChange={(v) => {
                           if (v === "all-role-members") {
                             setEditTask({ ...editTask, assignedTo: "" });
                           } else {
                             const selectedUser = allUsers.find(u => u.id === v);
                             if (selectedUser) {
-                              setEditTask({ 
-                                ...editTask, 
-                                assignedTo: v, 
+                              setEditTask({
+                                ...editTask,
+                                assignedTo: v,
                                 role: selectedUser.role
                               });
                             }
@@ -1393,9 +1400,9 @@ export default function Tasks() {
               {/* Footer Actions */}
               <div className="flex justify-end gap-2 pt-2 border-t font-sans">
                 {(isAdmin || selectedViewTask.assignedBy === user?.id || selectedViewTask.assignedTo === user?.id) && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="h-9 px-4 rounded-xl font-medium"
                     onClick={() => {
                       const taskToEdit = selectedViewTask;
@@ -1406,8 +1413,8 @@ export default function Tasks() {
                     <Edit2 className="h-4 w-4 mr-1.5" /> Edit Task
                   </Button>
                 )}
-                <Button 
-                  className="h-9 px-4 rounded-xl font-medium bg-[#e7b008] hover:bg-[#c59606] text-white" 
+                <Button
+                  className="h-9 px-4 rounded-xl font-medium bg-[#e7b008] hover:bg-[#c59606] text-white"
                   onClick={() => setSelectedViewTask(null)}
                 >
                   Close

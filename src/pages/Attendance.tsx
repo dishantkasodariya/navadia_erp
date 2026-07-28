@@ -68,7 +68,11 @@ export default function Attendance() {
             checkIn: a.checkIn || null,
             checkOut: a.checkOut || null,
             breakTime: a.breakTime || 0,
-            status: (a.status || "Present").toLowerCase() === "on leave" ? "on-leave" : (a.status || "Present").toLowerCase(),
+            status: (a.status || "Present").toLowerCase() === "on leave" 
+              ? "on-leave" 
+              : (a.status || "Present").toLowerCase() === "half day" 
+              ? "half-day" 
+              : (a.status || "Present").toLowerCase(),
             notes: ""
           }));
         setRecords(mapped);
