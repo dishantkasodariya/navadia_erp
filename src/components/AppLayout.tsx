@@ -25,6 +25,18 @@ export function AppLayout() {
   const lastScrollY = useRef(0);
   const mainRef = useRef<HTMLElement>(null);
 
+  const [isMobileScreen, setIsMobileScreen] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 640 : false
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 639px)");
+    const onChange = (e: MediaQueryListEvent) => setIsMobileScreen(e.matches);
+    setIsMobileScreen(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       if (!mainRef.current) return;
@@ -77,7 +89,12 @@ export function AppLayout() {
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 p-2 bg-card/95 backdrop-blur-md border border-muted/50 shadow-2xl rounded-xl z-50">
+                <DropdownMenuContent
+                  align={isMobileScreen ? "center" : "end"}
+                  sideOffset={isMobileScreen ? 8 : 4}
+                  collisionPadding={16}
+                  className="mobile-dropdown-center w-[calc(100vw-2rem)] max-w-[380px] sm:max-w-none sm:w-80 p-2 bg-card/95 backdrop-blur-md border border-muted/50 shadow-2xl rounded-xl z-50"
+                >
                   <div className="flex items-center justify-between pb-2 border-b border-muted/30 mb-2 px-1">
                     <span className="font-serif font-semibold text-sm">Notifications</span>
                     {unreadCount > 0 && (
@@ -149,7 +166,7 @@ export function AppLayout() {
             </div>
           </header>
 
-          <main ref={mainRef} className="flex-1 overflow-auto p-4">
+          <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 min-w-0 max-w-full">
             <Outlet />
           </main>
         </div>

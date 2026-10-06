@@ -2,11 +2,19 @@ const express = require('express');
 const router = express.Router();
 const Appointment = require('../models/Appointment');
 const { verifyJWT } = require('../middleware/authMiddleware');
+const { validateObjectIdParam, pick, DATE_RE } = require('../middleware/security');
+
+router.param('id', validateObjectIdParam);
+
+const APPOINTMENT_FIELDS = ['time', 'duration', 'patient', 'patientId', 'procedure', 'dentist', 'dentistId', 'status', 'chair', 'date'];
 
 // Get appointments for a specific date
 router.get('/', verifyJWT, async (req, res) => {
   const { date } = req.query;
   try {
+    if (date !== undefined && (typeof date !== 'string' || !DATE_RE.test(date))) {
+      return res.status(400).json({ message: 'date must be in YYYY-MM-DD format' });
+    }
     const query = date ? { date } : {};
     const appointments = await Appointment.find(query);
     res.json(appointments);
@@ -18,7 +26,7 @@ router.get('/', verifyJWT, async (req, res) => {
 // Create appointment
 router.post('/', verifyJWT, async (req, res) => {
   try {
-    const appointment = new Appointment(req.body);
+    const appointment = new Appointment(pick(req.body, APPOINTMENT_FIELDS));
     const created = await appointment.save();
     res.status(201).json(created);
   } catch (error) {

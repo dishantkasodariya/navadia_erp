@@ -353,7 +353,7 @@ export default function Voicemail() {
         )}
       </div>
 
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
         <Card>
           <CardContent className="pt-4 text-center">
             <Phone className="h-5 w-5 mx-auto text-primary mb-1" />
@@ -368,7 +368,7 @@ export default function Voicemail() {
             <p className="text-xs text-muted-foreground">Unread</p>
           </CardContent>
         </Card>
-        <Card className="col-span-2 lg:col-span-1">
+        <Card>
           <CardContent className="pt-4 text-center">
             <Mic className="h-5 w-5 mx-auto text-secondary mb-1" />
             <p className="text-2xl font-bold">{messages.filter((m) => m.fromId === user?.id).length}</p>

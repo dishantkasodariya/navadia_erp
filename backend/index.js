@@ -6,19 +6,35 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const connectDB = require('./config/db');
 const User = require('./models/User');
+const { getJwtSecret, mongoSanitize } = require('./middleware/security');
 
 // Load env vars
 dotenv.config();
 
+// Fail fast if JWT secret is missing in production
+getJwtSecret();
+
 // Connect to database
 connectDB();
 
+// Allowed browser origins (comma-separated). Localhost is always allowed outside production.
+const allowedOrigins = (process.env.CORS_ORIGINS || 'https://smileflow-frontend.onrender.com')
+  .split(',').map(o => o.trim()).filter(Boolean);
+const corsOrigin = (origin, cb) => {
+  if (!origin) return cb(null, true); // same-origin, curl, mobile apps
+  if (allowedOrigins.includes(origin)) return cb(null, true);
+  if (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return cb(null, true);
+  return cb(null, false);
+};
+
 const app = express();
+app.disable('x-powered-by');
+app.set('trust proxy', 1); // correct req.ip behind Render/Vercel proxy (rate limiting)
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE']
+    origin: corsOrigin,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
   }
 });
 
@@ -32,7 +48,7 @@ io.use(async (socket, next) => {
     if (!token) {
       return next(new Error('Authentication error: No token provided'));
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'smileflow_secret');
+    const decoded = jwt.verify(token, getJwtSecret());
     const user = await User.findById(decoded.id).select('-password');
     if (!user) {
       return next(new Error('Authentication error: User not found'));
@@ -70,8 +86,10 @@ io.on('connection', (socket) => {
 });
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors({ origin: corsOrigin }));
+// Voice notes, voicemails and task attachments are sent as base64, so allow larger bodies.
+app.use(express.json({ limit: '10mb' }));
+app.use(mongoSanitize);
 
 // Share socket io and online users map with our routes
 app.use((req, res, next) => {
@@ -101,6 +119,28 @@ app.use('/api/audit-logs', require('./routes/auditLogRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Smile Flow API is running...');
+});
+
+// JSON 404 for unknown API routes
+app.use('/api', (req, res) => {
+  res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
+});
+
+// Central error handler (malformed JSON, payload too large, unexpected errors)
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ message: 'Malformed JSON in request body' });
+  }
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ message: 'Request body too large' });
+  }
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({ message: 'Internal server error' });
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
 });
 
 const PORT = process.env.PORT || 5000;

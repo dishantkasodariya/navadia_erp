@@ -13,8 +13,12 @@ dotenv.config();
 const LOCAL_URI = 'mongodb://127.0.0.1:27017';
 const DB_NAME = 'smileflow';
 
-// Destination: MongoDB Atlas
-const ATLAS_URI = process.env.MONGO_URI || 'mongodb://navadia:jatin%40navadiya@ac-itrfkya-shard-00-00.svkmbpx.mongodb.net:27017,ac-itrfkya-shard-00-01.svkmbpx.mongodb.net:27017,ac-itrfkya-shard-00-02.svkmbpx.mongodb.net:27017/smileflow?ssl=true&replicaSet=atlas-11lf7l-shard-0&authSource=admin&retryWrites=true&w=majority';
+// Destination: MongoDB Atlas (credentials must come from env, never from source code)
+const ATLAS_URI = process.env.MONGO_URI;
+if (!ATLAS_URI) {
+  console.error('MONGO_URI env var is required');
+  process.exit(1);
+}
 
 async function migrate() {
   console.log('🔄 Migration Started: Local MongoDB → MongoDB Atlas');

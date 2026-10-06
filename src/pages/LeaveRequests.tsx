@@ -232,7 +232,7 @@ export default function LeaveRequests() {
         const start = parseISO(r.startDate);
         const end = parseISO(r.endDate);
         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-          let current = new Date(start);
+          const current = new Date(start);
           while (current <= end) {
             bookedDates.push(new Date(current));
             current.setDate(current.getDate() + 1);
@@ -342,7 +342,7 @@ export default function LeaveRequests() {
         </Card>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input className="pl-9 text-sm" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />

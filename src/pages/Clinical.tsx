@@ -9,18 +9,18 @@ import { Save, ClipboardList, Stethoscope, Image as ImageIcon } from "lucide-rea
 export default function Clinical() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl">Clinical Records</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-xl sm:text-2xl">Clinical Records</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
             Patient: <span className="font-medium text-foreground">Rahul Sharma</span> (ID: #PT-8829)
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none">
             <ImageIcon className="h-4 w-4" /> View X-Rays
           </Button>
-          <Button size="sm" className="gap-2">
+          <Button size="sm" className="gap-2 flex-1 sm:flex-none">
             <Save className="h-4 w-4" /> Save Record
           </Button>
         </div>

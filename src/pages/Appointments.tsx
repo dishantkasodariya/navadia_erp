@@ -244,25 +244,27 @@ export default function Appointments() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl">Appointments</h1>
+          <h1 className="text-xl sm:text-2xl">Appointments</h1>
           <p className="text-sm text-muted-foreground mt-1">{displayDate} — Day View</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => changeDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <Button variant="outline" size="sm" onClick={() => setDate(new Date().toISOString().split("T")[0])}>Today</Button>
-          <Button variant="outline" size="icon" onClick={() => changeDate(1)}><ChevronRight className="h-4 w-4" /></Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => changeDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <Button variant="outline" size="sm" className="h-9" onClick={() => setDate(new Date().toISOString().split("T")[0])}>Today</Button>
+            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => changeDate(1)}><ChevronRight className="h-4 w-4" /></Button>
+          </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Appointment</Button>
+              <Button size="sm" className="h-9"><Plus className="h-4 w-4 mr-1" /> New Appointment</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[calc(100vw-2rem)] max-w-lg max-h-[calc(100svh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-xl">
               <DialogHeader><DialogTitle>Schedule Appointment</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-2">
                 <div className="space-y-2"><Label>Patient Name *</Label><Input placeholder="Patient Name" value={form.patient} onChange={(e) => setForm({ ...form, patient: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Procedure *</Label><Input placeholder="e.g. Root Canal" value={form.procedure} onChange={(e) => setForm({ ...form, procedure: e.target.value })} /></div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label>Dentist</Label>
                     <Select value={form.dentist} onValueChange={(v) => setForm({ ...form, dentist: v })}>
@@ -279,7 +281,7 @@ export default function Appointments() {
                     <Select value={form.time} onValueChange={(v) => setForm({ ...form, time: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{timeSlots.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label>Chair</Label>
                     <Select value={form.chair} onValueChange={(v) => setForm({ ...form, chair: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1">Chair 1</SelectItem><SelectItem value="2">Chair 2</SelectItem><SelectItem value="3">Chair 3</SelectItem></SelectContent></Select>
@@ -298,14 +300,15 @@ export default function Appointments() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex gap-4 text-sm">
+          <div className="flex gap-2 sm:gap-4 text-sm flex-wrap">
             {["Chair 1", "Chair 2", "Chair 3"].map((chair) => (
               <Badge key={chair} variant="outline" className="font-normal">{chair}</Badge>
             ))}
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-[60px_1fr_1fr_1fr] gap-px bg-border rounded-lg overflow-hidden">
+        <CardContent className="p-2 sm:p-6">
+          <div className="overflow-x-auto w-full">
+            <div className="grid grid-cols-[60px_1fr_1fr_1fr] gap-px bg-border rounded-lg overflow-hidden min-w-[580px]">
             <div className="bg-muted p-2 text-xs font-medium text-muted-foreground">Time</div>
             {["Chair 1", "Chair 2", "Chair 3"].map((c) => (
               <div key={c} className="bg-muted p-2 text-xs font-medium text-center text-muted-foreground">{c}</div>
@@ -349,6 +352,7 @@ export default function Appointments() {
                 </React.Fragment>
               );
             })}
+          </div>
           </div>
         </CardContent>
       </Card>

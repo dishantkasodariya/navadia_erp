@@ -1,8 +1,10 @@
 // Migration Script: Local "Dentist" DB → Atlas "smileflow" DB
 // Run with mongosh
 
-const LOCAL_URI = 'mongodb://localhost:27017/Dentist';
-const ATLAS_URI = 'mongodb+srv://navadia:jatin%40navadiya@navadia.svkmbpx.mongodb.net/smileflow';
+const LOCAL_URI = process.env.LOCAL_URI || 'mongodb://localhost:27017/Dentist';
+// Never hardcode credentials. Usage: ATLAS_URI="mongodb+srv://..." mongosh --file migrate-mongosh.js
+const ATLAS_URI = process.env.ATLAS_URI;
+if (!ATLAS_URI) { print('ATLAS_URI env var is required'); quit(1); }
 
 print('🔄 Migration: Local "Dentist" DB → Atlas "smileflow" DB');
 print('━'.repeat(55));

@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Voicemail = require('../models/Voicemail');
 const { verifyJWT, checkRole } = require('../middleware/authMiddleware');
+const { validateObjectIdParam, isAdmin } = require('../middleware/security');
+
+router.param('id', validateObjectIdParam);
 
 // Get all voicemails (filtered by user if not Admin)
 router.get('/', verifyJWT, async (req, res) => {
@@ -41,11 +44,14 @@ router.post('/', verifyJWT, checkRole('Admin'), async (req, res) => {
   }
 });
 
-// Delete voicemail
+// Delete voicemail (Admin, or the user it was assigned to directly)
 router.delete('/:id', verifyJWT, async (req, res) => {
   try {
     const voicemail = await Voicemail.findById(req.params.id);
     if (voicemail) {
+      if (!isAdmin(req.user) && voicemail.assignedTo !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to delete this voicemail' });
+      }
       await voicemail.deleteOne();
       res.json({ message: 'Voicemail removed' });
     } else {

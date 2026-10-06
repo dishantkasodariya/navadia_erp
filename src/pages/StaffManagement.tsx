@@ -444,46 +444,66 @@ export default function StaffManagement() {
 
   const renderAttendanceHistory = () => {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="bg-emerald-500/5 border border-emerald-500/10 p-3 text-center">
-            <p className="text-[10px] text-emerald-600 font-bold uppercase">Present Days</p>
-            <p className="text-xl font-extrabold text-emerald-600 mt-1">{stats.present}</p>
+      <div className="space-y-4 sm:space-y-6 w-full min-w-0">
+        {/* Uniform Clean Stats Cards (Fixed same height, not big, not small) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full min-w-0">
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Present Days</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{stats.present}</p>
           </Card>
-          <Card className="bg-red-500/5 border border-red-500/10 p-3 text-center">
-            <p className="text-[10px] text-red-500 font-bold uppercase">Absent Days</p>
-            <p className="text-xl font-extrabold text-red-500 mt-1">{stats.absent}</p>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Absent Days</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{stats.absent}</p>
           </Card>
-          <Card className="bg-amber-500/5 border border-amber-500/10 p-3 text-center">
-            <p className="text-[10px] text-amber-600 font-bold uppercase">Late / Half Days</p>
-            <p className="text-xl font-extrabold text-amber-600 mt-1">{stats.late} / {stats.halfDay}</p>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Late / Half Days</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{stats.late} / {stats.halfDay}</p>
           </Card>
-          <Card className="bg-blue-500/5 border border-blue-500/10 p-3 text-center">
-            <p className="text-[10px] text-blue-600 font-bold uppercase">Avg Work Hours</p>
-            <p className="text-xl font-extrabold text-blue-600 mt-1">{stats.avgHours.toFixed(1)}h/day</p>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Avg Work Hours</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{stats.avgHours.toFixed(1)}h/day</p>
           </Card>
-          <Card className="bg-neutral-500/5 border border-neutral-500/10 p-3 text-center">
-            <p className="text-[10px] text-neutral-600 font-bold uppercase">Total Work Hours</p>
-            <p className="text-xl font-extrabold text-neutral-600 mt-1">{stats.totalHours.toFixed(1)}h</p>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Total Work Hours</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{stats.totalHours.toFixed(1)}h</p>
           </Card>
-          <Card className="bg-orange-500/5 border border-orange-500/10 p-3 text-center">
-            <p className="text-[10px] text-orange-600 font-bold uppercase">Total Break Hours</p>
-            <p className="text-xl font-extrabold text-orange-600 mt-1">{stats.breakHours.toFixed(1)}h</p>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Total Break Hours</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{stats.breakHours.toFixed(1)}h</p>
           </Card>
-          <Card className="bg-purple-500/5 border border-purple-500/10 p-3 text-center">
-            <p className="text-[10px] text-purple-600 font-bold uppercase">Outside Hours</p>
-            <p className="text-xl font-extrabold text-purple-600 mt-1">{stats.outsideHours.toFixed(1)}h</p>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Outside Hours</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{stats.outsideHours.toFixed(1)}h</p>
           </Card>
-          <Card className="bg-teal-500/5 border border-teal-500/10 p-3 text-center">
-            <p className="text-[10px] text-teal-600 font-bold uppercase">Last Active Date</p>
-            <p className="text-xs font-bold text-teal-600 mt-2">{stats.lastDate}</p>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Last Active Date</p>
+            </div>
+            <p className="text-sm sm:text-base font-bold text-foreground leading-none mt-1">{stats.lastDate}</p>
           </Card>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/20 p-4 rounded-xl border">
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        {/* Filter Controls with proper width and aligned buttons */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-muted/20 p-3 sm:p-4 rounded-xl border w-full min-w-0">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
             <Select value={timelineFilter} onValueChange={setTimelineFilter}>
-              <SelectTrigger className="h-9 text-xs w-[130px]"><SelectValue placeholder="Timeline" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-xs w-full sm:w-[135px] bg-background">
+                <SelectValue placeholder="Timeline" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Entire History</SelectItem>
                 <SelectItem value="today">Today</SelectItem>
@@ -495,10 +515,23 @@ export default function StaffManagement() {
               </SelectContent>
             </Select>
 
+            <Select value={logStatusFilter} onValueChange={setLogStatusFilter}>
+              <SelectTrigger className="h-9 text-xs w-full sm:w-[125px] bg-background">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="present">Present</SelectItem>
+                <SelectItem value="late">Late</SelectItem>
+                <SelectItem value="half-day">Half Day</SelectItem>
+                <SelectItem value="absent">Absent</SelectItem>
+              </SelectContent>
+            </Select>
+
             {timelineFilter === "month-year" && (
-              <>
+              <div className="col-span-2 flex items-center gap-2 w-full sm:w-auto">
                 <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="h-9 text-xs w-[100px]"><SelectValue placeholder="Month" /></SelectTrigger>
+                  <SelectTrigger className="h-9 text-xs flex-1 sm:w-[95px] bg-background"><SelectValue placeholder="Month" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Months</SelectItem>
                     <SelectItem value="01">Jan</SelectItem>
@@ -516,61 +549,56 @@ export default function StaffManagement() {
                   </SelectContent>
                 </Select>
                 <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="h-9 text-xs w-[90px]"><SelectValue placeholder="Year" /></SelectTrigger>
+                  <SelectTrigger className="h-9 text-xs flex-1 sm:w-[85px] bg-background"><SelectValue placeholder="Year" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Years</SelectItem>
                     <SelectItem value="2026">2026</SelectItem>
                     <SelectItem value="2025">2025</SelectItem>
                   </SelectContent>
                 </Select>
-              </>
-            )}
-
-            {timelineFilter === "custom" && (
-              <div className="flex items-center gap-1">
-                <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-9 text-xs w-[120px]" />
-                <span className="text-xs text-muted-foreground">to</span>
-                <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-9 text-xs w-[120px]" />
               </div>
             )}
 
-            <Select value={logStatusFilter} onValueChange={setLogStatusFilter}>
-              <SelectTrigger className="h-9 text-xs w-[120px]"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="present">Present</SelectItem>
-                <SelectItem value="late">Late</SelectItem>
-                <SelectItem value="half-day">Half Day</SelectItem>
-                <SelectItem value="absent">Absent</SelectItem>
-              </SelectContent>
-            </Select>
+            {timelineFilter === "custom" && (
+              <div className="col-span-2 flex items-center gap-1 w-full sm:w-auto">
+                <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-9 text-xs flex-1 sm:w-[120px] bg-background" />
+                <span className="text-xs text-muted-foreground">to</span>
+                <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-9 text-xs flex-1 sm:w-[120px] bg-background" />
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <Button size="sm" variant="outline" onClick={handlePrint} className="h-9 text-xs gap-1"><Printer className="h-3 w-3" /> Print</Button>
-            <Button size="sm" variant="outline" onClick={exportToCSV} className="h-9 text-xs gap-1"><FileDown className="h-3 w-3" /> Excel</Button>
-            <Button size="sm" onClick={handleOpenAddLog} className="h-9 text-xs gap-1 bg-secondary hover:bg-secondary/90"><PlusCircle className="h-3 w-3" /> Add Log</Button>
+          <div className="grid grid-cols-3 sm:flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button size="sm" variant="outline" onClick={handlePrint} className="h-9 text-xs gap-1 px-2.5 sm:px-3 bg-background font-medium">
+              <Printer className="h-3.5 w-3.5" /> Print
+            </Button>
+            <Button size="sm" variant="outline" onClick={exportToCSV} className="h-9 text-xs gap-1 px-2.5 sm:px-3 bg-background font-medium">
+              <FileDown className="h-3.5 w-3.5" /> Excel
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleOpenAddLog} className="h-9 text-xs gap-1 px-2.5 sm:px-3 bg-primary/10 text-primary border-primary/30 hover:bg-primary hover:text-primary-foreground font-semibold">
+              <PlusCircle className="h-3.5 w-3.5" /> Add Log
+            </Button>
           </div>
         </div>
 
         {editingLogId && (
-          <Card className="p-4 border-secondary/30 bg-secondary/5 grid grid-cols-1 sm:grid-cols-5 gap-3 items-end">
+          <Card className="p-3 sm:p-4 border-primary/30 bg-muted/20 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-end w-full min-w-0">
             <div className="space-y-1">
               <Label className="text-[11px] font-bold">Date</Label>
-              <Input type="date" value={logDate} disabled={editingLogId !== "new"} onChange={(e) => setLogDate(e.target.value)} className="h-9 text-xs" />
+              <Input type="date" value={logDate} disabled={editingLogId !== "new"} onChange={(e) => setLogDate(e.target.value)} className="h-9 text-xs bg-background" />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px] font-bold">Check-In</Label>
-              <Input type="text" placeholder="09:00" value={logCheckIn} onChange={(e) => setLogCheckIn(e.target.value)} className="h-9 text-xs font-mono" />
+              <Input type="text" placeholder="09:00" value={logCheckIn} onChange={(e) => setLogCheckIn(e.target.value)} className="h-9 text-xs font-mono bg-background" />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px] font-bold">Check-Out</Label>
-              <Input type="text" placeholder="17:00" value={logCheckOut} onChange={(e) => setLogCheckOut(e.target.value)} className="h-9 text-xs font-mono" />
+              <Input type="text" placeholder="17:00" value={logCheckOut} onChange={(e) => setLogCheckOut(e.target.value)} className="h-9 text-xs font-mono bg-background" />
             </div>
             <div className="space-y-1">
               <Label className="text-[11px] font-bold">Status</Label>
               <Select value={logStatus} onValueChange={setLogStatus}>
-                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 text-xs bg-background"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Present">Present</SelectItem>
                   <SelectItem value="Late">Late</SelectItem>
@@ -579,15 +607,83 @@ export default function StaffManagement() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button size="sm" variant="outline" className="h-9 text-xs flex-1" onClick={() => setEditingLogId(null)}>Cancel</Button>
-              <Button size="sm" className="h-9 text-xs flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={handleSaveLog}>Save</Button>
+            <div className="flex gap-2 justify-end sm:col-span-2 md:col-span-1">
+              <Button size="sm" variant="outline" className="h-9 text-xs flex-1 bg-background" onClick={() => setEditingLogId(null)}>Cancel</Button>
+              <Button size="sm" className="h-9 text-xs flex-1 bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleSaveLog}>Save</Button>
             </div>
           </Card>
         )}
 
-        <div className="rounded-lg border">
-          <Table>
+        {/* Mobile View: Clean Responsive Cards */}
+        <div className="sm:hidden space-y-2.5 w-full min-w-0">
+          {isHistLoading ? (
+            <div className="p-6 text-center text-xs text-muted-foreground">Loading logs...</div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="p-6 text-center text-xs text-muted-foreground border rounded-xl bg-muted/10">
+              No attendance logs found matching filters
+            </div>
+          ) : (
+            filteredLogs.map((r, i) => {
+              const durationVal = calculateDuration(r.checkIn, r.checkOut);
+              const netDurationVal = Math.max(0, durationVal - (r.breakTime || 0) / 60);
+              const formattedDurationStr = r.checkIn && r.checkOut ? formatDuration(netDurationVal) : "—";
+              
+              let badgeClass = "bg-muted text-muted-foreground";
+              if (r.status === "Present") badgeClass = "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400 border-emerald-200/50";
+              else if (r.status === "Late") badgeClass = "bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 border-amber-200/50";
+              else if (r.status === "Absent") badgeClass = "bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-400 border-red-200/50";
+              else if (r.status === "Half Day") badgeClass = "bg-primary/10 text-primary border-primary/20";
+              else if (r.status === "On Leave") badgeClass = "bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-400 border-blue-200/50";
+
+              return (
+                <div key={i} className="p-3 rounded-xl border bg-card shadow-xs space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-sm text-foreground">{r.date}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badgeClass}`}>
+                        {r.status}
+                      </span>
+                      {r.isApproved ? (
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-bold">Approved</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground">Pending</Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1.5 border-t border-border/40">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">Time In - Out</span>
+                      <span className="font-mono font-medium">{r.checkIn || "—"} to {r.checkOut || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">Work & Break</span>
+                      <span className="font-medium">{formattedDurationStr} {r.breakTime ? `(${r.breakTime}m brk)` : ""}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-1 pt-1.5 border-t border-border/40">
+                    {!r.isApproved && (
+                      <Button size="sm" variant="ghost" className="h-7 text-xs text-emerald-600 hover:text-emerald-700 gap-1 px-2" onClick={() => handleApproveAttendance(r._id)}>
+                        <Check className="h-3.5 w-3.5" /> Approve
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1 px-2" onClick={() => handleOpenEditLog(r)}>
+                      <Edit className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive gap-1 px-2" onClick={() => handleDeleteAttendance(r._id)}>
+                      <Trash className="h-3.5 w-3.5" /> Delete
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop / Tablet Table View */}
+        <div className="hidden sm:block rounded-lg border overflow-x-auto w-full min-w-0 max-w-full">
+          <Table className="min-w-[650px] w-full">
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
@@ -668,10 +764,86 @@ export default function StaffManagement() {
   };
 
   const renderOutsideClinicHistory = () => {
+    const totalMinutes = outsideLogs.reduce((acc, curr) => acc + (curr.duration || 0), 0);
+    const formatTimestamp = (ts: string) => {
+      if (!ts) return "—";
+      if (isNaN(Number(ts))) return ts;
+      return new Date(Number(ts)).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    };
+
     return (
-      <div className="space-y-4">
-        <div className="rounded-lg border">
-          <Table>
+      <div className="space-y-4 w-full min-w-0">
+        {/* Uniform Summary Cards (Fixed same height, not big, not small) */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full min-w-0">
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Total Outings</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{outsideLogs.length}</p>
+          </Card>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Total Outside Time</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{totalMinutes}m</p>
+          </Card>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Average Outing</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">
+              {outsideLogs.length > 0 ? Math.round(totalMinutes / outsideLogs.length) : 0}m
+            </p>
+          </Card>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Active Outings</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">
+              {outsideLogs.filter(l => !l.end).length}
+            </p>
+          </Card>
+        </div>
+
+        {/* Mobile View: Clean Responsive Cards */}
+        <div className="sm:hidden space-y-2.5 w-full min-w-0">
+          {outsideLogs.length === 0 ? (
+            <div className="p-6 text-center text-xs text-muted-foreground border rounded-xl bg-muted/10">
+              No stepped out clinic records found for this employee
+            </div>
+          ) : (
+            outsideLogs.map((log, i) => (
+              <div key={i} className="p-3 rounded-xl border bg-card shadow-xs space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-sm text-foreground">{log.date}</span>
+                  <Badge variant="outline" className="text-[10px] font-semibold">
+                    {log.duration ? `${log.duration} Minutes` : "In Progress"}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs pt-1.5 border-t border-border/40">
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Exit Time</span>
+                    <span className="font-mono font-medium">{formatTimestamp(log.start)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Return Time</span>
+                    <span className="font-mono font-medium">{formatTimestamp(log.end)}</span>
+                  </div>
+                </div>
+                {log.reason && (
+                  <div className="pt-1.5 border-t border-border/40 text-xs">
+                    <span className="text-muted-foreground block text-[10px]">Reason</span>
+                    <p className="font-medium text-foreground">{log.reason}</p>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop / Tablet Table View */}
+        <div className="hidden sm:block rounded-lg border overflow-x-auto w-full min-w-0 max-w-full">
+          <Table className="min-w-[550px] w-full">
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
@@ -687,22 +859,15 @@ export default function StaffManagement() {
                   <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No stepped out clinic records found for this employee</TableCell>
                 </TableRow>
               ) : (
-                outsideLogs.map((log, i) => {
-                  const formatTimestamp = (ts: string) => {
-                    if (!ts) return "—";
-                    if (isNaN(Number(ts))) return ts;
-                    return new Date(Number(ts)).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-                  };
-                  return (
-                    <TableRow key={i}>
-                      <TableCell className="font-semibold">{log.date}</TableCell>
-                      <TableCell className="font-mono text-xs">{formatTimestamp(log.start)}</TableCell>
-                      <TableCell className="font-mono text-xs">{formatTimestamp(log.end)}</TableCell>
-                      <TableCell className="font-bold text-orange-600">{log.duration ? `${log.duration} Minutes` : "In Progress"}</TableCell>
-                      <TableCell className="font-medium text-neutral-700">{log.reason}</TableCell>
-                    </TableRow>
-                  );
-                })
+                outsideLogs.map((log, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="font-semibold">{log.date}</TableCell>
+                    <TableCell className="font-mono text-xs">{formatTimestamp(log.start)}</TableCell>
+                    <TableCell className="font-mono text-xs">{formatTimestamp(log.end)}</TableCell>
+                    <TableCell className="font-bold">{log.duration ? `${log.duration} Minutes` : "In Progress"}</TableCell>
+                    <TableCell className="font-medium text-neutral-700">{log.reason}</TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
@@ -712,10 +877,79 @@ export default function StaffManagement() {
   };
 
   const renderAuditLogHistory = () => {
+    const updateCount = auditLogs.filter(l => l.action.toLowerCase().includes("update") || l.action.toLowerCase().includes("edit") || l.action.toLowerCase().includes("modify")).length;
+    const createCount = auditLogs.filter(l => l.action.toLowerCase().includes("create") || l.action.toLowerCase().includes("add")).length;
+
     return (
-      <div className="space-y-4">
-        <div className="rounded-lg border">
-          <Table>
+      <div className="space-y-4 w-full min-w-0">
+        {/* Uniform Summary Cards (Fixed same height, not big, not small) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full min-w-0">
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Total Logs</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{auditLogs.length}</p>
+          </Card>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Created</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{createCount}</p>
+          </Card>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Updated</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{updateCount}</p>
+          </Card>
+          <Card className="h-[78px] sm:h-[84px] bg-card border border-border/70 p-2 sm:p-2.5 text-center min-w-0 shadow-xs flex flex-col justify-center items-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center w-full">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center leading-tight">Deleted</p>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-foreground leading-none mt-1">{Math.max(0, auditLogs.length - createCount - updateCount)}</p>
+          </Card>
+        </div>
+
+        {/* Mobile View: Clean Responsive Cards */}
+        <div className="sm:hidden space-y-2.5 w-full min-w-0">
+          {auditLogs.length === 0 ? (
+            <div className="p-6 text-center text-xs text-muted-foreground border rounded-xl bg-muted/10">
+              No audit logs found for this employee
+            </div>
+          ) : (
+            auditLogs.map((log, i) => {
+              const dateStr = new Date(log.timestamp).toLocaleString();
+              return (
+                <div key={i} className="p-3 rounded-xl border bg-card shadow-xs space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge variant="outline" className="text-[10px] font-semibold">{log.action}</Badge>
+                    <span className="text-[11px] text-muted-foreground font-medium">{dateStr}</span>
+                  </div>
+                  <div className="text-xs pt-1.5 border-t border-border/40">
+                    <span className="text-muted-foreground block text-[10px]">Performed By</span>
+                    <span className="font-semibold text-foreground">{log.performedByName || "Admin"}</span>
+                  </div>
+                  <div className="text-xs pt-1 border-t border-border/40">
+                    <span className="text-muted-foreground block text-[10px]">Activity</span>
+                    <div className="mt-0.5">
+                      {log.previousValue && log.newValue ? (
+                        <span className="text-muted-foreground">Modified values: <span className="font-mono text-[10px] break-all">{log.newValue}</span></span>
+                      ) : log.newValue ? (
+                        <span className="text-muted-foreground">Created record</span>
+                      ) : (
+                        <span className="text-muted-foreground">Deleted record</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop / Tablet Table View */}
+        <div className="hidden sm:block rounded-lg border overflow-x-auto w-full min-w-0 max-w-full">
+          <Table className="min-w-[500px] w-full">
             <TableHeader>
               <TableRow>
                 <TableHead>Date & Time</TableHead>
@@ -1022,33 +1256,61 @@ export default function StaffManagement() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className={`${editId ? 'max-w-6xl' : 'max-w-xl'} w-[calc(100vw-2rem)] max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg p-4 sm:w-[calc(100vw-3rem)] sm:max-h-[calc(100svh-3rem)] sm:p-6 lg:w-full lg:max-h-[90vh]`}>
-          <DialogHeader>
-            <DialogTitle>{editId ? `Employee Dashboard: ${name}` : `Add New ${role}`}</DialogTitle>
+        <DialogContent className={`${editId ? 'sm:max-w-6xl' : 'sm:max-w-xl'} w-[calc(100vw-1.5rem)] sm:w-full max-h-[calc(100svh-2rem)] overflow-y-auto p-3.5 sm:p-6 rounded-xl`}>
+          <DialogHeader className="pr-8 text-left sm:text-left">
+            <DialogTitle className="text-base sm:text-lg font-bold font-sans truncate pr-2">
+              {editId ? `Employee Dashboard: ${name}` : `Add New ${role}`}
+            </DialogTitle>
           </DialogHeader>
           
           {editId ? (
-            <Tabs defaultValue="details" className="w-full mt-4">
-              <TabsList className="bg-muted/50 p-1 rounded-xl mb-4 flex flex-wrap gap-1">
-                <TabsTrigger value="details" className="text-xs">Profile Details</TabsTrigger>
-                <TabsTrigger value="history" className="text-xs">Attendance History</TabsTrigger>
-                <TabsTrigger value="outside" className="text-xs">Outside Clinic History</TabsTrigger>
-                <TabsTrigger value="audit" className="text-xs">Audit Trail</TabsTrigger>
-              </TabsList>
+            <Tabs defaultValue="details" className="w-full min-w-0 mt-3">
+              <div className="w-full px-1 sm:px-0 pb-1">
+                <TabsList className="grid grid-cols-4 w-full p-1.5 bg-muted/60 rounded-xl h-auto gap-1">
+                  <TabsTrigger
+                    value="details"
+                    className="h-9 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all flex items-center justify-center"
+                  >
+                    <span className="sm:hidden">Profile</span>
+                    <span className="hidden sm:inline">Profile Details</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="history"
+                    className="h-9 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all flex items-center justify-center"
+                  >
+                    <span className="sm:hidden">Attendance</span>
+                    <span className="hidden sm:inline">Attendance History</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="outside"
+                    className="h-9 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all flex items-center justify-center"
+                  >
+                    <span className="sm:hidden">Outside</span>
+                    <span className="hidden sm:inline">Outside Clinic History</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="audit"
+                    className="h-9 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground transition-all flex items-center justify-center"
+                  >
+                    <span className="sm:hidden">Audit</span>
+                    <span className="hidden sm:inline">Audit Trail</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
               
-              <TabsContent value="details" className="mt-2">
+              <TabsContent value="details" className="mt-3 min-w-0 w-full focus-visible:outline-none">
                 {renderEditForm()}
               </TabsContent>
               
-              <TabsContent value="history" className="mt-2">
+              <TabsContent value="history" className="mt-3 min-w-0 w-full focus-visible:outline-none">
                 {renderAttendanceHistory()}
               </TabsContent>
 
-              <TabsContent value="outside" className="mt-2">
+              <TabsContent value="outside" className="mt-3 min-w-0 w-full focus-visible:outline-none">
                 {renderOutsideClinicHistory()}
               </TabsContent>
 
-              <TabsContent value="audit" className="mt-2">
+              <TabsContent value="audit" className="mt-3 min-w-0 w-full focus-visible:outline-none">
                 {renderAuditLogHistory()}
               </TabsContent>
             </Tabs>
@@ -1136,7 +1398,7 @@ export default function StaffManagement() {
           {filtered.length === 0 ? (
             <div className="rounded-lg border bg-muted/20 py-8 text-center text-base text-muted-foreground">No staff members found</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filtered.map((member) => (
                 <div 
                   key={member.id} 

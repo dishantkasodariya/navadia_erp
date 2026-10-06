@@ -168,7 +168,10 @@ export default function DentistDashboard() {
     return R * c;
   };
 
-  const checkTodayStatus = (settings: any, userLeaves: any[]) => {
+  const checkTodayStatus = (settings: any, userLeaves: any[]): {
+    status: "Holiday" | "Weekend" | "Leave" | "Tour" | "Normal";
+    name?: string;
+  } => {
     const todayStr = new Date().toISOString().split("T")[0];
     const todayDateObj = new Date();
     
@@ -1101,30 +1104,30 @@ export default function DentistDashboard() {
             
             <div className="flex justify-between items-center py-2 text-center">
               {/* Total Tasks */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-neutral-800 dark:text-neutral-100 font-sans">{taskStats.total}</span>
-                <span className="text-xs text-muted-foreground mt-1 font-semibold">Total Tasks</span>
+              <div className="flex-1 min-w-0 flex flex-col items-center justify-center px-1">
+                <span className="text-2xl sm:text-3xl font-extrabold text-neutral-800 dark:text-neutral-100 font-sans">{taskStats.total}</span>
+                <span className="text-[11px] sm:text-xs text-muted-foreground mt-1 font-semibold truncate max-w-full">Total Tasks</span>
               </div>
               
               {/* Divider */}
-              <div className="w-[1px] h-10 bg-neutral-200/60 dark:bg-neutral-800" />
+              <div className="w-[1px] h-10 bg-neutral-200/60 dark:bg-neutral-800 shrink-0" />
               
               {/* Completed */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-emerald-500 font-sans">{taskStats.completed}</span>
-                <span className="text-xs text-muted-foreground mt-1 font-semibold flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Completed
+              <div className="flex-1 min-w-0 flex flex-col items-center justify-center px-1">
+                <span className="text-2xl sm:text-3xl font-extrabold text-emerald-500 font-sans">{taskStats.completed}</span>
+                <span className="text-[11px] sm:text-xs text-muted-foreground mt-1 font-semibold flex items-center justify-center gap-1 truncate max-w-full">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" /> <span className="truncate">Completed</span>
                 </span>
               </div>
               
               {/* Divider */}
-              <div className="w-[1px] h-10 bg-neutral-200/60 dark:bg-neutral-800" />
+              <div className="w-[1px] h-10 bg-neutral-200/60 dark:bg-neutral-800 shrink-0" />
               
               {/* Pending */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-orange-500 font-sans">{taskStats.pending}</span>
-                <span className="text-xs text-muted-foreground mt-1 font-semibold flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3 text-orange-500" /> Pending
+              <div className="flex-1 min-w-0 flex flex-col items-center justify-center px-1">
+                <span className="text-2xl sm:text-3xl font-extrabold text-orange-500 font-sans">{taskStats.pending}</span>
+                <span className="text-[11px] sm:text-xs text-muted-foreground mt-1 font-semibold flex items-center justify-center gap-1 truncate max-w-full">
+                  <AlertCircle className="h-3 w-3 text-orange-500 shrink-0" /> <span className="truncate">Pending</span>
                 </span>
               </div>
             </div>
@@ -1134,25 +1137,25 @@ export default function DentistDashboard() {
         {/* ── RIGHT COLUMN: ATTENDANCE STATS & SCHEDULE ── */}
         <div className="lg:col-span-2 space-y-6">
           {/* Today's Ticking Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-4 border shadow-sm flex flex-col justify-center items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <Card className="p-3.5 sm:p-4 border shadow-sm flex flex-col justify-center items-center">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Today's Working Time</span>
-              <span className="text-2xl font-extrabold text-primary font-mono tracking-tight">
+              <span className="text-xl sm:text-2xl font-extrabold text-primary font-mono tracking-tight">
                 {shift.status === "idle" ? "00h 00m 00s" : 
                  shift.status === "checked_out" ? formatMs(shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime) :
                  formatMs(elapsedActiveTime)}
               </span>
             </Card>
-            <Card className="p-4 border shadow-sm flex flex-col justify-center items-center">
+            <Card className="p-3.5 sm:p-4 border shadow-sm flex flex-col justify-center items-center">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Today's Break Time</span>
-              <span className="text-2xl font-extrabold text-amber-500 font-mono tracking-tight">
+              <span className="text-xl sm:text-2xl font-extrabold text-amber-500 font-mono tracking-tight">
                 {shift.status === "idle" ? "00h 00m 00s" : 
                  formatMs(shift.accumulatedBreakTime + (shift.status === "stepped_out" ? elapsedBreakTime : 0))}
               </span>
             </Card>
-            <Card className="p-4 border shadow-sm flex flex-col justify-center items-center">
+            <Card className="p-3.5 sm:p-4 border shadow-sm flex flex-col justify-center items-center">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Today's Overtime</span>
-              <span className="text-2xl font-black text-purple-600 font-mono tracking-tight">
+              <span className="text-xl sm:text-2xl font-black text-purple-600 font-mono tracking-tight">
                 {shift.status === "idle" ? "00h 00m 00s" : 
                  (shift.status === "checked_out" ? 
                    ((shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime) > 8 * 3600 * 1000 ? 
@@ -1164,42 +1167,42 @@ export default function DentistDashboard() {
           </div>
 
           {/* Monthly Attendance Breakdown Summary Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Present Days</span>
-              <span className="text-2xl font-black text-emerald-500 font-sans">{monthlySummary.presentDays}</span>
+              <span className="text-xl sm:text-2xl font-black text-emerald-500 font-sans">{monthlySummary.presentDays}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Absent Days</span>
-              <span className="text-2xl font-black text-red-500 font-sans">{monthlySummary.absentDays}</span>
+              <span className="text-xl sm:text-2xl font-black text-red-500 font-sans">{monthlySummary.absentDays}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Leave Days</span>
-              <span className="text-2xl font-black text-blue-500 font-sans">{monthlySummary.leaveDays}</span>
+              <span className="text-xl sm:text-2xl font-black text-blue-500 font-sans">{monthlySummary.leaveDays}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Tour Days</span>
-              <span className="text-2xl font-black text-purple-500 font-sans">{monthlySummary.tourDays}</span>
+              <span className="text-xl sm:text-2xl font-black text-purple-500 font-sans">{monthlySummary.tourDays}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Holidays</span>
-              <span className="text-2xl font-black text-amber-600 font-sans">{monthlySummary.holidayCount}</span>
+              <span className="text-xl sm:text-2xl font-black text-amber-600 font-sans">{monthlySummary.holidayCount}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Weekends</span>
-              <span className="text-2xl font-black text-neutral-500 font-sans">{monthlySummary.weekendCount}</span>
+              <span className="text-xl sm:text-2xl font-black text-neutral-500 font-sans">{monthlySummary.weekendCount}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Total Monthly Hours</span>
-              <span className="text-sm font-black text-foreground font-mono">{monthlySummary.totalHoursStr}</span>
+              <span className="text-xs sm:text-sm font-black text-foreground font-mono">{monthlySummary.totalHoursStr}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Average Daily Hours</span>
-              <span className="text-sm font-bold text-foreground font-mono">{monthlySummary.avgHoursStr}</span>
+              <span className="text-xs sm:text-sm font-bold text-foreground font-mono">{monthlySummary.avgHoursStr}</span>
             </div>
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm col-span-2 sm:col-span-1">
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm col-span-2 sm:col-span-1">
               <span className="text-xs font-bold text-primary font-serif tracking-normal mb-1.5 text-center">Attendance Percentage</span>
-              <span className="text-2xl font-extrabold text-primary font-sans">{monthlySummary.attendanceRate}%</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-primary font-sans">{monthlySummary.attendanceRate}%</span>
             </div>
           </div>
         </div>
@@ -1298,7 +1301,7 @@ export default function DentistDashboard() {
 
           {selectedDetailRecord && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 text-sm font-sans">
-              <div className="space-y-4 border-r border-neutral-100 dark:border-neutral-800 pr-0 md:pr-6">
+              <div className="space-y-4 border-b md:border-b-0 md:border-r border-neutral-100 dark:border-neutral-800 pb-4 md:pb-0 pr-0 md:pr-6">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-neutral-400 font-sans">Work Metrics</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-muted/40 p-3 rounded-xl text-center">
@@ -1327,27 +1330,27 @@ export default function DentistDashboard() {
               <div className="space-y-4">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-neutral-400 font-sans">Verification & Logs</h4>
                 <div className="space-y-2.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground font-medium font-sans">GPS Verification</span>
-                    <span className={`text-xs font-bold font-sans ${selectedDetailRecord.locationVerified !== false ? "text-emerald-600" : "text-red-500"}`}>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-medium font-sans shrink-0">GPS Verification</span>
+                    <span className={`text-xs font-bold font-sans text-right ${selectedDetailRecord.locationVerified !== false ? "text-emerald-600" : "text-red-500"}`}>
                       {selectedDetailRecord.locationVerified !== false ? "Verified Inside Geofence" : "Location Failed / Override"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground font-medium font-sans">Coordinates (In)</span>
-                    <span className="text-xs font-mono">{selectedDetailRecord.checkInLatitude ? `${selectedDetailRecord.checkInLatitude.toFixed(5)}, ${selectedDetailRecord.checkInLongitude?.toFixed(5)}` : "—"}</span>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-medium font-sans shrink-0">Coordinates (In)</span>
+                    <span className="text-xs font-mono text-right truncate">{selectedDetailRecord.checkInLatitude ? `${selectedDetailRecord.checkInLatitude.toFixed(5)}, ${selectedDetailRecord.checkInLongitude?.toFixed(5)}` : "—"}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground font-medium font-sans">Coordinates (Out)</span>
-                    <span className="text-xs font-mono">{selectedDetailRecord.checkOutLatitude ? `${selectedDetailRecord.checkOutLatitude.toFixed(5)}, ${selectedDetailRecord.checkOutLongitude?.toFixed(5)}` : "—"}</span>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-medium font-sans shrink-0">Coordinates (Out)</span>
+                    <span className="text-xs font-mono text-right truncate">{selectedDetailRecord.checkOutLatitude ? `${selectedDetailRecord.checkOutLatitude.toFixed(5)}, ${selectedDetailRecord.checkOutLongitude?.toFixed(5)}` : "—"}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground font-medium font-sans">IP Address</span>
-                    <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">{selectedDetailRecord.ipAddress || "—"}</span>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-medium font-sans shrink-0">IP Address</span>
+                    <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400 text-right truncate">{selectedDetailRecord.ipAddress || "—"}</span>
                   </div>
                   <div className="flex justify-between flex-col gap-1">
                     <span className="text-xs text-muted-foreground font-medium font-sans">Device & Browser Info</span>
-                    <span className="text-[10px] bg-muted/40 p-2 rounded-lg leading-relaxed text-neutral-500 block truncate max-w-full font-mono" title={selectedDetailRecord.deviceInfo || selectedDetailRecord.browserInfo}>
+                    <span className="text-[10px] bg-muted/40 p-2 rounded-lg leading-relaxed text-neutral-500 block truncate max-w-full font-mono break-all" title={selectedDetailRecord.deviceInfo || selectedDetailRecord.browserInfo}>
                       {selectedDetailRecord.deviceInfo || selectedDetailRecord.browserInfo || "—"}
                     </span>
                   </div>

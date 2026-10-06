@@ -273,31 +273,31 @@ export default function Patients() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl">Patients</h1>
+          <h1 className="text-xl sm:text-2xl">Patients</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage patient records and profiles</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport} className="flex-1 sm:flex-none">
             <Download className="h-4 w-4 mr-1" /> Export
           </Button>
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Patient</Button>
+              <Button size="sm" className="flex-1 sm:flex-none"><Plus className="h-4 w-4 mr-1" /> New Patient</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[calc(100vw-2rem)] max-w-lg max-h-[calc(100svh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-xl">
               <DialogHeader><DialogTitle>Register New Patient</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-2">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2"><Label>Full Name *</Label><Input placeholder="Patient Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
                   <div className="space-y-2"><Label>Phone *</Label><Input placeholder="+1 555-0100" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2"><Label>Email</Label><Input type="email" placeholder="sarah@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
                   <div className="space-y-2"><Label>Date of Birth</Label><Input type="date" value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })} /></div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label>Gender</Label>
                     <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Male">Male</SelectItem><SelectItem value="Female">Female</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent></Select>
@@ -320,13 +320,13 @@ export default function Patients() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="relative flex-1 max-w-full sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search by name, MRN, or phone..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[140px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="Active">Active</SelectItem>
@@ -336,7 +336,8 @@ export default function Patients() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow>
                 <TableHead>MRN</TableHead>
@@ -388,6 +389,7 @@ export default function Patients() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

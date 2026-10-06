@@ -11,16 +11,22 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChat } from "@/contexts/ChatContext";
-import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, CheckCircle2, Circle, Clock, AlertTriangle, Trash2, Edit2, Mic, Square, Calendar as CalendarIcon, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, CheckCircle2, Circle, Clock, AlertTriangle, Trash2, Edit2, Mic, Square, Calendar as CalendarIcon, LayoutGrid, List, ChevronDown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { useLocation } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 
 interface Attachment {
   name: string;
@@ -74,6 +80,17 @@ export default function Tasks() {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [selectedViewTask, setSelectedViewTask] = useState<Task | null>(null);
   const [taskMenuOpen, setTaskMenuOpen] = useState(false);
+  const [isMobileScreen, setIsMobileScreen] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 640 : false
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 639px)");
+    const onChange = (e: MediaQueryListEvent) => setIsMobileScreen(e.matches);
+    setIsMobileScreen(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
 
   const [form, setForm] = useState({ title: "", description: "", role: "all", assignedTo: "", priority: "medium" as Task["priority"], dueDate: today, isPrivate: false, isRecurring: false });
   const [activeTab, setActiveTab] = useState("assigned-tasks");
@@ -593,7 +610,7 @@ export default function Tasks() {
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm sm:text-base">
+            <table className="w-full text-sm sm:text-base min-w-[600px]">
               <thead>
                 <tr className="border-b bg-muted/30">
                   <th className="text-left p-2 sm:p-3 font-medium text-muted-foreground text-sm sm:text-base">Task</th>
@@ -729,7 +746,7 @@ export default function Tasks() {
                       <Plus className="h-4 w-4 mr-1" /> Add Task
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-56 p-2 flex flex-col gap-1 sm:hidden">
+                  <PopoverContent align="center" className="w-[calc(100vw-2rem)] max-w-xs p-2 flex flex-col gap-1 sm:hidden">
                     <Button variant="ghost" size="sm" className="justify-start w-full font-normal" onClick={() => { setTaskMenuOpen(false); setForm({ title: "", description: "", role: "all", assignedTo: "", priority: "medium", dueDate: today, isPrivate: false, isRecurring: false }); setDialogOpen(true); }}>
                       Assign Task to Others
                     </Button>
@@ -968,25 +985,27 @@ export default function Tasks() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:max-lg:flex-row md:max-lg:justify-between">
-          <TabsList>
-            <TabsTrigger value="assigned-tasks">Assigned Tasks</TabsTrigger>
-            <TabsTrigger value="repeating-tasks">Repeating Tasks</TabsTrigger>
-            <TabsTrigger value="private-tasks">Private Tasks</TabsTrigger>
-          </TabsList>
-          <div className="hidden md:max-lg:flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="w-full sm:w-auto overflow-x-auto no-scrollbar pb-1">
+            <TabsList className="inline-flex w-max min-w-full justify-start sm:w-auto h-auto p-1 flex-nowrap gap-1">
+              <TabsTrigger value="assigned-tasks" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3">Assigned Tasks</TabsTrigger>
+              <TabsTrigger value="repeating-tasks" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3">Repeating Tasks</TabsTrigger>
+              <TabsTrigger value="private-tasks" className="shrink-0 whitespace-nowrap text-xs sm:text-sm px-3">Private Tasks</TabsTrigger>
+            </TabsList>
+          </div>
+          <div className="hidden sm:flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20 shrink-0">
             <Button
               variant={viewMode === "grid" ? "secondary" : "ghost"}
-              size="icon"
-              className="h-9 w-24 rounded-md text-sm"
+              size="sm"
+              className="h-8 px-2.5 rounded-md text-xs sm:text-sm"
               onClick={() => setViewMode("grid")}
             >
               <LayoutGrid className="h-4 w-4 mr-1.5" /> Grid
             </Button>
             <Button
               variant={viewMode === "table" ? "secondary" : "ghost"}
-              size="icon"
-              className="h-9 w-24 rounded-md text-sm"
+              size="sm"
+              className="h-8 px-2.5 rounded-md text-xs sm:text-sm"
               onClick={() => setViewMode("table")}
             >
               <List className="h-4 w-4 mr-1.5" /> Table
@@ -997,28 +1016,28 @@ export default function Tasks() {
         <div className="mt-4 space-y-3 sm:space-y-4">
           {/* Search and Filters Row */}
           <div className="flex flex-col gap-3 sm:gap-4 md:max-lg:grid md:max-lg:grid-cols-[minmax(0,1fr)_auto] md:max-lg:items-start lg:flex-row lg:items-center">
-            {/* Search - Left on tablet+ */}
+            {/* Search */}
             <div className="relative flex-1 order-2 md:max-lg:order-1 lg:order-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input className="h-11 pl-9 text-sm lg:h-10" placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
 
-            {/* Filters and Toggle - Right on tablet+ */}
+            {/* Filters and Mobile Toggle */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:flex gap-2 sm:gap-3 items-stretch lg:items-center order-1 md:max-lg:order-2 md:max-lg:min-w-[340px] md:max-lg:justify-end lg:order-2 lg:justify-end">
-              {/* Grid/Table Toggle - Primary on mobile */}
-              <div className="flex md:hidden items-center gap-1 border rounded-lg p-0.5 bg-muted/20 w-full sm:col-span-2">
+              {/* Grid/Table Toggle - Mobile only */}
+              <div className="flex sm:hidden items-center gap-1 border rounded-lg p-0.5 bg-muted/20 w-full sm:col-span-2">
                 <Button
                   variant={viewMode === "grid" ? "secondary" : "ghost"}
-                  size="icon"
-                  className="h-9 w-full flex-1 rounded-md text-sm"
+                  size="sm"
+                  className="h-9 w-full flex-1 rounded-md text-xs"
                   onClick={() => setViewMode("grid")}
                 >
                   <LayoutGrid className="h-4 w-4 mr-1.5" /> Grid
                 </Button>
                 <Button
                   variant={viewMode === "table" ? "secondary" : "ghost"}
-                  size="icon"
-                  className="h-9 w-full flex-1 rounded-md text-sm"
+                  size="sm"
+                  className="h-9 w-full flex-1 rounded-md text-xs"
                   onClick={() => setViewMode("table")}
                 >
                   <List className="h-4 w-4 mr-1.5" /> Table
@@ -1069,26 +1088,6 @@ export default function Tasks() {
                   </Select>
                 </>
               )}
-
-              {/* Grid/Table Toggle - Hidden on mobile, shown on tablet+ */}
-              <div className="hidden lg:flex items-center gap-1 border rounded-lg p-0.5 bg-muted/20">
-                <Button
-                  variant={viewMode === "grid" ? "secondary" : "ghost"}
-                  size="icon"
-                  className="h-9 w-7 sm:w-8 rounded-md"
-                  onClick={() => setViewMode("grid")}
-                >
-                  <LayoutGrid className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "table" ? "secondary" : "ghost"}
-                  size="icon"
-                  className="h-9 w-7 sm:w-8 rounded-md"
-                  onClick={() => setViewMode("table")}
-                >
-                  <List className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
-                </Button>
-              </div>
             </div>
           </div>
 

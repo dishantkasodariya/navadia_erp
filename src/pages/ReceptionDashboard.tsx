@@ -1099,30 +1099,30 @@ export default function ReceptionDashboard() {
             
             <div className="flex justify-between items-center py-2 text-center">
               {/* Total Tasks */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-neutral-800 dark:text-neutral-100 font-sans">{taskStats.total}</span>
-                <span className="text-xs text-muted-foreground mt-1 font-semibold">Total Tasks</span>
+              <div className="flex-1 min-w-0 flex flex-col items-center justify-center px-1">
+                <span className="text-2xl sm:text-3xl font-extrabold text-neutral-800 dark:text-neutral-100 font-sans">{taskStats.total}</span>
+                <span className="text-[11px] sm:text-xs text-muted-foreground mt-1 font-semibold truncate max-w-full">Total Tasks</span>
               </div>
               
               {/* Divider */}
-              <div className="w-[1px] h-10 bg-neutral-200/60 dark:bg-neutral-800" />
+              <div className="w-[1px] h-10 bg-neutral-200/60 dark:bg-neutral-800 shrink-0" />
               
               {/* Completed */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-emerald-500 font-sans">{taskStats.completed}</span>
-                <span className="text-xs text-muted-foreground mt-1 font-semibold flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Completed
+              <div className="flex-1 min-w-0 flex flex-col items-center justify-center px-1">
+                <span className="text-2xl sm:text-3xl font-extrabold text-emerald-500 font-sans">{taskStats.completed}</span>
+                <span className="text-[11px] sm:text-xs text-muted-foreground mt-1 font-semibold flex items-center justify-center gap-1 truncate max-w-full">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" /> <span className="truncate">Completed</span>
                 </span>
               </div>
               
               {/* Divider */}
-              <div className="w-[1px] h-10 bg-neutral-200/60 dark:bg-neutral-800" />
+              <div className="w-[1px] h-10 bg-neutral-200/60 dark:bg-neutral-800 shrink-0" />
               
               {/* Pending */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-orange-500 font-sans">{taskStats.pending}</span>
-                <span className="text-xs text-muted-foreground mt-1 font-semibold flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3 text-orange-500" /> Pending
+              <div className="flex-1 min-w-0 flex flex-col items-center justify-center px-1">
+                <span className="text-2xl sm:text-3xl font-extrabold text-orange-500 font-sans">{taskStats.pending}</span>
+                <span className="text-[11px] sm:text-xs text-muted-foreground mt-1 font-semibold flex items-center justify-center gap-1 truncate max-w-full">
+                  <AlertCircle className="h-3 w-3 text-orange-500 shrink-0" /> <span className="truncate">Pending</span>
                 </span>
               </div>
             </div>
@@ -1151,25 +1151,25 @@ export default function ReceptionDashboard() {
         {/* ── RIGHT COLUMN: ATTENDANCE STATS & patient arrivals ── */}
         <div className="lg:col-span-2 space-y-6">
           {/* Today's Ticking Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-4 border shadow-sm flex flex-col justify-center items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <Card className="p-3.5 sm:p-4 border shadow-sm flex flex-col justify-center items-center">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Today's Working Time</span>
-              <span className="text-2xl font-extrabold text-primary font-mono tracking-tight">
+              <span className="text-xl sm:text-2xl font-extrabold text-primary font-mono tracking-tight">
                 {shift.status === "idle" ? "00h 00m 00s" : 
                  shift.status === "checked_out" ? formatMs(shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime) :
                  formatMs(elapsedActiveTime)}
               </span>
             </Card>
-            <Card className="p-4 border shadow-sm flex flex-col justify-center items-center">
+            <Card className="p-3.5 sm:p-4 border shadow-sm flex flex-col justify-center items-center">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Today's Break Time</span>
-              <span className="text-2xl font-extrabold text-amber-500 font-mono tracking-tight">
+              <span className="text-xl sm:text-2xl font-extrabold text-amber-500 font-mono tracking-tight">
                 {shift.status === "idle" ? "00h 00m 00s" : 
                  formatMs(shift.accumulatedBreakTime + (shift.status === "stepped_out" ? elapsedBreakTime : 0))}
               </span>
             </Card>
-            <Card className="p-4 border shadow-sm flex flex-col justify-center items-center">
+            <Card className="p-3.5 sm:p-4 border shadow-sm flex flex-col justify-center items-center">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Today's Overtime</span>
-              <span className="text-2xl font-black text-purple-600 font-mono tracking-tight">
+              <span className="text-xl sm:text-2xl font-black text-purple-600 font-mono tracking-tight">
                 {shift.status === "idle" ? "00h 00m 00s" : 
                  (shift.status === "checked_out" ? 
                    ((shift.checkOutTimestamp! - shift.checkInTimestamp! - shift.accumulatedBreakTime) > 8 * 3600 * 1000 ? 
@@ -1181,42 +1181,42 @@ export default function ReceptionDashboard() {
           </div>
 
           {/* Monthly Attendance Breakdown Summary Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Present Days</span>
-              <span className="text-2xl font-black text-emerald-500 font-sans">{monthlySummary.presentDays}</span>
+              <span className="text-xl sm:text-2xl font-black text-emerald-500 font-sans">{monthlySummary.presentDays}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Absent Days</span>
-              <span className="text-2xl font-black text-red-500 font-sans">{monthlySummary.absentDays}</span>
+              <span className="text-xl sm:text-2xl font-black text-red-500 font-sans">{monthlySummary.absentDays}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Leave Days</span>
-              <span className="text-2xl font-black text-blue-500 font-sans">{monthlySummary.leaveDays}</span>
+              <span className="text-xl sm:text-2xl font-black text-blue-500 font-sans">{monthlySummary.leaveDays}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Tour Days</span>
-              <span className="text-2xl font-black text-purple-500 font-sans">{monthlySummary.tourDays}</span>
+              <span className="text-xl sm:text-2xl font-black text-purple-500 font-sans">{monthlySummary.tourDays}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Holidays</span>
-              <span className="text-2xl font-black text-amber-600 font-sans">{monthlySummary.holidayCount}</span>
+              <span className="text-xl sm:text-2xl font-black text-amber-600 font-sans">{monthlySummary.holidayCount}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Weekends</span>
-              <span className="text-2xl font-black text-neutral-500 font-sans">{monthlySummary.weekendCount}</span>
+              <span className="text-xl sm:text-2xl font-black text-neutral-500 font-sans">{monthlySummary.weekendCount}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Total Monthly Hours</span>
-              <span className="text-sm font-black text-foreground font-mono">{monthlySummary.totalHoursStr}</span>
+              <span className="text-xs sm:text-sm font-black text-foreground font-mono">{monthlySummary.totalHoursStr}</span>
             </div>
-            <div className="bg-card text-card-foreground border rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+            <div className="bg-card text-card-foreground border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm">
               <span className="text-xs font-bold text-muted-foreground font-serif tracking-normal mb-1.5 text-center">Average Daily Hours</span>
-              <span className="text-sm font-bold text-foreground font-mono">{monthlySummary.avgHoursStr}</span>
+              <span className="text-xs sm:text-sm font-bold text-foreground font-mono">{monthlySummary.avgHoursStr}</span>
             </div>
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm col-span-2 sm:col-span-1">
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center shadow-sm col-span-2 sm:col-span-1">
               <span className="text-xs font-bold text-primary font-serif tracking-normal mb-1.5 text-center">Attendance Percentage</span>
-              <span className="text-2xl font-extrabold text-primary font-sans">{monthlySummary.attendanceRate}%</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-primary font-sans">{monthlySummary.attendanceRate}%</span>
             </div>
           </div>
 
@@ -1242,21 +1242,21 @@ export default function ReceptionDashboard() {
                   <p className="text-center text-muted-foreground text-sm py-8">No patient arrivals recorded for today.</p>
                 ) : (
                   checkIns.map((c, idx) => (
-                    <div key={idx} className="group flex items-center justify-between py-3.5 hover:bg-neutral-50/40 dark:hover:bg-neutral-900/40 transition-colors first:pt-0 last:pb-0">
-                      <div className="flex items-center gap-4">
-                        <div className="text-center shrink-0 w-14">
-                          <p className="text-sm font-sans font-bold text-neutral-700 dark:text-neutral-300">{c.time}</p>
+                    <div key={idx} className="group flex items-center justify-between gap-3 py-3.5 hover:bg-neutral-50/40 dark:hover:bg-neutral-900/40 transition-colors first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="text-center shrink-0 w-12 sm:w-14">
+                          <p className="text-xs sm:text-sm font-sans font-bold text-neutral-700 dark:text-neutral-300">{c.time}</p>
                         </div>
                         <div className="h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
                           {c.patient.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{c.patient}</p>
-                          <p className="text-xs text-muted-foreground">{c.procedure} · <span className="font-medium text-foreground">{c.dentist}</span></p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 truncate">{c.patient}</p>
+                          <p className="text-xs text-muted-foreground truncate">{c.procedure} · <span className="font-medium text-foreground">{c.dentist}</span></p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${statusBadge[c.status] || "bg-muted text-muted-foreground"}`}>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-[10px] font-semibold px-2 sm:px-2.5 py-1 rounded-full ${statusBadge[c.status] || "bg-muted text-muted-foreground"}`}>
                           {c.status}
                         </span>
                         <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
@@ -1363,7 +1363,7 @@ export default function ReceptionDashboard() {
 
           {selectedDetailRecord && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 text-sm font-sans">
-              <div className="space-y-4 border-r border-neutral-100 dark:border-neutral-800 pr-0 md:pr-6">
+              <div className="space-y-4 border-b md:border-b-0 md:border-r border-neutral-100 dark:border-neutral-800 pb-4 md:pb-0 pr-0 md:pr-6">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-neutral-400 font-sans">Work Metrics</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-muted/40 p-3 rounded-xl text-center">
@@ -1412,7 +1412,7 @@ export default function ReceptionDashboard() {
                   </div>
                   <div className="flex justify-between flex-col gap-1">
                     <span className="text-xs text-muted-foreground font-medium font-sans">Device & Browser Info</span>
-                    <span className="text-[10px] bg-muted/40 p-2 rounded-lg leading-relaxed text-neutral-500 block truncate max-w-full font-mono" title={selectedDetailRecord.deviceInfo || selectedDetailRecord.browserInfo}>
+                    <span className="text-[10px] bg-muted/40 p-2 rounded-lg leading-relaxed text-neutral-500 block truncate max-w-full font-mono break-all" title={selectedDetailRecord.deviceInfo || selectedDetailRecord.browserInfo}>
                       {selectedDetailRecord.deviceInfo || selectedDetailRecord.browserInfo || "—"}
                     </span>
                   </div>

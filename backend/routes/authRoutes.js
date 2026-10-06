@@ -3,63 +3,80 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { verifyJWT } = require('../middleware/authMiddleware');
+const { getJwtSecret, rateLimit, EMAIL_RE, escapeRegex } = require('../middleware/security');
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'smileflow_secret', {
-    expiresIn: '30d'
+  return jwt.sign({ id }, getJwtSecret(), {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
 };
 
-const ADMIN_NAMES = ["Dr. Jatin", "Dr. Dimpal", "Super Admin"];
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.LOGIN_RATE_LIMIT || 20),
+  message: 'Too many login attempts. Please try again in 15 minutes.'
+});
+
+const isNonEmptyString = (v) => typeof v === 'string' && v.trim().length > 0;
 
 // @desc    Register a new Admin user
-router.post('/signup', async (req, res) => {
-  const { name, email, password } = req.body;
+// Security: previously ANY visitor could become Admin by typing an admin's name.
+// Now signup is only allowed to bootstrap the very first admin, or when
+// ALLOW_ADMIN_SIGNUP=true is set explicitly. All other accounts are created by
+// an admin via POST /api/staff.
+router.post('/signup', authLimiter, async (req, res) => {
+  const { name, email, password } = req.body || {};
 
   try {
-    const userExists = await User.findOne({ email });
+    if (!isNonEmptyString(name) || !isNonEmptyString(email) || !isNonEmptyString(password)) {
+      return res.status(400).json({ message: 'Name, email and password are required' });
+    }
+    if (!EMAIL_RE.test(email) || name.length > 100 || password.length < 8 || password.length > 128) {
+      return res.status(400).json({ message: 'Invalid email, name (max 100 chars) or password (8-128 chars)' });
+    }
+
+    const adminCount = await User.countDocuments({ role: 'Admin' });
+    if (adminCount > 0 && process.env.ALLOW_ADMIN_SIGNUP !== 'true') {
+      return res.status(403).json({ message: 'Public signup is disabled. Ask an administrator to create your account.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    const trimmedName = name.trim();
-    const isAdminName = ADMIN_NAMES.some(n => n.toLowerCase() === trimmedName.toLowerCase());
-
-    if (!isAdminName) {
-      return res.status(403).json({ message: 'Only authorized administrators can sign up.' });
-    }
-
     const user = await User.create({
-      name: trimmedName,
-      email,
+      name: name.trim(),
+      email: normalizedEmail,
       password,
       role: 'Admin',
     });
 
-    if (user) {
-      res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user._id)
-      });
-    } else {
-      res.status(400).json({ message: 'Invalid user data' });
-    }
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id)
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Signup failed' });
   }
 });
 
 // @desc    Auth user & get token (unified login)
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+router.post('/login', authLimiter, async (req, res) => {
+  const { email, password } = req.body || {};
+
+  if (!isNonEmptyString(email) || !isNonEmptyString(password)) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: new RegExp(`^${escapeRegex(email.trim())}$`, 'i') });
 
-    if (user && (await user.comparePassword(password))) {
+    if (user && user.isActive !== false && (await user.comparePassword(password))) {
       res.json({
         _id: user._id,
         name: user.name,
@@ -104,6 +121,9 @@ router.put('/profile', verifyJWT, async (req, res) => {
     // Basic
     if (req.body.name) user.name = req.body.name;
     if (req.body.password) {
+      if (typeof req.body.password !== 'string' || req.body.password.length < 8) {
+        return res.status(400).json({ message: 'New password must be at least 8 characters' });
+      }
       if (!req.body.currentPassword) {
         return res.status(400).json({ message: 'Current password is required to change password' });
       }

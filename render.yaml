@@ -12,7 +12,9 @@ services:
       - key: MONGO_URI
         sync: false
       - key: JWT_SECRET
-        value: smileflow_secret_key_2025
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://smileflow-frontend.onrender.com
 
   # React Frontend (Static Site)
   - type: web

@@ -3,12 +3,34 @@ const router = express.Router();
 const User = require('../models/User');
 const mongoose = require('mongoose');
 const { verifyJWT, checkRole } = require('../middleware/authMiddleware');
+const { validateObjectIdParam, EMAIL_RE, isAdmin } = require('../middleware/security');
+
+router.param('id', validateObjectIdParam);
+
+// Fields that only Admins (or the user themself) may see
+const SENSITIVE_FIELDS = '-password -aadhaarNo -panNo -address -pincode -dateOfBirth -bloodGroup -emergencyContact -emergencyPhone -alternatePhone';
+const projectionFor = (req, targetId) =>
+  (isAdmin(req.user) || (targetId && targetId === req.user._id.toString())) ? '-password' : SENSITIVE_FIELDS;
+
+const validateStaffInput = (body, isCreate) => {
+  const { name, email, password } = body;
+  if (isCreate && (!name || !email || !password)) return 'Name, email and password are required';
+  if (name !== undefined && (typeof name !== 'string' || !name.trim() || name.length > 100)) return 'Name must be 1-100 characters';
+  if (email !== undefined && (typeof email !== 'string' || !EMAIL_RE.test(email))) return 'A valid email address is required';
+  if (password !== undefined && (typeof password !== 'string' || password.length < 8 || password.length > 128)) return 'Password must be 8-128 characters';
+  return null;
+};
 
 // Get all staff (Admins, Dentists, and Staff for chat directory)
 router.get('/', verifyJWT, checkRole('Admin', 'Dentist', 'Staff'), async (req, res) => {
   try {
-    const staff = await User.find().select('-password').sort({ name: 1 });
-    res.json(staff);
+    if (isAdmin(req.user)) {
+      return res.json(await User.find().select('-password').sort({ name: 1 }));
+    }
+    // Non-admins get a directory without personal identity documents
+    const staff = await User.find().select(SENSITIVE_FIELDS).sort({ name: 1 }).lean();
+    const me = await User.findById(req.user._id).select('-password').lean();
+    res.json(staff.map(u => (u._id.toString() === req.user._id.toString() ? me : u)));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -20,7 +42,7 @@ router.get('/:id', verifyJWT, checkRole('Admin', 'Dentist', 'Staff'), async (req
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(404).json({ message: 'Staff member not found' });
     }
-    const user = await User.findById(req.params.id).select('-password');
+    const user = await User.findById(req.params.id).select(projectionFor(req, req.params.id));
     if (user) {
       res.json(user);
     } else {
@@ -41,6 +63,11 @@ router.post('/', verifyJWT, checkRole('Admin'), async (req, res) => {
   } = req.body;
 
   try {
+    const validationError = validateStaffInput(req.body, true);
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
+
     if (aadhaarNo && !/^\d{12}$/.test(aadhaarNo)) {
       return res.status(400).json({ message: 'Aadhaar card must be exactly 12 digits' });
     }
@@ -109,6 +136,10 @@ router.put('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
   try {
     if (req.body.aadhaarNo && !/^\d{12}$/.test(req.body.aadhaarNo)) {
       return res.status(400).json({ message: 'Aadhaar card must be exactly 12 digits' });
+    }
+    const validationError = validateStaffInput({ name: req.body.name, email: req.body.email }, false);
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
     }
 
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -186,6 +217,9 @@ router.delete('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(404).json({ message: 'Staff member not found' });
+    }
+    if (req.params.id === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot delete your own account' });
     }
     const user = await User.findById(req.params.id);
     if (user) {

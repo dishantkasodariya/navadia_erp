@@ -4,6 +4,29 @@ const Attendance = require('../models/Attendance');
 const ClinicSetting = require('../models/ClinicSetting');
 const AuditLog = require('../models/AuditLog');
 const { verifyJWT } = require('../middleware/authMiddleware');
+const User = require('../models/User');
+const { validateObjectIdParam, isAdmin } = require('../middleware/security');
+const mongoose = require('mongoose');
+
+router.param('id', validateObjectIdParam);
+
+// Geofence is skipped only for local development, never based on the client-controlled Host header.
+const skipGeofence = () => process.env.NODE_ENV !== 'production' && process.env.ENFORCE_GEOFENCE_LOCALLY !== 'true';
+
+// Resolve whose attendance is being changed. Non-admins can only act on themselves.
+const resolveTarget = async (req) => {
+  const requested = req.body.userId;
+  if (isAdmin(req.user) && requested && requested !== req.user._id.toString()) {
+    if (!mongoose.Types.ObjectId.isValid(requested)) return { error: [400, 'Invalid userId'] };
+    const u = await User.findById(requested).select('name');
+    if (!u) return { error: [404, 'User not found'] };
+    return { userId: u._id, userName: u.name };
+  }
+  if (requested && requested !== req.user._id.toString()) {
+    return { error: [403, 'You can only record your own attendance'] };
+  }
+  return { userId: req.user._id, userName: req.user.name };
+};
 
 const logAudit = async (employeeId, employeeName, action, req, previousValue = '', newValue = '') => {
   try {
@@ -44,13 +67,13 @@ function getDistanceInMeters(lat1, lon1, lat2, lon2) {
 router.get('/', verifyJWT, async (req, res) => {
   const { userId, date } = req.query;
   let query = {};
-  if (userId) query.userId = userId;
-  if (date) query.date = date;
+  if (typeof userId === 'string' && userId) query.userId = userId;
+  if (typeof date === 'string' && date) query.date = date;
+  // Non-admins may only read their own attendance (contains GPS + IP data)
+  if (!isAdmin(req.user)) query.userId = req.user._id;
 
   try {
-    console.log('Fetching attendance with query:', query);
     const attendance = await Attendance.find(query).sort({ date: -1 });
-    console.log('Found records:', attendance.length);
     res.json(attendance);
   } catch (error) {
     console.error('Attendance fetch error:', error.message);
@@ -60,17 +83,19 @@ router.get('/', verifyJWT, async (req, res) => {
 
 // Mark attendance (Check-in)
 router.post('/check-in', verifyJWT, async (req, res) => {
-  const { userId, userName, date, checkIn, status, latitude, longitude, deviceInfo, browserInfo } = req.body;
-  console.log('📥 Check-in request:', { userId, userName, date, checkIn, status, latitude, longitude });
+  const { date, checkIn, status, latitude, longitude, deviceInfo, browserInfo } = req.body;
   try {
+    const target = await resolveTarget(req);
+    if (target.error) return res.status(target.error[0]).json({ message: target.error[1] });
+    const { userId, userName } = target;
+    if (!date) return res.status(400).json({ message: 'date is required' });
+
     // 1. Fetch clinic settings to check geofencing
     const settings = await ClinicSetting.findOne();
     let locationVerified = true;
 
-    const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1' || (req.headers.host && (req.headers.host.includes('localhost') || req.headers.host.includes('127.0.0.1')));
-
-    if (settings && settings.geofencingEnabled && req.user.role.toLowerCase() !== 'admin' && !isLocal) {
-      if (latitude === undefined || longitude === undefined) {
+    if (settings && settings.geofencingEnabled && !isAdmin(req.user) && !skipGeofence()) {
+      if (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude)) || latitude === null || longitude === null) {
         if (settings.gpsVerificationEnabled) {
           return res.status(400).json({ message: "GPS coordinates are required to verify location." });
         } else {
@@ -103,12 +128,9 @@ router.post('/check-in', verifyJWT, async (req, res) => {
       attendance.ipAddress = ipAddress;
       attendance.locationVerified = locationVerified;
       await attendance.save();
-      console.log('✅ Updated attendance saved to MongoDB:', attendance);
       await logAudit(attendance.userId.toString(), attendance.userName, 'Manual Check-In', req, oldRecord, attendance.toObject());
       return res.json(attendance);
     }
-    
-    console.log('🆕 Creating new attendance record');
     attendance = new Attendance({ 
       userId, 
       userName, 
@@ -123,7 +145,6 @@ router.post('/check-in', verifyJWT, async (req, res) => {
       locationVerified
     });
     await attendance.save();
-    console.log('✅ New attendance saved to MongoDB:', attendance);
     await logAudit(attendance.userId.toString(), attendance.userName, 'Attendance Created', req, '', attendance.toObject());
     res.status(201).json(attendance);
   } catch (error) {
@@ -134,17 +155,19 @@ router.post('/check-in', verifyJWT, async (req, res) => {
 
 // Check-out
 router.post('/check-out', verifyJWT, async (req, res) => {
-  const { userId, date, checkOut, status, breakTime, latitude, longitude, workingHours, overtime, breakCount, breaks } = req.body;
-  console.log('📤 Check-out request:', { userId, date, checkOut, status, breakTime, latitude, longitude });
+  const { date, checkOut, status, breakTime, latitude, longitude, workingHours, overtime, breakCount, breaks } = req.body;
   try {
+    const target = await resolveTarget(req);
+    if (target.error) return res.status(target.error[0]).json({ message: target.error[1] });
+    const { userId, userName } = target;
+    if (!date) return res.status(400).json({ message: 'date is required' });
+
     // 1. Fetch clinic settings to check geofencing
     const settings = await ClinicSetting.findOne();
     let locationVerified = true;
 
-    const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1' || (req.headers.host && (req.headers.host.includes('localhost') || req.headers.host.includes('127.0.0.1')));
-
-    if (settings && settings.geofencingEnabled && req.user.role.toLowerCase() !== 'admin' && !isLocal) {
-      if (latitude === undefined || longitude === undefined) {
+    if (settings && settings.geofencingEnabled && !isAdmin(req.user) && !skipGeofence()) {
+      if (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude)) || latitude === null || longitude === null) {
         if (settings.gpsVerificationEnabled) {
           return res.status(400).json({ message: "GPS coordinates are required to verify location." });
         } else {
@@ -164,9 +187,9 @@ router.post('/check-out', verifyJWT, async (req, res) => {
 
     let attendance = await Attendance.findOne({ userId, date });
     if (!attendance) {
-      console.log('🆕 Card not found, creating new record');
       attendance = new Attendance({ 
         userId, 
+        userName,
         date, 
         checkOut, 
         status: status || 'Present', 
@@ -179,16 +202,11 @@ router.post('/check-out', verifyJWT, async (req, res) => {
         breaks: breaks || [],
         locationVerified
       });
-      const User = require('../models/User');
-      const u = await User.findById(userId);
-      attendance.userName = u ? u.name : 'Staff';
       await attendance.save();
-      console.log('✅ New record saved on checkout:', attendance);
       await logAudit(attendance.userId.toString(), attendance.userName, 'Manual Check-Out', req, '', attendance.toObject());
       return res.json(attendance);
     }
     
-    console.log('✏️  Updating existing checkout record');
     const oldRecord = attendance.toObject();
     attendance.checkOut = checkOut;
     if (status) attendance.status = status;
@@ -202,7 +220,6 @@ router.post('/check-out', verifyJWT, async (req, res) => {
     attendance.locationVerified = locationVerified && attendance.locationVerified;
     
     await attendance.save();
-    console.log('✅ Checkout saved to MongoDB:', attendance);
     await logAudit(attendance.userId.toString(), attendance.userName, 'Manual Check-Out', req, oldRecord, attendance.toObject());
     res.json(attendance);
   } catch (error) {
@@ -213,9 +230,11 @@ router.post('/check-out', verifyJWT, async (req, res) => {
 
 // Record break updates
 router.post('/break', verifyJWT, async (req, res) => {
-  const { userId, date, status, breakTime, breakCount, breaks } = req.body;
+  const { date, status, breakTime, breakCount, breaks } = req.body;
   try {
-    let attendance = await Attendance.findOne({ userId, date });
+    const target = await resolveTarget(req);
+    if (target.error) return res.status(target.error[0]).json({ message: target.error[1] });
+    let attendance = await Attendance.findOne({ userId: target.userId, date });
     if (!attendance) {
       return res.status(404).json({ message: 'Attendance record not found' });
     }
@@ -227,7 +246,6 @@ router.post('/break', verifyJWT, async (req, res) => {
     if (breaks !== undefined) attendance.breaks = breaks;
 
     await attendance.save();
-    console.log('✅ Real-time break status saved to MongoDB:', attendance);
     await logAudit(attendance.userId.toString(), attendance.userName, 'Attendance Updated', req, oldRecord, attendance.toObject());
     res.json(attendance);
   } catch (error) {

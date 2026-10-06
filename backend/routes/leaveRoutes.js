@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const LeaveRequest = require('../models/LeaveRequest');
 const { verifyJWT, checkRole } = require('../middleware/authMiddleware');
+const { validateObjectIdParam, DATE_RE, isAdmin } = require('../middleware/security');
+
+router.param('id', validateObjectIdParam);
 
 // Helper to emit socket event
 const emitSocketEvent = (req, eventName, data, receiverId) => {
@@ -22,10 +25,11 @@ const emitSocketEvent = (req, eventName, data, receiverId) => {
   }
 };
 
-// Get all leave requests
+// Get leave requests (Admins: all; others: only their own)
 router.get('/', verifyJWT, async (req, res) => {
   try {
-    const requests = await LeaveRequest.find().sort({ createdAt: -1 });
+    const query = isAdmin(req.user) ? {} : { userId: req.user._id };
+    const requests = await LeaveRequest.find(query).sort({ createdAt: -1 });
     res.json(requests);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -34,9 +38,20 @@ router.get('/', verifyJWT, async (req, res) => {
 
 // Create leave request
 router.post('/', verifyJWT, async (req, res) => {
+  const { type, startDate, endDate, reason } = req.body;
   try {
+    if (!DATE_RE.test(String(startDate)) || !DATE_RE.test(String(endDate))) {
+      return res.status(400).json({ message: 'startDate and endDate must be YYYY-MM-DD' });
+    }
+    if (endDate < startDate) {
+      return res.status(400).json({ message: 'endDate cannot be before startDate' });
+    }
+    // status is intentionally NOT taken from the body (prevents self-approval)
     const request = new LeaveRequest({
-      ...req.body,
+      type,
+      startDate,
+      endDate,
+      reason: typeof reason === 'string' ? reason.slice(0, 1000) : undefined,
       userId: req.user._id,
       userName: req.user.name
     });

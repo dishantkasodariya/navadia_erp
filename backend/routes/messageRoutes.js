@@ -7,6 +7,19 @@ const { verifyJWT } = require('../middleware/authMiddleware');
 router.use(verifyJWT);
 
 const User = require('../models/User');
+const mongoose = require('mongoose');
+const { validateObjectIdParam } = require('../middleware/security');
+
+router.param('id', validateObjectIdParam);
+
+const BROADCAST_TARGETS = ['broadcast', 'broadcast_admin', 'broadcast_dentist', 'broadcast_staff'];
+const isValidReceiver = (r) => typeof r === 'string' && (BROADCAST_TARGETS.includes(r) || mongoose.Types.ObjectId.isValid(r));
+
+// Can this user read/act on a message addressed to `receiver`?
+const isRecipient = (user, receiver) => {
+  const role = user.role.toLowerCase();
+  return receiver === user._id.toString() || receiver === 'broadcast' || receiver === `broadcast_${role}`;
+};
 
 // Helper to broadcast socket event to recipient and sender
 const emitSocketEvent = async (req, eventName, data, receiverId, senderId) => {
@@ -20,7 +33,7 @@ const emitSocketEvent = async (req, eventName, data, receiverId, senderId) => {
   } else if (receiverId.startsWith('broadcast_')) {
     const targetRole = receiverId.replace('broadcast_', '');
     try {
-      const users = await User.find({ role: { $regex: new RegExp(`^${targetRole}$`, 'i') } });
+      const users = await User.find({ role: new RegExp(`^${targetRole.replace(/[^a-z]/gi, '')}$`, 'i') });
       const userIds = users.map(u => u._id.toString());
       
       // Emit to each online user of this role
@@ -86,6 +99,9 @@ router.post('/', async (req, res) => {
 
   if (!receiver) {
     return res.status(400).json({ message: 'Receiver is required' });
+  }
+  if (!isValidReceiver(receiver)) {
+    return res.status(400).json({ message: 'Receiver must be a user id or one of: ' + BROADCAST_TARGETS.join(', ') });
   }
 
   try {
@@ -198,6 +214,10 @@ router.put('/:id/read', async (req, res) => {
 
     if (!message) {
       return res.status(404).json({ message: 'Message not found' });
+    }
+
+    if (!isRecipient(req.user, message.receiver)) {
+      return res.status(403).json({ message: 'Only the recipient can mark this message as read' });
     }
 
     message.isRead = true;

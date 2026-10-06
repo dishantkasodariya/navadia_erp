@@ -32,19 +32,16 @@ const connectDB = async () => {
     const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smileflow');
     console.log(`MongoDB Connected: ${conn.connection.host}`);
 
-    // Seed default users if they don't already exist or update their password if changed
-    console.log('Checking and seeding default users...');
-    for (const u of DEFAULT_USERS) {
-      const exists = await User.findOne({ email: u.email });
-      if (!exists) {
-        console.log(`Seeding default user: ${u.email}`);
-        await User.create(u);
-      } else {
-        const isMatch = await exists.comparePassword(u.password);
-        if (!isMatch) {
-          console.log(`Updating password for user: ${u.email}`);
-          exists.password = u.password;
-          await exists.save();
+    // Seed default users ONLY when explicitly enabled, and ONLY if they don't exist.
+    // Existing passwords are never overwritten (previously every restart reset them
+    // to the weak, publicly-known defaults above).
+    if (process.env.SEED_DEFAULT_USERS === 'true') {
+      console.log('Seeding missing default users...');
+      for (const u of DEFAULT_USERS) {
+        const exists = await User.findOne({ email: u.email });
+        if (!exists) {
+          console.log(`Seeding default user: ${u.email}`);
+          await User.create(u);
         }
       }
     }
@@ -64,14 +61,8 @@ const connectDB = async () => {
         gpsVerificationEnabled: true,
         weekendDays: [0]
       });
-    } else {
-      console.log('Updating clinic settings coordinates for Katargam geofencing...');
-      settings.address = '29, Siddheshwar Society, Ved Rd, Opp. Swaminarayan Mandir, Dabholi Char Rasta, Gayatri Nagar, Katargam, Surat, Gujarat - 395004';
-      settings.latitude = 21.2301438;
-      settings.longitude = 72.8213966;
-      settings.gpsVerificationEnabled = true;
-      await settings.save();
     }
+    // Existing settings are left untouched so admin edits on the Settings page persist.
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);

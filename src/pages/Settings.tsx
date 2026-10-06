@@ -646,35 +646,37 @@ export default function Settings() {
 
                     <div className="space-y-3 pt-2">
                       <Label className="text-xs font-semibold text-muted-foreground">Yearly Clinic Holidays</Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Input
                           placeholder="Holiday Name (e.g. Diwali)"
                           value={newHolidayName}
                           onChange={(e) => setNewHolidayName(e.target.value)}
-                          className="h-10 text-xs"
+                          className="h-10 text-xs flex-1"
                         />
-                        <Input
-                          type="date"
-                          value={newHolidayDate}
-                          onChange={(e) => setNewHolidayDate(e.target.value)}
-                          className="h-10 text-xs"
-                        />
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            if (!newHolidayName || !newHolidayDate) {
-                              toast({ title: "Missing Fields", description: "Provide name and date.", variant: "destructive" });
-                              return;
-                            }
-                            setHolidays([...holidays, { name: newHolidayName, date: newHolidayDate }]);
-                            setNewHolidayName("");
-                            setNewHolidayDate("");
-                            toast({ title: "Holiday Added" });
-                          }}
-                          className="h-10 px-3 bg-primary"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Input
+                            type="date"
+                            value={newHolidayDate}
+                            onChange={(e) => setNewHolidayDate(e.target.value)}
+                            className="h-10 text-xs flex-1 sm:w-auto"
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              if (!newHolidayName || !newHolidayDate) {
+                                toast({ title: "Missing Fields", description: "Provide name and date.", variant: "destructive" });
+                                return;
+                              }
+                              setHolidays([...holidays, { name: newHolidayName, date: newHolidayDate }]);
+                              setNewHolidayName("");
+                              setNewHolidayDate("");
+                              toast({ title: "Holiday Added" });
+                            }}
+                            className="h-10 px-3 bg-primary shrink-0"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="max-h-40 overflow-y-auto border border-neutral-100 dark:border-neutral-800 rounded-xl divide-y">

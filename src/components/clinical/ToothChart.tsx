@@ -85,20 +85,22 @@ export function ToothChart() {
         <CardTitle className="text-lg">Interactive Tooth Chart</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col lg:flex-row gap-8 items-center justify-center">
-          <TooltipProvider>
-            <svg viewBox="0 0 600 200" className="w-full max-w-2xl h-auto">
-              {/* Upper Arch */}
-              {Array.from({ length: 16 }).map((_, i) => (
-                renderTooth(i + 1, 40 + i * 35, 60, true)
-              ))}
-              
-              {/* Lower Arch */}
-              {Array.from({ length: 16 }).map((_, i) => (
-                renderTooth(32 - i, 40 + i * 35, 140, false)
-              ))}
-            </svg>
-          </TooltipProvider>
+        <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 items-center justify-center w-full min-w-0">
+          <div className="w-full overflow-x-auto min-w-0 flex justify-center">
+            <TooltipProvider>
+              <svg viewBox="0 0 600 200" className="w-full min-w-[340px] max-w-2xl h-auto">
+                {/* Upper Arch */}
+                {Array.from({ length: 16 }).map((_, i) => (
+                  renderTooth(i + 1, 40 + i * 35, 60, true)
+                ))}
+                
+                {/* Lower Arch */}
+                {Array.from({ length: 16 }).map((_, i) => (
+                  renderTooth(32 - i, 40 + i * 35, 140, false)
+                ))}
+              </svg>
+            </TooltipProvider>
+          </div>
 
           <div className="flex flex-col gap-4 w-full lg:w-48">
             <h3 className="text-sm font-semibold text-muted-foreground">Procedure Selection</h3>

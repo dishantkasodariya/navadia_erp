@@ -2,6 +2,14 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
 const { verifyJWT, checkRole } = require('../middleware/authMiddleware');
+const { validateObjectIdParam, pick } = require('../middleware/security');
+
+router.param('id', validateObjectIdParam);
+
+const TASK_STATUSES = ['pending', 'in-progress', 'completed', 'cancelled'];
+const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
+// Fields an admin/creator may edit. createdBy, createdByName, completions are server-controlled.
+const EDITABLE_TASK_FIELDS = ['title', 'description', 'assignedTo', 'role', 'status', 'priority', 'dueDate', 'isRecurring', 'isPrivate', 'attachments'];
 // Get all tasks (filtered by role and daily recurrence)
 router.get('/', verifyJWT, async (req, res) => {
   try {
@@ -68,6 +76,9 @@ router.get('/', verifyJWT, async (req, res) => {
 // Create task (Admin, Dentist, Staff)
 router.post('/', verifyJWT, async (req, res) => {
   const { title, description, assignedTo, role, priority, dueDate, isRecurring, attachments, isPrivate } = req.body;
+  if (priority !== undefined && !TASK_PRIORITIES.includes(priority)) {
+    return res.status(400).json({ message: `priority must be one of: ${TASK_PRIORITIES.join(', ')}` });
+  }
   try {
     if (isRecurring && req.user.role.toLowerCase() === 'admin') {
       // Admin creates exactly one repeating task assigned to a role group or a specific user
@@ -123,6 +134,12 @@ router.post('/', verifyJWT, async (req, res) => {
 // Update task status or details
 router.put('/:id', verifyJWT, async (req, res) => {
   try {
+    if (req.body.status !== undefined && !TASK_STATUSES.includes(req.body.status)) {
+      return res.status(400).json({ message: `status must be one of: ${TASK_STATUSES.join(', ')}` });
+    }
+    if (req.body.priority !== undefined && !TASK_PRIORITIES.includes(req.body.priority)) {
+      return res.status(400).json({ message: `priority must be one of: ${TASK_PRIORITIES.join(', ')}` });
+    }
     const task = await Task.findById(req.params.id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
@@ -139,7 +156,7 @@ router.put('/:id', verifyJWT, async (req, res) => {
 
     if (isAdmin || isCreator) {
       // Admin or Creator can edit everything
-      Object.assign(task, req.body);
+      Object.assign(task, pick(req.body, EDITABLE_TASK_FIELDS));
     } else if (isAssignee || isRoleMatch) {
       // Only allow updating status
       if (req.body.status) {

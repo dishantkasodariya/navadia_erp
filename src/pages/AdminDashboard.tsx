@@ -295,7 +295,7 @@ export default function AdminDashboard() {
       {/* Module Navigation Portal */}
       <div>
         <h2 className="text-lg sm:text-lg mb-3 font-serif text-foreground">Quick Administration Hub</h2>
-        <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {adminModules.map((mod) => (
             <Card 
               key={mod.title} 
@@ -380,21 +380,21 @@ export default function AdminDashboard() {
                 }
 
                 return onDutyPersonnel.map((p) => (
-                  <div key={p.userId} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/10 transition-colors">
-                    <div>
+                  <div key={p.userId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border p-3 hover:bg-muted/10 transition-colors">
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-md font-semibold text-foreground">{p.userName}</p>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground capitalize border border-muted-foreground/10 font-sans">
+                        <p className="text-md font-semibold text-foreground truncate">{p.userName}</p>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground capitalize border border-muted-foreground/10 font-sans shrink-0">
                           {p.role}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-1 truncate">
                         {p.specialization}
                         {p.checkIn && ` • In: ${p.checkIn}`}
                         {p.checkOut && ` • Out: ${p.checkOut}`}
                       </p>
                     </div>
-                    <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium ${p.statusColorClass}`}>
+                    <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium shrink-0 self-start sm:self-center ${p.statusColorClass}`}>
                       {p.status}
                     </span>
                   </div>

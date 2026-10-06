@@ -880,51 +880,51 @@ export default function Attendance() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 sm:gap-6">
             <div className="text-center">
               <span className="block text-[10px] text-muted-foreground font-semibold uppercase tracking-wider font-sans">Attendance Rate</span>
-              <span className="text-xl font-extrabold text-emerald-600 font-sans">{attendanceRate}%</span>
+              <span className="text-xl font-extrabold text-primary font-sans">{attendanceRate}%</span>
             </div>
-            <div className="h-8 w-[1px] bg-neutral-200 dark:bg-neutral-800" />
+            <div className="h-8 w-[1px] bg-border hidden sm:block" />
             <div className="text-center">
               <span className="block text-[10px] text-muted-foreground font-semibold uppercase tracking-wider font-sans">Total / Avg Hours</span>
-              <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200 font-mono">{totalHoursStr} / {avgHoursStr}</span>
+              <span className="text-sm font-bold text-foreground font-mono">{totalHoursStr} / {avgHoursStr}</span>
             </div>
           </div>
         </div>
 
-        {/* Breakdown Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3 flex flex-col items-center justify-center">
-            <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1 font-sans">Present Days</span>
-            <span className="text-xl font-extrabold text-emerald-600 font-sans">{presentCount}</span>
-            <span className="text-[9px] text-emerald-500/80 mt-0.5 font-medium font-sans">{requiredDays > 0 ? Math.round((presentCount / requiredDays)*100) : 0}% of target</span>
+        {/* Breakdown Stats Cards - Unified elegant styling, no rainbow colors */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+          <div className="bg-card border border-border/70 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center text-center shadow-xs min-w-0 h-[82px] sm:h-[88px]">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 font-sans text-center leading-tight">Present Days</span>
+            <span className="text-xl sm:text-2xl font-bold text-foreground font-sans leading-none">{presentCount}</span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground/80 mt-1 font-medium font-sans">{requiredDays > 0 ? Math.round((presentCount / requiredDays)*100) : 0}% of target</span>
           </div>
-          <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-3 flex flex-col items-center justify-center">
-            <span className="text-[10px] text-red-500 font-bold uppercase tracking-wider mb-1 font-sans">Absent Days</span>
-            <span className="text-xl font-extrabold text-red-500 font-sans">{absentCount}</span>
-            <span className="text-[9px] text-red-400 mt-0.5 font-medium font-sans">{requiredDays > 0 ? Math.round((absentCount / requiredDays)*100) : 0}% rate</span>
+          <div className="bg-card border border-border/70 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center text-center shadow-xs min-w-0 h-[82px] sm:h-[88px]">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 font-sans text-center leading-tight">Absent Days</span>
+            <span className="text-xl sm:text-2xl font-bold text-foreground font-sans leading-none">{absentCount}</span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground/80 mt-1 font-medium font-sans">{requiredDays > 0 ? Math.round((absentCount / requiredDays)*100) : 0}% rate</span>
           </div>
-          <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-3 flex flex-col items-center justify-center">
-            <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider mb-1 font-sans">Leaves Approved</span>
-            <span className="text-xl font-extrabold text-blue-500 font-sans">{leaveCount}</span>
-            <span className="text-[9px] text-blue-400 mt-0.5 font-medium font-sans">Leave periods</span>
+          <div className="bg-card border border-border/70 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center text-center shadow-xs min-w-0 h-[82px] sm:h-[88px]">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 font-sans text-center leading-tight">Leaves Approved</span>
+            <span className="text-xl sm:text-2xl font-bold text-foreground font-sans leading-none">{leaveCount}</span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground/80 mt-1 font-medium font-sans">Leave periods</span>
           </div>
-          <div className="bg-purple-500/5 border border-purple-500/10 rounded-xl p-3 flex flex-col items-center justify-center">
-            <span className="text-[10px] text-purple-600 font-bold uppercase tracking-wider mb-1 font-sans">Tour Days</span>
-            <span className="text-xl font-extrabold text-purple-600 font-sans">{tourCount}</span>
-            <span className="text-[9px] text-purple-400 mt-0.5 font-medium font-sans">Out of clinic</span>
+          <div className="bg-card border border-border/70 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center text-center shadow-xs min-w-0 h-[82px] sm:h-[88px]">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 font-sans text-center leading-tight">Tour Days</span>
+            <span className="text-xl sm:text-2xl font-bold text-foreground font-sans leading-none">{tourCount}</span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground/80 mt-1 font-medium font-sans">Out of clinic</span>
           </div>
         </div>
 
         {/* Layout Grid: Calendar & Log Table */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Calendar Widget */}
-          <Card className="lg:col-span-5 p-4 border border-neutral-200/60 dark:border-neutral-800 shadow-sm rounded-xl">
+          <Card className="lg:col-span-5 p-3 sm:p-4 border border-border/70 shadow-sm rounded-xl">
             <CardHeader className="p-0 pb-3 border-b mb-3">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-400 font-sans">Monthly Calendar</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground font-sans">Monthly Calendar</CardTitle>
             </CardHeader>
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-neutral-400 mb-1 font-sans">
+            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted-foreground mb-1 font-sans">
               <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
             </div>
             <div className="grid grid-cols-7 gap-1">
@@ -933,29 +933,29 @@ export default function Attendance() {
                   return <div key={`empty-${idx}`} className="aspect-square bg-muted/5 rounded" />;
                 }
                 const dayStatus = getDayStatus(userId, cell.dateStr);
-                let bgStyle = "bg-muted/10 text-neutral-400";
+                let bgStyle = "bg-muted/10 text-muted-foreground";
                 let dotStyle = "";
 
                 if (dayStatus.status === "Present") {
-                  bgStyle = "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-200/50 dark:border-emerald-900/30";
-                  dotStyle = "bg-emerald-500";
+                  bgStyle = "bg-primary/5 text-foreground font-bold border border-primary/20";
+                  dotStyle = "bg-primary";
                 } else if (dayStatus.status === "Late") {
-                  bgStyle = "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 font-bold border border-amber-200/50 dark:border-amber-900/30";
+                  bgStyle = "bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/20";
                   dotStyle = "bg-amber-500";
                 } else if (dayStatus.status === "Absent") {
-                  bgStyle = "bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border border-red-200/50 dark:border-red-900/30";
-                  dotStyle = "bg-red-500";
+                  bgStyle = "bg-destructive/10 text-destructive font-semibold border border-destructive/20";
+                  dotStyle = "bg-destructive";
                 } else if (dayStatus.status === "On Leave") {
-                  bgStyle = "bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/30";
+                  bgStyle = "bg-muted text-muted-foreground border border-border";
                   dotStyle = "bg-blue-500";
                 } else if (dayStatus.status === "Tour") {
-                  bgStyle = "bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border border-purple-200/50 dark:border-purple-900/30";
+                  bgStyle = "bg-muted text-muted-foreground border border-border";
                   dotStyle = "bg-purple-500";
                 } else if (dayStatus.status === "On Break") {
-                  bgStyle = "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30";
+                  bgStyle = "bg-muted text-muted-foreground border border-border";
                   dotStyle = "bg-amber-500";
                 } else if (dayStatus.status === "Holiday") {
-                  bgStyle = "bg-neutral-100 dark:bg-neutral-900 text-neutral-400/70 border border-transparent";
+                  bgStyle = "bg-muted/20 text-muted-foreground/50 border border-transparent";
                 }
 
                 const isToday = cell.dateStr === todayStr;
@@ -963,7 +963,7 @@ export default function Attendance() {
                 return (
                   <div 
                     key={`day-${cell.dayNum}`} 
-                    className={`aspect-square flex flex-col items-center justify-between p-1 rounded-lg text-xs relative cursor-help transition-all duration-200 ${bgStyle} ${isToday ? "ring-2 ring-blue-500" : ""}`}
+                    className={`aspect-square flex flex-col items-center justify-between p-1 rounded-lg text-xs relative cursor-help transition-all duration-200 ${bgStyle} ${isToday ? "ring-2 ring-primary" : ""}`}
                     title={`${cell.dateStr}: ${dayStatus.status}${dayStatus.checkIn ? ` (${dayStatus.checkIn} - ${dayStatus.checkOut || 'Active'})` : ''}`}
                   >
                     <span className="font-semibold">{cell.dayNum}</span>
@@ -974,21 +974,75 @@ export default function Attendance() {
             </div>
             
             {/* Legend */}
-            <div className="mt-4 pt-3 border-t grid grid-cols-5 gap-1 text-[9px] font-semibold text-neutral-500 font-sans">
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" /> Present</span>
+            <div className="mt-4 pt-3 border-t flex flex-wrap items-center justify-between gap-2 text-[9px] font-semibold text-muted-foreground font-sans">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> Present</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500 inline-block" /> Late</span>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500 inline-block" /> Absent</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive inline-block" /> Absent</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500 inline-block" /> Leave</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-purple-500 inline-block" /> Tour</span>
             </div>
           </Card>
 
-          {/* Week-wise Table Log */}
-          <Card className="lg:col-span-7 p-4 border border-neutral-200/60 dark:border-neutral-800 shadow-sm rounded-xl overflow-hidden">
+          {/* Week-wise Table Log (Mobile Cards + Desktop Table) */}
+          <Card className="lg:col-span-7 p-3 sm:p-4 border border-border/70 shadow-sm rounded-xl overflow-hidden">
             <CardHeader className="p-0 pb-3 border-b mb-3">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-400 font-sans">Attendance Log (Week-Wise)</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground font-sans">Attendance Log (Week-Wise)</CardTitle>
             </CardHeader>
-            <div className="overflow-x-auto max-h-[350px]">
+            
+            {/* Mobile Card List View (< sm) */}
+            <div className="sm:hidden space-y-2 max-h-[350px] overflow-y-auto pr-1">
+              {logRecords.map((r, i) => {
+                const formattedDateStr = format(parseISO(r.date), "eee, MMM d, yyyy");
+                const durationVal = calculateDuration(r.checkIn, r.checkOut);
+                const formattedDurationStr = r.checkIn ? formatDuration(durationVal) : "—";
+                const formattedBreakStr = r.breakTime ? `${r.breakTime}m` : "—";
+
+                let badgeClass = "bg-muted text-muted-foreground";
+                if (r.status === "Present") badgeClass = "bg-primary/10 text-primary border border-primary/20";
+                else if (r.status === "Late") badgeClass = "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20";
+                else if (r.status === "Absent") badgeClass = "bg-destructive/10 text-destructive border border-destructive/20";
+                else if (r.status === "On Leave") badgeClass = "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20";
+                else if (r.status === "Tour") badgeClass = "bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20";
+                else if (r.status === "On Break") badgeClass = "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20";
+
+                return (
+                  <div key={`mobile-log-${i}`} className="p-2.5 rounded-lg border border-border/70 bg-card/60 flex flex-col gap-1.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-foreground">{formattedDateStr}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${badgeClass}`}>
+                        {r.status}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                      <div>
+                        <span>Check In: </span>
+                        <span className="font-mono font-medium text-foreground">{formatTimeTo12h(r.checkIn)}</span>
+                      </div>
+                      <div>
+                        <span>Check Out: </span>
+                        <span className="font-mono font-medium text-foreground">{formatTimeTo12h(r.checkOut)}</span>
+                      </div>
+                      <div>
+                        <span>Duration: </span>
+                        <span className="font-medium text-foreground">{formattedDurationStr}</span>
+                      </div>
+                      <div>
+                        <span>Break: </span>
+                        <span className="font-medium text-foreground">{formattedBreakStr}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {logRecords.length === 0 && (
+                <div className="p-6 text-center text-muted-foreground text-xs">
+                  No records for this month
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Table View (>= sm) */}
+            <div className="hidden sm:block overflow-x-auto max-h-[350px]">
               <table className="w-full text-xs text-left min-w-[500px]">
                 <thead>
                   <tr className="bg-muted/30 border-b text-muted-foreground">
@@ -1008,25 +1062,25 @@ export default function Attendance() {
                     const formattedBreakStr = r.breakTime ? `${r.breakTime}m` : "—";
 
                     let badgeClass = "bg-muted text-muted-foreground";
-                    if (r.status === "Present") badgeClass = "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400 border border-emerald-200/50";
-                    else if (r.status === "Late") badgeClass = "bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 border border-amber-200/50";
-                    else if (r.status === "Absent") badgeClass = "bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-400 border border-red-200/50";
-                    else if (r.status === "On Leave") badgeClass = "bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-400 border border-blue-200/50";
-                    else if (r.status === "Tour") badgeClass = "bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-400 border border-purple-200/50";
-                    else if (r.status === "On Break") badgeClass = "bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 border border-amber-200/50";
+                    if (r.status === "Present") badgeClass = "bg-primary/10 text-primary border border-primary/20";
+                    else if (r.status === "Late") badgeClass = "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20";
+                    else if (r.status === "Absent") badgeClass = "bg-destructive/10 text-destructive border border-destructive/20";
+                    else if (r.status === "On Leave") badgeClass = "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20";
+                    else if (r.status === "Tour") badgeClass = "bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20";
+                    else if (r.status === "On Break") badgeClass = "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20";
 
                     return (
-                      <tr key={`log-${i}`} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30 transition-colors">
-                        <td className="px-3 py-2.5 font-bold text-neutral-800 dark:text-neutral-200 font-sans">{formattedDateStr}</td>
+                      <tr key={`log-${i}`} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-3 py-2.5 font-bold text-foreground font-sans">{formattedDateStr}</td>
                         <td className="px-3 py-2.5">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold inline-block ${badgeClass} font-sans`}>
                             {r.status}
                           </span>
                         </td>
-                        <td className="px-3 py-2.5 font-mono text-neutral-500">{formatTimeTo12h(r.checkIn)}</td>
-                        <td className="px-3 py-2.5 font-mono text-neutral-500">{formatTimeTo12h(r.checkOut)}</td>
-                        <td className="px-3 py-2.5 font-bold text-neutral-800 dark:text-neutral-200 font-sans">{formattedDurationStr}</td>
-                        <td className="px-3 py-2.5 text-orange-600 dark:text-orange-400 font-semibold font-sans">{formattedBreakStr}</td>
+                        <td className="px-3 py-2.5 font-mono text-muted-foreground">{formatTimeTo12h(r.checkIn)}</td>
+                        <td className="px-3 py-2.5 font-mono text-muted-foreground">{formatTimeTo12h(r.checkOut)}</td>
+                        <td className="px-3 py-2.5 font-bold text-foreground font-sans">{formattedDurationStr}</td>
+                        <td className="px-3 py-2.5 text-foreground font-semibold font-sans">{formattedBreakStr}</td>
                       </tr>
                     );
                   })}
@@ -1055,12 +1109,23 @@ export default function Attendance() {
       </div>
 
       {isAdmin ? (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4 w-full justify-between lg:w-auto lg:justify-start">
-            <TabsTrigger value="daily" className="flex-1 gap-2 lg:flex-none"><Clock className="h-4 w-4" /> Daily Log</TabsTrigger>
-            <TabsTrigger value="overview" className="flex-1 gap-2 lg:flex-none"><Users className="h-4 w-4" /> Staff Overview</TabsTrigger>
-            <TabsTrigger value="my-overview" className="flex-1 gap-2 lg:flex-none"><UserCheck className="h-4 w-4" /> My Overview</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
+          <div className="w-full overflow-x-auto no-scrollbar pb-1 mb-4">
+            <TabsList className="grid grid-cols-3 w-full sm:w-auto sm:inline-flex h-auto p-1 gap-1">
+              <TabsTrigger value="daily" className="whitespace-nowrap gap-1.5 sm:gap-2 text-[11px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2">
+                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                <span>Daily Log</span>
+              </TabsTrigger>
+              <TabsTrigger value="overview" className="whitespace-nowrap gap-1.5 sm:gap-2 text-[11px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2">
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                <span>Staff Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="my-overview" className="whitespace-nowrap gap-1.5 sm:gap-2 text-[11px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2">
+                <UserCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                <span>My Overview</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
           <TabsContent value="overview">
             <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 md:max-lg:grid-cols-2 mb-6">
@@ -1147,11 +1212,17 @@ export default function Attendance() {
           </TabsContent>
         </Tabs>
       ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="daily" className="gap-2"><Clock className="h-4 w-4" /> Daily Log</TabsTrigger>
-            <TabsTrigger value="overview" className="gap-2"><UserCheck className="h-4 w-4" /> My Overview</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
+          <div className="w-full overflow-x-auto no-scrollbar pb-1 mb-4">
+            <TabsList className="grid grid-cols-2 w-full sm:w-auto sm:inline-flex h-auto p-1 gap-1">
+              <TabsTrigger value="daily" className="whitespace-nowrap gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 sm:py-2">
+                <Clock className="h-4 w-4 shrink-0" /> Daily Log
+              </TabsTrigger>
+              <TabsTrigger value="overview" className="whitespace-nowrap gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 sm:py-2">
+                <UserCheck className="h-4 w-4 shrink-0" /> My Overview
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="daily">
             {renderDailyLog()}
@@ -1194,13 +1265,14 @@ export default function Attendance() {
 
       {/* Staff History Modal */}
       <Dialog open={!!viewStaffId} onOpenChange={(o) => !o && setViewStaffId(null)}>
-        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl font-bold font-sans">
-              <FileText className="h-5 w-5 text-primary animate-pulse" /> Attendance Overview: {selectedStaffName}
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl max-h-[90vh] p-3.5 sm:p-6 flex flex-col overflow-y-auto rounded-xl">
+          <DialogHeader className="pr-8 sm:pr-0">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-xl font-bold font-sans break-words">
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0 animate-pulse" />
+              <span className="truncate">Attendance Overview: {selectedStaffName}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
+          <div className="mt-2 sm:mt-4">
             {viewStaffId && renderStaffAttendanceOverview(viewStaffId)}
           </div>
         </DialogContent>
@@ -1270,8 +1342,75 @@ export default function Attendance() {
         </div>
 
         <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
+          <CardContent className="p-3 sm:p-0">
+            {/* Mobile Card List (< sm) */}
+            <div className="sm:hidden space-y-2.5">
+              {filtered.map((r) => {
+                const formattedDateStr = r.date ? format(parseISO(r.date), "eee, MMM d, yyyy") : "—";
+                const durationVal = calculateDuration(r.checkIn, r.checkOut);
+                const netDurationVal = Math.max(0, durationVal - (r.breakTime || 0) / 60);
+                const formattedDurationStr = r.checkIn && r.checkOut ? formatDuration(netDurationVal) : "—";
+                const formattedBreakStr = r.breakTime ? `${r.breakTime}m` : "—";
+
+                return (
+                  <div key={`mobile-daily-${r.id}`} className="p-3 rounded-lg border border-border/70 bg-card/60 flex flex-col gap-2 text-xs">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        {isAdmin && <p className="font-bold text-foreground text-sm">{r.staffName}</p>}
+                        {isAdmin && <p className="text-[11px] text-muted-foreground capitalize">{r.role}</p>}
+                        <p className={`font-semibold text-foreground ${isAdmin ? "text-xs mt-0.5" : "text-sm"}`}>{formattedDateStr}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusColor(r.status)} shrink-0`}>
+                        {r.status}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground pt-1.5 border-t border-border/40">
+                      <div>
+                        <span>Check In: </span>
+                        <span className="font-mono font-medium text-foreground">{formatTimeTo12h(r.checkIn)}</span>
+                      </div>
+                      <div>
+                        <span>Check Out: </span>
+                        <span className="font-mono font-medium text-foreground">{formatTimeTo12h(r.checkOut)}</span>
+                      </div>
+                      <div>
+                        <span>Hours: </span>
+                        <span className="font-medium text-foreground">{formattedDurationStr}</span>
+                      </div>
+                      <div>
+                        <span>Break: </span>
+                        <span className="font-medium text-foreground">{formattedBreakStr}</span>
+                      </div>
+                    </div>
+                    {!isAdmin && (
+                      <div className="pt-2 border-t border-border/40 flex justify-end">
+                        {!r.checkIn && (
+                          <Button variant="outline" size="sm" className="gap-1 h-8 text-xs w-full" onClick={() => handleCheckIn(r.id)}>
+                            <LogIn className="h-3.5 w-3.5" /> <span>Check In</span>
+                          </Button>
+                        )}
+                        {r.checkIn && !r.checkOut && (
+                          <Button variant="outline" size="sm" className="gap-1 h-8 text-xs w-full" onClick={() => handleCheckOut(r.id)}>
+                            <LogOut className="h-3.5 w-3.5" /> <span>Check Out</span>
+                          </Button>
+                        )}
+                        {r.checkIn && r.checkOut && (
+                          <span className="text-xs text-muted-foreground font-medium">Completed</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {filtered.length === 0 && (
+                <div className="p-8 text-center text-muted-foreground text-xs font-sans">
+                  No attendance records found
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Table (>= sm) */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-xs text-left min-w-[800px]">
                 <thead>
                   <tr className="border-b bg-muted/30 text-left text-muted-foreground">
@@ -1295,14 +1434,14 @@ export default function Attendance() {
                     const formattedBreakStr = r.breakTime ? `${r.breakTime}m` : "—";
 
                     return (
-                      <tr key={r.id} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/30 transition-colors">
-                        {isAdmin && <td className="p-3 font-medium text-neutral-800 dark:text-neutral-200 font-sans">{r.staffName}</td>}
+                      <tr key={r.id} className="hover:bg-muted/30 transition-colors">
+                        {isAdmin && <td className="p-3 font-medium text-foreground font-sans">{r.staffName}</td>}
                         {isAdmin && <td className="p-3 capitalize text-muted-foreground hidden sm:table-cell font-sans">{r.role}</td>}
-                        <td className="p-3 font-bold text-neutral-800 dark:text-neutral-200 font-sans">{formattedDateStr}</td>
-                        <td className="p-3 font-mono text-neutral-500">{formatTimeTo12h(r.checkIn)}</td>
-                        <td className="p-3 font-mono text-neutral-500">{formatTimeTo12h(r.checkOut)}</td>
-                        <td className="p-3 font-bold text-neutral-800 dark:text-neutral-200 font-sans">{formattedDurationStr}</td>
-                        <td className="p-3 text-orange-650 dark:text-orange-400 font-semibold font-sans">{formattedBreakStr}</td>
+                        <td className="p-3 font-bold text-foreground font-sans">{formattedDateStr}</td>
+                        <td className="p-3 font-mono text-muted-foreground">{formatTimeTo12h(r.checkIn)}</td>
+                        <td className="p-3 font-mono text-muted-foreground">{formatTimeTo12h(r.checkOut)}</td>
+                        <td className="p-3 font-bold text-foreground font-sans">{formattedDurationStr}</td>
+                        <td className="p-3 text-foreground font-semibold font-sans">{formattedBreakStr}</td>
                         <td className="p-3">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold inline-block ${statusColor(r.status)} font-sans`}>
                             {r.status}
