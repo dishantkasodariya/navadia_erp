@@ -110,6 +110,7 @@ app.use('/api/patients', require('./routes/patientRoutes'));
 app.use('/api/appointments', require('./routes/appointmentRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/staff', require('./routes/staffRoutes'));
+app.use('/api/dentists', require('./routes/dentistRoutes'));
 app.use('/api/attendance', require('./routes/attendanceRoutes'));
 app.use('/api/leave', require('./routes/leaveRoutes'));
 app.use('/api/voicemails', require('./routes/voicemailRoutes'));

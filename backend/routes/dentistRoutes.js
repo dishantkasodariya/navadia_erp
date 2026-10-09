@@ -12,14 +12,14 @@ const SENSITIVE_FIELDS = '-password -aadhaarNo -panNo -address -pincode -dateOfB
 const projectionFor = (req, targetId) =>
   (isAdmin(req.user) || (targetId && targetId === req.user._id.toString())) ? '-password' : SENSITIVE_FIELDS;
 
-const validateStaffInput = (body, isCreate) => {
-  const { name, email, password, phone, aadhaarNo } = body;
+const validateDentistInput = (body, isCreate) => {
+  const { name, email, password, aadhaarNo, phone } = body;
   if (isCreate && (!name || !email || !password)) return 'Name, email and password are required';
-  if (name !== undefined && (typeof name !== 'string' || !name.trim() || name.trim().length < 2 || name.length > 100)) {
+  if (name !== undefined && (typeof name !== 'string' || !name.trim() || name.length < 2 || name.length > 100)) {
     return 'Full Name must be between 2 and 100 characters';
   }
   if (email !== undefined && (typeof email !== 'string' || !EMAIL_RE.test(email.trim()))) {
-    return 'A valid email address is required (e.g., staff@example.com)';
+    return 'A valid email address is required (e.g., doctor@example.com)';
   }
   if (password !== undefined && (typeof password !== 'string' || password.length < 8 || password.length > 128)) {
     return 'Password must be between 8 and 128 characters';
@@ -39,49 +39,49 @@ const validateStaffInput = (body, isCreate) => {
   return null;
 };
 
-// Get all staff (Admins, Dentists, and Staff for chat directory)
+// Get all dentists (Admins, Dentists, and Staff)
 router.get('/', verifyJWT, checkRole('Admin', 'Dentist', 'Staff'), async (req, res) => {
   try {
     if (isAdmin(req.user)) {
-      return res.json(await User.find().select('-password').sort({ name: 1 }));
+      const dentists = await User.find({ role: 'Dentist' }).select('-password').sort({ name: 1 });
+      return res.json(dentists);
     }
-    // Non-admins get a directory without personal identity documents
-    const staff = await User.find().select(SENSITIVE_FIELDS).sort({ name: 1 }).lean();
+    const dentists = await User.find({ role: 'Dentist' }).select(SENSITIVE_FIELDS).sort({ name: 1 }).lean();
     const me = await User.findById(req.user._id).select('-password').lean();
-    res.json(staff.map(u => (u._id.toString() === req.user._id.toString() ? me : u)));
+    res.json(dentists.map(u => (u._id.toString() === req.user._id.toString() ? me : u)));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Get a single staff member by ID
+// Get a single dentist by ID
 router.get('/:id', verifyJWT, checkRole('Admin', 'Dentist', 'Staff'), async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(404).json({ message: 'Staff member not found' });
+      return res.status(404).json({ message: 'Dentist not found' });
     }
-    const user = await User.findById(req.params.id).select(projectionFor(req, req.params.id));
+    const user = await User.findOne({ _id: req.params.id, role: 'Dentist' }).select(projectionFor(req, req.params.id));
     if (user) {
       res.json(user);
     } else {
-      res.status(404).json({ message: 'Staff member not found' });
+      res.status(404).json({ message: 'Dentist not found' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Create a new staff or dentist member (Admin only)
+// Create a new Dentist (Admin only)
 router.post('/', verifyJWT, checkRole('Admin'), async (req, res) => {
   const {
-    name, email, password, role, phone, specialization, licenseNo,
+    name, email, password, phone, specialization, licenseNo,
     alternatePhone, dateOfBirth, gender, bloodGroup,
     aadhaarNo, panNo, address, city, state, country, pincode,
     emergencyContact, emergencyPhone, joiningDate
   } = req.body;
 
   try {
-    const validationError = validateStaffInput(req.body, true);
+    const validationError = validateDentistInput(req.body, true);
     if (validationError) {
       return res.status(400).json({ message: validationError });
     }
@@ -109,39 +109,30 @@ router.post('/', verifyJWT, checkRole('Admin'), async (req, res) => {
       }
     }
 
-    // Capitalize role to match Mongoose enum ('Admin', 'Dentist', 'Staff')
-    let finalRole = 'Staff';
-    if (role) {
-      const lower = role.toLowerCase();
-      if (lower === 'admin') finalRole = 'Admin';
-      else if (lower === 'dentist') finalRole = 'Dentist';
-    }
-
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: cleanEmail,
       password,
-      role: finalRole,
-      phone,
+      role: 'Dentist',
+      phone: cleanPhone,
       alternatePhone,
       dateOfBirth,
       gender: gender || '',
       bloodGroup,
-      aadhaarNo,
+      aadhaarNo: cleanAadhaar,
       panNo,
       address,
-      city,
-      state,
+      city: city || 'Surat',
+      state: state || 'Gujarat',
       country: country || 'India',
       pincode,
       emergencyContact,
       emergencyPhone,
-      specialization: finalRole === 'Dentist' ? specialization : undefined,
-      licenseNo: finalRole === 'Dentist' ? licenseNo : undefined,
+      specialization: specialization ? specialization.trim() : 'General Dentistry',
+      licenseNo: licenseNo ? licenseNo.trim() : undefined,
       joiningDate: joiningDate || Date.now()
     });
 
-    // Return all fields (exclude password)
     const created = await User.findById(user._id).select('-password');
     res.status(201).json(created);
   } catch (error) {
@@ -149,21 +140,21 @@ router.post('/', verifyJWT, checkRole('Admin'), async (req, res) => {
   }
 });
 
-// Update staff member (Admin only)
+// Update dentist (Admin only)
 router.put('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
   try {
-    const validationError = validateStaffInput(req.body, false);
+    const validationError = validateDentistInput(req.body, false);
     if (validationError) {
       return res.status(400).json({ message: validationError });
     }
 
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(404).json({ message: 'Staff member not found' });
+      return res.status(404).json({ message: 'Dentist not found' });
     }
 
     const user = await User.findById(req.params.id);
     if (!user) {
-      return res.status(404).json({ message: 'Staff member not found' });
+      return res.status(404).json({ message: 'Dentist not found' });
     }
 
     const cleanEmail = req.body.email ? req.body.email.trim().toLowerCase() : undefined;
@@ -187,12 +178,7 @@ router.put('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
     // Basic fields
     if (req.body.name) user.name = req.body.name.trim();
     if (cleanEmail) user.email = cleanEmail;
-    if (req.body.role) {
-      const lower = req.body.role.toLowerCase();
-      if (lower === 'admin') user.role = 'Admin';
-      else if (lower === 'dentist') user.role = 'Dentist';
-      else user.role = 'Staff';
-    }
+    user.role = 'Dentist'; // Guaranteed Dentist
 
     // Contact
     if (cleanPhone !== undefined) user.phone = cleanPhone;
@@ -218,7 +204,7 @@ router.put('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
     if (req.body.emergencyContact !== undefined) user.emergencyContact = req.body.emergencyContact;
     if (req.body.emergencyPhone !== undefined) user.emergencyPhone = req.body.emergencyPhone;
 
-    // Professional
+    // Professional Dentist fields
     if (req.body.specialization !== undefined) user.specialization = req.body.specialization;
     if (req.body.licenseNo !== undefined) user.licenseNo = req.body.licenseNo;
     if (req.body.joiningDate !== undefined) user.joiningDate = req.body.joiningDate;
@@ -231,11 +217,11 @@ router.put('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
   }
 });
 
-// Delete staff member (Admin only)
+// Delete dentist (Admin only)
 router.delete('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(404).json({ message: 'Staff member not found' });
+      return res.status(404).json({ message: 'Dentist not found' });
     }
     if (req.params.id === req.user._id.toString()) {
       return res.status(400).json({ message: 'You cannot delete your own account' });
@@ -243,9 +229,9 @@ router.delete('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
     const user = await User.findById(req.params.id);
     if (user) {
       await user.deleteOne();
-      res.json({ message: 'Staff member removed' });
+      res.json({ message: 'Dentist removed successfully' });
     } else {
-      res.status(404).json({ message: 'Staff member not found' });
+      res.status(404).json({ message: 'Dentist not found' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });

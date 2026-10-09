@@ -313,13 +313,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const addStaffMember = async (data: Omit<User, "id"> & { password?: string }): Promise<{ success: boolean; message: string }> => {
     const finalRole = normalizeRole(data.role);
+    const isDentist = finalRole.toLowerCase() === "dentist";
     const password = data.password || data.name.split(" ").pop()?.toLowerCase() || "password123";
     
     const token = localStorage.getItem("navadia_token");
     if (!token) return { success: false, message: "Authentication token missing. Please log in again." };
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/staff`, {
+      const endpoint = isDentist ? `${API_BASE_URL}/api/dentists` : `${API_BASE_URL}/api/staff`;
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -378,12 +380,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const updated = [...users, newUser];
         setUsers(updated);
         saveUsers(updated);
-        return { success: true, message: "Staff added successfully" };
+        return { success: true, message: `${isDentist ? "Dentist" : "Staff"} added successfully` };
       } else {
-        return { success: false, message: resData.message || "Failed to add staff member" };
+        return { success: false, message: resData.message || `Failed to add ${isDentist ? "dentist" : "staff"} member` };
       }
     } catch (e) {
-      console.error("Error adding staff:", e);
+      console.error("Error adding staff/dentist:", e);
       return { success: false, message: "Cannot connect to server. Please try again later." };
     }
   };
@@ -393,7 +395,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) return { success: false, message: "Authentication token missing. Please log in again." };
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/staff/${id}`, {
+      const existing = users.find(u => u.id === id);
+      const isDentist = (data.role && normalizeRole(data.role).toLowerCase() === "dentist") || 
+                        (existing && existing.role.toLowerCase() === "dentist");
+      const endpoint = isDentist ? `${API_BASE_URL}/api/dentists/${id}` : `${API_BASE_URL}/api/staff/${id}`;
+
+      const res = await fetch(endpoint, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -418,12 +425,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         setUsers(updatedUsers);
         saveUsers(updatedUsers);
-        return { success: true, message: "Staff updated successfully" };
+        return { success: true, message: `${isDentist ? "Dentist" : "Staff"} updated successfully` };
       } else {
-        return { success: false, message: resData.message || "Failed to update staff member" };
+        return { success: false, message: resData.message || `Failed to update ${isDentist ? "dentist" : "staff"} member` };
       }
     } catch (e) {
-      console.error("Error updating staff:", e);
+      console.error("Error updating staff/dentist:", e);
       return { success: false, message: "Cannot connect to server. Please try again later." };
     }
   };
@@ -431,18 +438,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const removeStaffMember = async (id: string): Promise<{ success: boolean; message: string }> => {
     // If the ID is a temporary local ID and not a valid 24-character hexadecimal Mongo ObjectId, remove it locally
     const isMongoId = /^[0-9a-fA-F]{24}$/.test(id);
+    const existing = users.find(u => u.id === id);
+    const isDentist = existing && existing.role.toLowerCase() === "dentist";
+    const entityName = isDentist ? "Dentist" : "Staff";
+
     if (!isMongoId) {
       const updated = users.filter((u) => u.id !== id);
       setUsers(updated);
       saveUsers(updated);
-      return { success: true, message: "Staff removed successfully" };
+      return { success: true, message: `${entityName} removed successfully` };
     }
 
     const token = localStorage.getItem("navadia_token");
     if (!token) return { success: false, message: "Authentication token missing." };
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/staff/${id}`, {
+      const endpoint = isDentist ? `${API_BASE_URL}/api/dentists/${id}` : `${API_BASE_URL}/api/staff/${id}`;
+      const res = await fetch(endpoint, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -451,10 +463,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const updated = users.filter((u) => u.id !== id);
         setUsers(updated);
         saveUsers(updated);
-        return { success: true, message: "Staff removed successfully" };
+        return { success: true, message: `${entityName} removed successfully` };
       } else {
         const resData = await res.json();
-        return { success: false, message: resData.message || "Failed to remove staff" };
+        return { success: false, message: resData.message || `Failed to remove ${entityName.toLowerCase()}` };
       }
     } catch (e) {
       console.error("Error removing staff:", e);

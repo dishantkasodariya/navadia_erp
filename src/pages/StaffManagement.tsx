@@ -79,6 +79,7 @@ export default function StaffManagement() {
   const [stateName, setStateName] = useState("");
   const [country, setCountry] = useState("India");
   const [filter, setFilter] = useState<string>("all");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const staffMembers = allUsers.filter((u) => u.role.toLowerCase() !== "admin");
   const filtered = filter === "all" ? staffMembers : staffMembers.filter((u) => u.role.toLowerCase() === filter.toLowerCase());
@@ -991,27 +992,113 @@ export default function StaffManagement() {
     );
   };
 
+  const validateForm = (): boolean => {
+    const errs: Record<string, string> = {};
+
+    // Name validation
+    if (!name || !name.trim()) {
+      errs.name = "Full name is required";
+    } else if (name.trim().length < 2) {
+      errs.name = "Full name must be at least 2 characters";
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!email || !email.trim()) {
+      errs.email = "Email address is required";
+    } else if (!emailRegex.test(email.trim())) {
+      errs.email = "Please enter a valid email address (e.g. name@example.com)";
+    }
+
+    // Password validation
+    if (!editId) {
+      if (!password) {
+        errs.password = "Password is required";
+      } else if (password.length < 8) {
+        errs.password = "Password must be at least 8 characters long";
+      }
+    } else if (password && password.length < 8) {
+      errs.password = "Password must be at least 8 characters long";
+    }
+
+    // Mobile Number validation (optional, but if provided must be 10-15 digits)
+    if (phone && phone.trim()) {
+      const cleanPhone = phone.replace(/[\s-+()]/g, "");
+      if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+        errs.phone = "Please enter a valid 10-digit mobile number";
+      }
+    }
+
+    // Aadhaar Card validation (optional, but if provided must be exactly 12 digits)
+    if (aadhaarNo && aadhaarNo.trim()) {
+      const cleanAadhaar = aadhaarNo.replace(/\s+/g, "");
+      if (!/^\d{12}$/.test(cleanAadhaar)) {
+        errs.aadhaarNo = "Aadhaar number must be exactly 12 digits";
+      }
+    }
+
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const renderEditForm = () => {
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Full Name *</Label>
-            <Input className="h-10 text-base" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input 
+              className={`h-10 text-base ${formErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}`} 
+              placeholder="Dr. John Doe" 
+              value={name} 
+              onChange={(e) => {
+                setName(e.target.value);
+                if (formErrors.name) setFormErrors(prev => ({ ...prev, name: "" }));
+              }} 
+            />
+            {formErrors.name && <p className="text-xs text-destructive font-medium">{formErrors.name}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Email *</Label>
-            <Input className="h-10 text-base" type="email" placeholder="john@navadia.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input 
+              className={`h-10 text-base ${formErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}`} 
+              type="email" 
+              placeholder="john@navadia.com" 
+              value={email} 
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (formErrors.email) setFormErrors(prev => ({ ...prev, email: "" }));
+              }} 
+            />
+            {formErrors.email && <p className="text-xs text-destructive font-medium">{formErrors.email}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Mobile Number</Label>
-            <Input className="h-10 text-base" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input 
+              className={`h-10 text-base ${formErrors.phone ? "border-destructive focus-visible:ring-destructive" : ""}`} 
+              placeholder="+91 98765 43210" 
+              value={phone} 
+              onChange={(e) => {
+                setPhone(e.target.value);
+                if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: "" }));
+              }} 
+            />
+            {formErrors.phone && <p className="text-xs text-destructive font-medium">{formErrors.phone}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Aadhaar Card No.</Label>
-            <Input className="h-10 text-base" placeholder="1234 5678 9012" value={aadhaarNo} onChange={(e) => setAadhaarNo(e.target.value)} />
+            <Input 
+              className={`h-10 text-base ${formErrors.aadhaarNo ? "border-destructive focus-visible:ring-destructive" : ""}`} 
+              placeholder="1234 5678 9012" 
+              value={aadhaarNo} 
+              onChange={(e) => {
+                setAadhaarNo(e.target.value);
+                if (formErrors.aadhaarNo) setFormErrors(prev => ({ ...prev, aadhaarNo: "" }));
+              }} 
+            />
+            {formErrors.aadhaarNo && <p className="text-xs text-destructive font-medium">{formErrors.aadhaarNo}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Role</Label>
             <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
               <SelectTrigger className="h-10 text-base"><SelectValue /></SelectTrigger>
@@ -1023,21 +1110,21 @@ export default function StaffManagement() {
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <Label className="text-base">Address</Label>
           <Input className="h-10 text-base" placeholder="123 Street Name" value={address} onChange={(e) => setAddress(e.target.value)} />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">City</Label>
             <Input className="h-10 text-base" placeholder="Surat" value={city} onChange={(e) => setCity(e.target.value)} />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">State</Label>
             <Input className="h-10 text-base" placeholder="Gujarat" value={stateName} onChange={(e) => setStateName(e.target.value)} />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Country</Label>
             <Input className="h-10 text-base" placeholder="India" value={country} onChange={(e) => setCountry(e.target.value)} />
           </div>
@@ -1045,11 +1132,11 @@ export default function StaffManagement() {
 
         {role.toLowerCase() === "dentist" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-base">Specialization</Label>
               <Input className="h-10 text-base" placeholder="e.g. Endodontics" value={specialization} onChange={(e) => setSpecialization(e.target.value)} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-base">License No.</Label>
               <Input className="h-10 text-base" placeholder="DEN-2026-XXX" value={licenseNo} onChange={(e) => setLicenseNo(e.target.value)} />
             </div>
@@ -1064,27 +1151,74 @@ export default function StaffManagement() {
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Full Name *</Label>
-            <Input className="h-10 text-base" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input 
+              className={`h-10 text-base ${formErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}`} 
+              placeholder={role.toLowerCase() === "dentist" ? "Dr. John Doe" : "John Doe"} 
+              value={name} 
+              onChange={(e) => {
+                setName(e.target.value);
+                if (formErrors.name) setFormErrors(prev => ({ ...prev, name: "" }));
+              }} 
+            />
+            {formErrors.name && <p className="text-xs text-destructive font-medium">{formErrors.name}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Email *</Label>
-            <Input className="h-10 text-base" type="email" placeholder="john@navadia.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input 
+              className={`h-10 text-base ${formErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}`} 
+              type="email" 
+              placeholder={role.toLowerCase() === "dentist" ? "dentist@navadia.com" : "staff@navadia.com"} 
+              value={email} 
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (formErrors.email) setFormErrors(prev => ({ ...prev, email: "" }));
+              }} 
+            />
+            {formErrors.email && <p className="text-xs text-destructive font-medium">{formErrors.email}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Password *</Label>
-            <Input className="h-10 text-base" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input 
+              className={`h-10 text-base ${formErrors.password ? "border-destructive focus-visible:ring-destructive" : ""}`} 
+              type="password" 
+              placeholder="Minimum 8 characters" 
+              value={password} 
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (formErrors.password) setFormErrors(prev => ({ ...prev, password: "" }));
+              }} 
+            />
+            {formErrors.password && <p className="text-xs text-destructive font-medium">{formErrors.password}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Mobile Number</Label>
-            <Input className="h-10 text-base" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input 
+              className={`h-10 text-base ${formErrors.phone ? "border-destructive focus-visible:ring-destructive" : ""}`} 
+              placeholder="+91 98765 43210" 
+              value={phone} 
+              onChange={(e) => {
+                setPhone(e.target.value);
+                if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: "" }));
+              }} 
+            />
+            {formErrors.phone && <p className="text-xs text-destructive font-medium">{formErrors.phone}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Aadhaar Card No.</Label>
-            <Input className="h-10 text-base" placeholder="1234 5678 9012" value={aadhaarNo} onChange={(e) => setAadhaarNo(e.target.value)} />
+            <Input 
+              className={`h-10 text-base ${formErrors.aadhaarNo ? "border-destructive focus-visible:ring-destructive" : ""}`} 
+              placeholder="1234 5678 9012" 
+              value={aadhaarNo} 
+              onChange={(e) => {
+                setAadhaarNo(e.target.value);
+                if (formErrors.aadhaarNo) setFormErrors(prev => ({ ...prev, aadhaarNo: "" }));
+              }} 
+            />
+            {formErrors.aadhaarNo && <p className="text-xs text-destructive font-medium">{formErrors.aadhaarNo}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Role</Label>
             <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
               <SelectTrigger className="h-10 text-base"><SelectValue /></SelectTrigger>
@@ -1096,21 +1230,21 @@ export default function StaffManagement() {
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <Label className="text-base">Address</Label>
           <Input className="h-10 text-base" placeholder="123 Street Name" value={address} onChange={(e) => setAddress(e.target.value)} />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">City</Label>
             <Input className="h-10 text-base" placeholder="Surat" value={city} onChange={(e) => setCity(e.target.value)} />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">State</Label>
             <Input className="h-10 text-base" placeholder="Gujarat" value={stateName} onChange={(e) => setStateName(e.target.value)} />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-base">Country</Label>
             <Input className="h-10 text-base" placeholder="India" value={country} onChange={(e) => setCountry(e.target.value)} />
           </div>
@@ -1118,11 +1252,11 @@ export default function StaffManagement() {
 
         {role.toLowerCase() === "dentist" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-base">Specialization</Label>
               <Input className="h-10 text-base" placeholder="e.g. Endodontics" value={specialization} onChange={(e) => setSpecialization(e.target.value)} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-base">License No.</Label>
               <Input className="h-10 text-base" placeholder="DEN-2026-XXX" value={licenseNo} onChange={(e) => setLicenseNo(e.target.value)} />
             </div>
@@ -1138,6 +1272,7 @@ export default function StaffManagement() {
     setSpecialization(""); setLicenseNo(""); setAadhaarNo(""); setAddress(""); 
     setCity(""); setStateName(""); setCountry("India");
     setEditId(null);
+    setFormErrors({});
   };
 
   const handleOpenAddDialog = (selectedRole: UserRole) => {
@@ -1164,23 +1299,30 @@ export default function StaffManagement() {
   };
 
   const handleSave = async () => {
-    if (!name || !email || (!editId && !password)) {
-      toast({ title: "Error", description: "Name, email, and password are required", variant: "destructive" });
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please correct the highlighted fields before submitting",
+        variant: "destructive"
+      });
       return;
     }
 
+    const cleanAadhaar = aadhaarNo ? aadhaarNo.replace(/\s+/g, "") : undefined;
+    const cleanPhone = phone ? phone.trim() : undefined;
+
     const payload = {
-      name, 
-      email, 
+      name: name.trim(), 
+      email: email.trim().toLowerCase(), 
       role, 
-      phone, 
-      aadhaarNo,
-      address,
-      city,
-      state: stateName,
-      country,
-      specialization: role.toLowerCase() === "dentist" ? specialization : undefined, 
-      licenseNo: role.toLowerCase() === "dentist" ? licenseNo : undefined 
+      phone: cleanPhone, 
+      aadhaarNo: cleanAadhaar,
+      address: address.trim(),
+      city: city.trim(),
+      state: stateName.trim(),
+      country: country.trim(),
+      specialization: role.toLowerCase() === "dentist" ? (specialization.trim() || "General Dentistry") : undefined, 
+      licenseNo: role.toLowerCase() === "dentist" ? (licenseNo.trim() || undefined) : undefined 
     };
 
     if (editId) {
@@ -1203,8 +1345,12 @@ export default function StaffManagement() {
   };
 
   const handleSubmitForm = () => {
-    if (!name || !email || (!editId && !password)) {
-      toast({ title: "Error", description: "Name, email, and password are required", variant: "destructive" });
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please correct the highlighted fields before submitting",
+        variant: "destructive"
+      });
       return;
     }
 
