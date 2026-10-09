@@ -12,7 +12,7 @@ const getApiBaseUrl = () => {
 
   const hostname = window.location.hostname;
   if (hostname !== "localhost" && hostname !== "127.0.0.1") {
-    return "https://smileflow-backend.onrender.com";
+    return "https://smileflow-backend-a4ot.onrender.com";
   }
 
   return envUrl || "http://localhost:5000";

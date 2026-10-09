@@ -18,11 +18,19 @@ getJwtSecret();
 connectDB();
 
 // Allowed browser origins (comma-separated). Localhost is always allowed outside production.
-const allowedOrigins = (process.env.CORS_ORIGINS || 'https://smileflow-frontend.onrender.com')
+const configuredOrigins = (process.env.CORS_ORIGINS || '')
   .split(',').map(o => o.trim()).filter(Boolean);
+
+const defaultOrigins = [
+  'https://erp-navadia.onrender.com',
+  'https://smileflow-frontend.onrender.com'
+];
+
 const corsOrigin = (origin, cb) => {
   if (!origin) return cb(null, true); // same-origin, curl, mobile apps
-  if (allowedOrigins.includes(origin)) return cb(null, true);
+  if (configuredOrigins.includes(origin) || defaultOrigins.includes(origin)) return cb(null, true);
+  // Allow any onrender.com domain automatically
+  if (/^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(origin)) return cb(null, true);
   if (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return cb(null, true);
   return cb(null, false);
 };
@@ -34,7 +42,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: corsOrigin,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true
   }
 });
 
@@ -86,7 +95,12 @@ io.on('connection', (socket) => {
 });
 
 // Middleware
-app.use(cors({ origin: corsOrigin }));
+app.use(cors({
+  origin: corsOrigin,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 // Voice notes, voicemails and task attachments are sent as base64, so allow larger bodies.
 app.use(express.json({ limit: '10mb' }));
 app.use(mongoSanitize);
