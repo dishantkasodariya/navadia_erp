@@ -16,7 +16,8 @@ export default function Login({ isAdmin = false }: { isAdmin?: boolean }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
+    const token = localStorage.getItem("navadia_token");
+    if (user && token) {
       const lower = user.role.toLowerCase();
       const prefix = lower === "receptionist" ? "reception" : lower;
       navigate(`/${prefix}/dashboard`, { replace: true });

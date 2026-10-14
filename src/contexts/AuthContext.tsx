@@ -105,28 +105,48 @@ function saveUsers(users: (User & { password: string })[]) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     const stored = localStorage.getItem("navadia_current_user");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        ...parsed,
-        role: normalizeRole(parsed.role)
-      };
+    const token = localStorage.getItem("navadia_token");
+    if (stored && token) {
+      try {
+        const parsed = JSON.parse(stored);
+        return {
+          ...parsed,
+          role: normalizeRole(parsed.role)
+        };
+      } catch (e) {
+        console.error("Failed to parse stored user:", e);
+        localStorage.removeItem("navadia_current_user");
+        localStorage.removeItem("navadia_token");
+      }
+    } else if (stored && !token) {
+      // Clear inconsistent state where user exists without a valid token
+      localStorage.removeItem("navadia_current_user");
     }
     return null;
   });
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<(User & { password: string })[]>(getStoredUsers);
 
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("navadia_current_user");
+    localStorage.removeItem("navadia_token");
+  };
+
   useEffect(() => {
     setIsLoading(false);
     // Sync backend list of users if backend is up (All roles for chat contacts)
     const fetchUsers = async () => {
       const token = localStorage.getItem("navadia_token");
-      if (!token) return;
+      if (!token || token.startsWith("offline_")) return;
       try {
         const res = await fetch(`${API_BASE_URL}/api/staff`, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        if (res.status === 401) {
+          logout();
+          return;
+        }
         if (res.ok) {
           const backendStaff = await res.json();
           const mapped = backendStaff.map((u: Record<string, unknown>) => ({
@@ -224,9 +244,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...userData,
           role: normalizeRole(userData.role)
         };
+        const offlineToken = `offline_${found.id}_${Date.now()}`;
         setUser(normalizedUser);
         localStorage.setItem("navadia_current_user", JSON.stringify(normalizedUser));
-        return { success: true, message: "Login successful (local offline fallback)" };
+        localStorage.setItem("navadia_token", offlineToken);
+        return { success: true, message: "Login successful (offline fallback)" };
       }
     }
 
@@ -295,15 +317,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsers(updated);
     saveUsers(updated);
     const { password: _, ...userData } = newUser;
+    const offlineToken = `offline_${newUser.id}_${Date.now()}`;
     setUser(userData);
     localStorage.setItem("navadia_current_user", JSON.stringify(userData));
+    localStorage.setItem("navadia_token", offlineToken);
     return { success: true, message: "Account created successfully" };
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("navadia_current_user");
-    localStorage.removeItem("navadia_token");
   };
 
   const allUsers: User[] = users.map(({ password: _, ...u }) => ({
@@ -317,122 +335,188 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const password = data.password || data.name.split(" ").pop()?.toLowerCase() || "password123";
     
     const token = localStorage.getItem("navadia_token");
-    if (!token) return { success: false, message: "Authentication token missing. Please log in again." };
-
-    try {
-      const endpoint = isDentist ? `${API_BASE_URL}/api/dentists` : `${API_BASE_URL}/api/staff`;
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          password: password,
-          role: finalRole,
-          phone: data.phone,
-          specialization: data.specialization,
-          licenseNo: data.licenseNo,
-          aadhaarNo: data.aadhaarNo,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          country: data.country,
-          pincode: data.pincode,
-          alternatePhone: data.alternatePhone,
-          dateOfBirth: data.dateOfBirth,
-          gender: data.gender,
-          bloodGroup: data.bloodGroup,
-          panNo: data.panNo,
-          emergencyContact: data.emergencyContact,
-          emergencyPhone: data.emergencyPhone
-        })
-      });
-      
-      const resData = await res.json();
-      
-      if (res.ok) {
-        const newUser = {
-          id: resData._id,
-          name: resData.name,
-          email: resData.email,
-          role: normalizeRole(resData.role),
-          phone: resData.phone,
-          specialization: resData.specialization,
-          licenseNo: resData.licenseNo,
-          aadhaarNo: resData.aadhaarNo,
-          address: resData.address,
-          city: resData.city,
-          state: resData.state,
-          country: resData.country,
-          pincode: resData.pincode,
-          alternatePhone: resData.alternatePhone,
-          dateOfBirth: resData.dateOfBirth,
-          gender: resData.gender,
-          bloodGroup: resData.bloodGroup,
-          panNo: resData.panNo,
-          emergencyContact: resData.emergencyContact,
-          emergencyPhone: resData.emergencyPhone,
-          password
-        };
-        const updated = [...users, newUser];
-        setUsers(updated);
-        saveUsers(updated);
-        return { success: true, message: `${isDentist ? "Dentist" : "Staff"} added successfully` };
-      } else {
-        return { success: false, message: resData.message || `Failed to add ${isDentist ? "dentist" : "staff"} member` };
-      }
-    } catch (e) {
-      console.error("Error adding staff/dentist:", e);
-      return { success: false, message: "Cannot connect to server. Please try again later." };
+    if (!token) {
+      logout();
+      return { success: false, message: "Authentication token missing. Please log in again." };
     }
+
+    const isOffline = token.startsWith("offline_");
+
+    if (!isOffline) {
+      try {
+        const endpoint = isDentist ? `${API_BASE_URL}/api/dentists` : `${API_BASE_URL}/api/staff`;
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: data.name,
+            email: data.email,
+            password: password,
+            role: finalRole,
+            phone: data.phone,
+            specialization: data.specialization,
+            licenseNo: data.licenseNo,
+            aadhaarNo: data.aadhaarNo,
+            address: data.address,
+            city: data.city,
+            state: data.state,
+            country: data.country,
+            pincode: data.pincode,
+            alternatePhone: data.alternatePhone,
+            dateOfBirth: data.dateOfBirth,
+            gender: data.gender,
+            bloodGroup: data.bloodGroup,
+            panNo: data.panNo,
+            emergencyContact: data.emergencyContact,
+            emergencyPhone: data.emergencyPhone
+          })
+        });
+        
+        if (res.status === 401) {
+          logout();
+          return { success: false, message: "Session expired. Please log in again." };
+        }
+
+        const resData = await res.json();
+        
+        if (res.ok) {
+          const newUser = {
+            id: resData._id,
+            name: resData.name,
+            email: resData.email,
+            role: normalizeRole(resData.role),
+            phone: resData.phone,
+            specialization: resData.specialization,
+            licenseNo: resData.licenseNo,
+            aadhaarNo: resData.aadhaarNo,
+            address: resData.address,
+            city: resData.city,
+            state: resData.state,
+            country: resData.country,
+            pincode: resData.pincode,
+            alternatePhone: resData.alternatePhone,
+            dateOfBirth: resData.dateOfBirth,
+            gender: resData.gender,
+            bloodGroup: resData.bloodGroup,
+            panNo: resData.panNo,
+            emergencyContact: resData.emergencyContact,
+            emergencyPhone: resData.emergencyPhone,
+            password
+          };
+          const updated = [...users, newUser];
+          setUsers(updated);
+          saveUsers(updated);
+          return { success: true, message: `${isDentist ? "Dentist" : "Staff"} added successfully` };
+        } else {
+          return { success: false, message: resData.message || `Failed to add ${isDentist ? "dentist" : "staff"} member` };
+        }
+      } catch (e) {
+        console.error("Error adding staff/dentist to backend, falling back to local storage:", e);
+      }
+    }
+
+    // Local fallback
+    const localNewUser: User & { password: string } = {
+      id: crypto.randomUUID(),
+      name: data.name,
+      email: data.email,
+      password: password,
+      role: finalRole,
+      phone: data.phone,
+      specialization: data.specialization,
+      licenseNo: data.licenseNo,
+      aadhaarNo: data.aadhaarNo,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      country: data.country,
+      pincode: data.pincode,
+      alternatePhone: data.alternatePhone,
+      dateOfBirth: data.dateOfBirth,
+      gender: data.gender,
+      bloodGroup: data.bloodGroup,
+      panNo: data.panNo,
+      emergencyContact: data.emergencyContact,
+      emergencyPhone: data.emergencyPhone
+    };
+    const updated = [...users, localNewUser];
+    setUsers(updated);
+    saveUsers(updated);
+    return { success: true, message: `${isDentist ? "Dentist" : "Staff"} added successfully (offline mode)` };
   };
 
   const editStaffMember = async (id: string, data: Partial<User>): Promise<{ success: boolean; message: string }> => {
     const token = localStorage.getItem("navadia_token");
-    if (!token) return { success: false, message: "Authentication token missing. Please log in again." };
-
-    try {
-      const existing = users.find(u => u.id === id);
-      const isDentist = (data.role && normalizeRole(data.role).toLowerCase() === "dentist") || 
-                        (existing && existing.role.toLowerCase() === "dentist");
-      const endpoint = isDentist ? `${API_BASE_URL}/api/dentists/${id}` : `${API_BASE_URL}/api/staff/${id}`;
-
-      const res = await fetch(endpoint, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(data)
-      });
-      
-      const resData = await res.json();
-      
-      if (res.ok) {
-        const updatedUsers = users.map(u => {
-          if (u.id === id) {
-            return {
-              ...u,
-              ...resData,
-              id: resData._id || u.id,
-              role: normalizeRole(resData.role || u.role)
-            };
-          }
-          return u;
-        });
-        setUsers(updatedUsers);
-        saveUsers(updatedUsers);
-        return { success: true, message: `${isDentist ? "Dentist" : "Staff"} updated successfully` };
-      } else {
-        return { success: false, message: resData.message || `Failed to update ${isDentist ? "dentist" : "staff"} member` };
-      }
-    } catch (e) {
-      console.error("Error updating staff/dentist:", e);
-      return { success: false, message: "Cannot connect to server. Please try again later." };
+    if (!token) {
+      logout();
+      return { success: false, message: "Authentication token missing. Please log in again." };
     }
+
+    const existing = users.find(u => u.id === id);
+    const isDentist = (data.role && normalizeRole(data.role).toLowerCase() === "dentist") || 
+                      (existing && existing.role.toLowerCase() === "dentist");
+    const isOffline = token.startsWith("offline_");
+
+    if (!isOffline && /^[0-9a-fA-F]{24}$/.test(id)) {
+      try {
+        const endpoint = isDentist ? `${API_BASE_URL}/api/dentists/${id}` : `${API_BASE_URL}/api/staff/${id}`;
+
+        const res = await fetch(endpoint, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(data)
+        });
+        
+        if (res.status === 401) {
+          logout();
+          return { success: false, message: "Session expired. Please log in again." };
+        }
+
+        const resData = await res.json();
+        
+        if (res.ok) {
+          const updatedUsers = users.map(u => {
+            if (u.id === id) {
+              return {
+                ...u,
+                ...resData,
+                id: resData._id || u.id,
+                role: normalizeRole(resData.role || u.role)
+              };
+            }
+            return u;
+          });
+          setUsers(updatedUsers);
+          saveUsers(updatedUsers);
+          return { success: true, message: `${isDentist ? "Dentist" : "Staff"} updated successfully` };
+        } else {
+          return { success: false, message: resData.message || `Failed to update ${isDentist ? "dentist" : "staff"} member` };
+        }
+      } catch (e) {
+        console.error("Error updating staff/dentist on backend:", e);
+      }
+    }
+
+    // Local fallback
+    const updatedUsers = users.map(u => {
+      if (u.id === id) {
+        return {
+          ...u,
+          ...data,
+          role: data.role ? normalizeRole(data.role) : u.role
+        };
+      }
+      return u;
+    });
+    setUsers(updatedUsers);
+    saveUsers(updatedUsers);
+    return { success: true, message: `${isDentist ? "Dentist" : "Staff"} updated successfully (offline mode)` };
   };
 
   const removeStaffMember = async (id: string): Promise<{ success: boolean; message: string }> => {
@@ -450,7 +534,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const token = localStorage.getItem("navadia_token");
-    if (!token) return { success: false, message: "Authentication token missing." };
+    if (!token) {
+      logout();
+      return { success: false, message: "Authentication token missing. Please log in again." };
+    }
+
+    if (token.startsWith("offline_")) {
+      const updated = users.filter((u) => u.id !== id);
+      setUsers(updated);
+      saveUsers(updated);
+      return { success: true, message: `${entityName} removed successfully` };
+    }
 
     try {
       const endpoint = isDentist ? `${API_BASE_URL}/api/dentists/${id}` : `${API_BASE_URL}/api/staff/${id}`;
@@ -459,6 +553,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { Authorization: `Bearer ${token}` }
       });
       
+      if (res.status === 401) {
+        logout();
+        return { success: false, message: "Session expired. Please log in again." };
+      }
+
       if (res.ok || res.status === 404) {
         const updated = users.filter((u) => u.id !== id);
         setUsers(updated);
