@@ -67,7 +67,13 @@ function getDistanceInMeters(lat1, lon1, lat2, lon2) {
 router.get('/', verifyJWT, async (req, res) => {
   const { userId, date } = req.query;
   let query = {};
-  if (typeof userId === 'string' && userId) query.userId = userId;
+  if (typeof userId === 'string' && userId) {
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+      query.userId = userId;
+    } else {
+      return res.json([]);
+    }
+  }
   if (typeof date === 'string' && date) query.date = date;
   // Non-admins may only read their own attendance (contains GPS + IP data)
   if (!isAdmin(req.user)) query.userId = req.user._id;
