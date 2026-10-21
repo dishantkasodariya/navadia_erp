@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   Plus, Trash2, UserCog, Stethoscope, Users, Edit,
-  Clock, History, Calendar, FileText, Printer, Check, X, Search, FileDown, LogIn, LogOut, Trash, PlusCircle
+  Clock, History, Calendar, FileText, Printer, Check, X, Search, FileDown, LogIn, LogOut, Trash, PlusCircle,
+  Eye, EyeOff
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,7 +37,7 @@ const roleIcons: Record<string, React.ReactNode> = {
 };
 
 export default function StaffManagement() {
-  const { allUsers, addStaffMember, removeStaffMember, editStaffMember } = useAuth();
+  const { allUsers, addStaffMember, removeStaffMember, editStaffMember, refreshUsers } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -78,11 +79,18 @@ export default function StaffManagement() {
   const [city, setCity] = useState("");
   const [stateName, setStateName] = useState("");
   const [country, setCountry] = useState("India");
+  const [showPassword, setShowPassword] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const staffMembers = allUsers.filter((u) => u.role.toLowerCase() !== "admin");
   const filtered = filter === "all" ? staffMembers : staffMembers.filter((u) => u.role.toLowerCase() === filter.toLowerCase());
+
+  useEffect(() => {
+    if (refreshUsers) {
+      refreshUsers();
+    }
+  }, []);
 
   // Load historical attendance logs, approved leaves, and audit logs
   const fetchHistory = async () => {
@@ -1010,15 +1018,11 @@ export default function StaffManagement() {
       errs.email = "Please enter a valid email address (e.g. name@example.com)";
     }
 
-    // Password validation
+    // Password validation (8 character limit removed as requested)
     if (!editId) {
-      if (!password) {
+      if (!password || !password.trim()) {
         errs.password = "Password is required";
-      } else if (password.length < 8) {
-        errs.password = "Password must be at least 8 characters long";
       }
-    } else if (password && password.length < 8) {
-      errs.password = "Password must be at least 8 characters long";
     }
 
     // Mobile Number validation (optional, but if provided must be 10-15 digits)
@@ -1071,6 +1075,26 @@ export default function StaffManagement() {
               }} 
             />
             {formErrors.email && <p className="text-xs text-destructive font-medium">{formErrors.email}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-base">Password</Label>
+            <div className="relative">
+              <Input 
+                className="h-10 text-base pr-10" 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Enter password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label className="text-base">Mobile Number</Label>
@@ -1180,16 +1204,26 @@ export default function StaffManagement() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-base">Password *</Label>
-            <Input 
-              className={`h-10 text-base ${formErrors.password ? "border-destructive focus-visible:ring-destructive" : ""}`} 
-              type="password" 
-              placeholder="Minimum 8 characters" 
-              value={password} 
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (formErrors.password) setFormErrors(prev => ({ ...prev, password: "" }));
-              }} 
-            />
+            <div className="relative">
+              <Input 
+                className={`h-10 text-base pr-10 ${formErrors.password ? "border-destructive focus-visible:ring-destructive" : ""}`} 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Enter password" 
+                value={password} 
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (formErrors.password) setFormErrors(prev => ({ ...prev, password: "" }));
+                }} 
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {formErrors.password && <p className="text-xs text-destructive font-medium">{formErrors.password}</p>}
           </div>
           <div className="space-y-1.5">
@@ -1270,32 +1304,67 @@ export default function StaffManagement() {
   const resetForm = () => {
     setName(""); setEmail(""); setPhone(""); setRole("Staff"); setPassword(""); 
     setSpecialization(""); setLicenseNo(""); setAadhaarNo(""); setAddress(""); 
-    setCity(""); setStateName(""); setCountry("India");
+    setCity("Surat"); setStateName("Gujarat"); setCountry("India");
     setEditId(null);
     setFormErrors({});
   };
 
   const handleOpenAddDialog = (selectedRole: UserRole) => {
     resetForm();
+    setShowPassword(false);
     setRole(selectedRole);
+    if (selectedRole.toLowerCase() === "dentist") {
+      setSpecialization("General Dentistry");
+    }
     setOpen(true);
   };
 
-  const handleOpenEditDialog = (user: User) => {
+  const handleOpenEditDialog = async (user: User) => {
     resetForm();
     setEditId(user.id);
     setName(user.name || "");
     setEmail(user.email || "");
     setPhone(user.phone || "");
-    setRole(user.role);
-    setSpecialization(user.specialization || "");
+    setRole(user.role.toLowerCase() === "dentist" ? "Dentist" : "Staff");
+    setSpecialization(user.specialization || (user.role.toLowerCase() === "dentist" ? "General Dentistry" : ""));
     setLicenseNo(user.licenseNo || "");
     setAadhaarNo(user.aadhaarNo || "");
     setAddress(user.address || "");
-    setCity(user.city || "");
-    setStateName(user.state || "");
+    setCity(user.city || "Surat");
+    setStateName(user.state || "Gujarat");
     setCountry(user.country || "India");
+    setPassword(user.plainPassword || (user as any).password || "");
+    setShowPassword(false);
     setOpen(true);
+
+    const token = localStorage.getItem("navadia_token");
+    if (token && /^[0-9a-fA-F]{24}$/.test(user.id)) {
+      try {
+        const endpoint = `${API_BASE_URL}/api/staff/${user.id}`;
+        const res = await fetch(endpoint, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const fresh = await res.json();
+          if (fresh) {
+            if (fresh.name !== undefined) setName(fresh.name || "");
+            if (fresh.email !== undefined) setEmail(fresh.email || "");
+            if (fresh.phone !== undefined) setPhone(fresh.phone || "");
+            if (fresh.role !== undefined) setRole(fresh.role.toLowerCase() === "dentist" ? "Dentist" : "Staff");
+            if (fresh.specialization !== undefined) setSpecialization(fresh.specialization || (fresh.role?.toLowerCase() === "dentist" ? "General Dentistry" : ""));
+            if (fresh.licenseNo !== undefined) setLicenseNo(fresh.licenseNo || "");
+            if (fresh.aadhaarNo !== undefined) setAadhaarNo(fresh.aadhaarNo || "");
+            if (fresh.address !== undefined) setAddress(fresh.address || "");
+            if (fresh.city !== undefined) setCity(fresh.city || "Surat");
+            if (fresh.state !== undefined) setStateName(fresh.state || "Gujarat");
+            if (fresh.country !== undefined) setCountry(fresh.country || "India");
+            if (fresh.plainPassword) setPassword(fresh.plainPassword);
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch fresh user details:", e);
+      }
+    }
   };
 
   const handleSave = async () => {
@@ -1308,10 +1377,10 @@ export default function StaffManagement() {
       return;
     }
 
-    const cleanAadhaar = aadhaarNo ? aadhaarNo.replace(/\s+/g, "") : undefined;
-    const cleanPhone = phone ? phone.trim() : undefined;
+    const cleanAadhaar = aadhaarNo ? aadhaarNo.replace(/\s+/g, "") : "";
+    const cleanPhone = phone ? phone.trim() : "";
 
-    const payload = {
+    const payload: Record<string, any> = {
       name: name.trim(), 
       email: email.trim().toLowerCase(), 
       role, 
@@ -1324,6 +1393,10 @@ export default function StaffManagement() {
       specialization: role.toLowerCase() === "dentist" ? (specialization.trim() || "General Dentistry") : undefined, 
       licenseNo: role.toLowerCase() === "dentist" ? (licenseNo.trim() || undefined) : undefined 
     };
+
+    if (password && password.trim()) {
+      payload.password = password.trim();
+    }
 
     if (editId) {
       const res = await editStaffMember(editId, payload);
@@ -1354,11 +1427,7 @@ export default function StaffManagement() {
       return;
     }
 
-    if (editId) {
-      setUpdateConfirmOpen(true);
-    } else {
-      handleSave();
-    }
+    handleSave();
   };
 
   const handleConfirmUpdate = () => {

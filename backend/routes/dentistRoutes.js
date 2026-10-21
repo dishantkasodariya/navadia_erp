@@ -21,8 +21,8 @@ const validateDentistInput = (body, isCreate) => {
   if (email !== undefined && (typeof email !== 'string' || !EMAIL_RE.test(email.trim()))) {
     return 'A valid email address is required (e.g., doctor@example.com)';
   }
-  if (password !== undefined && (typeof password !== 'string' || password.length < 8 || password.length > 128)) {
-    return 'Password must be between 8 and 128 characters';
+  if (password !== undefined && (typeof password !== 'string' || password.length < 1 || password.length > 128)) {
+    return 'Password must be between 1 and 128 characters';
   }
   if (phone) {
     const cleanPhone = String(phone).replace(/[\s-+()]/g, '');
@@ -42,13 +42,8 @@ const validateDentistInput = (body, isCreate) => {
 // Get all dentists (Admins, Dentists, and Staff)
 router.get('/', verifyJWT, checkRole('Admin', 'Dentist', 'Staff'), async (req, res) => {
   try {
-    if (isAdmin(req.user)) {
-      const dentists = await User.find({ role: 'Dentist' }).select('-password').sort({ name: 1 });
-      return res.json(dentists);
-    }
-    const dentists = await User.find({ role: 'Dentist' }).select(SENSITIVE_FIELDS).sort({ name: 1 }).lean();
-    const me = await User.findById(req.user._id).select('-password').lean();
-    res.json(dentists.map(u => (u._id.toString() === req.user._id.toString() ? me : u)));
+    const dentists = await User.find({ role: 'Dentist' }).select('-password').sort({ name: 1 });
+    res.json(dentists);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -60,7 +55,7 @@ router.get('/:id', verifyJWT, checkRole('Admin', 'Dentist', 'Staff'), async (req
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(404).json({ message: 'Dentist not found' });
     }
-    const user = await User.findOne({ _id: req.params.id, role: 'Dentist' }).select(projectionFor(req, req.params.id));
+    const user = await User.findById(req.params.id).select('-password');
     if (user) {
       res.json(user);
     } else {
@@ -113,6 +108,7 @@ router.post('/', verifyJWT, checkRole('Admin'), async (req, res) => {
       name: name.trim(),
       email: cleanEmail,
       password,
+      plainPassword: password,
       role: 'Dentist',
       phone: cleanPhone,
       alternatePhone,
@@ -167,21 +163,34 @@ router.put('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
       if (emailExists) return res.status(400).json({ message: 'User with this email already exists' });
     }
     if (cleanPhone && cleanPhone !== user.phone) {
-      const phoneExists = await User.findOne({ phone: cleanPhone });
+      const phoneExists = await User.findOne({ phone: cleanPhone, _id: { $ne: user._id } });
       if (phoneExists) return res.status(400).json({ message: 'User with this phone number already exists' });
     }
     if (cleanAadhaar && cleanAadhaar !== user.aadhaarNo) {
-      const aadhaarExists = await User.findOne({ aadhaarNo: cleanAadhaar });
+      const aadhaarExists = await User.findOne({ aadhaarNo: cleanAadhaar, _id: { $ne: user._id } });
       if (aadhaarExists) return res.status(400).json({ message: 'User with this Aadhaar card already exists' });
     }
 
     // Basic fields
     if (req.body.name) user.name = req.body.name.trim();
     if (cleanEmail) user.email = cleanEmail;
-    user.role = 'Dentist'; // Guaranteed Dentist
+    if (req.body.role) {
+      const lower = req.body.role.toLowerCase();
+      if (lower === 'admin') user.role = 'Admin';
+      else if (lower === 'dentist') user.role = 'Dentist';
+      else user.role = 'Staff';
+    } else {
+      user.role = 'Dentist';
+    }
+
+    // Password update if provided
+    if (req.body.password && typeof req.body.password === 'string' && req.body.password.trim()) {
+      user.password = req.body.password.trim();
+      user.plainPassword = req.body.password.trim();
+    }
 
     // Contact
-    if (cleanPhone !== undefined) user.phone = cleanPhone;
+    if (req.body.phone !== undefined) user.phone = cleanPhone || '';
     if (req.body.alternatePhone !== undefined) user.alternatePhone = req.body.alternatePhone;
 
     // Personal
@@ -190,7 +199,7 @@ router.put('/:id', verifyJWT, checkRole('Admin'), async (req, res) => {
     if (req.body.bloodGroup !== undefined) user.bloodGroup = req.body.bloodGroup;
 
     // Documents
-    if (cleanAadhaar !== undefined) user.aadhaarNo = cleanAadhaar;
+    if (req.body.aadhaarNo !== undefined) user.aadhaarNo = cleanAadhaar || '';
     if (req.body.panNo !== undefined) user.panNo = req.body.panNo;
 
     // Address

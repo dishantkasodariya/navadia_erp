@@ -25,6 +25,8 @@ export interface User {
   panNo?: string;
   emergencyContact?: string;
   emergencyPhone?: string;
+  plainPassword?: string;
+  password?: string;
 }
 
 interface AuthContextType {
@@ -39,6 +41,7 @@ interface AuthContextType {
   editStaffMember: (id: string, data: Partial<User>) => Promise<{ success: boolean; message: string }>;
   removeStaffMember: (id: string) => Promise<{ success: boolean; message: string }>;
   updateUser: (updatedUser: Partial<User>) => void;
+  refreshUsers: () => Promise<void>;
 }
 
 interface SignupData {
@@ -133,61 +136,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("navadia_token");
   };
 
+  const fetchUsers = async () => {
+    const token = localStorage.getItem("navadia_token");
+    if (!token || token.startsWith("offline_")) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/staff`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.status === 401) {
+        logout();
+        return;
+      }
+      if (res.ok) {
+        const backendStaff = await res.json();
+        const mapped = backendStaff.map((u: Record<string, unknown>) => ({
+          id: (u._id || u.id) as string,
+          name: u.name as string,
+          email: u.email as string,
+          role: normalizeRole(u.role as string),
+          phone: (u.phone || "") as string,
+          specialization: (u.specialization || "") as string,
+          licenseNo: (u.licenseNo || "") as string,
+          aadhaarNo: (u.aadhaarNo || "") as string,
+          address: (u.address || "") as string,
+          city: (u.city || "") as string,
+          state: (u.state || "") as string,
+          country: (u.country || "India") as string,
+          pincode: (u.pincode || "") as string,
+          alternatePhone: (u.alternatePhone || "") as string,
+          dateOfBirth: (u.dateOfBirth || "") as string,
+          gender: (u.gender || "") as string,
+          bloodGroup: (u.bloodGroup || "") as string,
+          panNo: (u.panNo || "") as string,
+          emergencyContact: (u.emergencyContact || "") as string,
+          emergencyPhone: (u.emergencyPhone || "") as string,
+          plainPassword: (u.plainPassword || "") as string,
+          password: (u.plainPassword || (users.find(x => x.email === u.email)?.password) || "") as string
+        }));
+        
+        // Use backend users directly as the source of truth, preserving local passwords for offline use
+        const merged = mapped.map((b: User & { password?: string; plainPassword?: string }) => {
+          const existing = users.find((u) => u.email === b.email);
+          const effectivePwd = b.plainPassword || (existing ? (existing.plainPassword || existing.password) : "");
+          return {
+            ...b,
+            plainPassword: effectivePwd,
+            password: effectivePwd
+          };
+        });
+        setUsers(merged);
+        saveUsers(merged);
+      }
+    } catch (e) {
+      console.warn("Backend offline, users loaded from local storage:", e);
+    }
+  };
+
   useEffect(() => {
     setIsLoading(false);
-    // Sync backend list of users if backend is up (All roles for chat contacts)
-    const fetchUsers = async () => {
-      const token = localStorage.getItem("navadia_token");
-      if (!token || token.startsWith("offline_")) return;
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/staff`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.status === 401) {
-          logout();
-          return;
-        }
-        if (res.ok) {
-          const backendStaff = await res.json();
-          const mapped = backendStaff.map((u: Record<string, unknown>) => ({
-            id: u._id as string,
-            name: u.name as string,
-            email: u.email as string,
-            role: normalizeRole(u.role as string),
-            phone: u.phone as string,
-            specialization: u.specialization as string,
-            licenseNo: u.licenseNo as string,
-            aadhaarNo: u.aadhaarNo as string,
-            address: u.address as string,
-            city: u.city as string,
-            state: u.state as string,
-            country: u.country as string,
-            pincode: u.pincode as string,
-            alternatePhone: u.alternatePhone as string,
-            dateOfBirth: u.dateOfBirth as string,
-            gender: u.gender as string,
-            bloodGroup: u.bloodGroup as string,
-            panNo: u.panNo as string,
-            emergencyContact: u.emergencyContact as string,
-            emergencyPhone: u.emergencyPhone as string,
-            password: "password123" // Placeholder for list
-          }));
-          
-          // Use backend users directly as the source of truth, preserving local passwords for offline use
-          const merged = mapped.map((b: User & { password?: string }) => {
-            const existing = users.find((u) => u.email === b.email);
-            return {
-              ...b,
-              password: existing ? existing.password : "password123"
-            };
-          });
-          setUsers(merged);
-          saveUsers(merged);
-        }
-      } catch (e) {
-        console.warn("Backend offline, users loaded from local storage:", e);
-      }
-    };
     fetchUsers();
   }, [user]);
 
@@ -324,7 +330,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true, message: "Account created successfully" };
   };
 
-  const allUsers: User[] = users.map(({ password: _, ...u }) => ({
+  const allUsers: User[] = users.map((u) => ({
     ...u,
     role: normalizeRole(u.role)
   }));
@@ -404,11 +410,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             panNo: resData.panNo,
             emergencyContact: resData.emergencyContact,
             emergencyPhone: resData.emergencyPhone,
-            password
+            plainPassword: resData.plainPassword || password,
+            password: resData.plainPassword || password
           };
           const updated = [...users, newUser];
           setUsers(updated);
           saveUsers(updated);
+          await fetchUsers();
           return { success: true, message: `${isDentist ? "Dentist" : "Staff"} added successfully` };
         } else {
           return { success: false, message: resData.message || `Failed to add ${isDentist ? "dentist" : "staff"} member` };
@@ -483,17 +491,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (res.ok) {
           const updatedUsers = users.map(u => {
             if (u.id === id) {
+              const effectivePlain = resData.plainPassword || (data as any).password || data.plainPassword || u.plainPassword;
               return {
                 ...u,
                 ...resData,
                 id: resData._id || u.id,
-                role: normalizeRole(resData.role || u.role)
+                role: normalizeRole(resData.role || u.role),
+                plainPassword: effectivePlain,
+                password: effectivePlain || u.password
               };
             }
             return u;
           });
           setUsers(updatedUsers);
           saveUsers(updatedUsers);
+          await fetchUsers();
           return { success: true, message: `${isDentist ? "Dentist" : "Staff"} updated successfully` };
         } else {
           return { success: false, message: resData.message || `Failed to update ${isDentist ? "dentist" : "staff"} member` };
@@ -562,6 +574,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const updated = users.filter((u) => u.id !== id);
         setUsers(updated);
         saveUsers(updated);
+        await fetchUsers();
         return { success: true, message: `${entityName} removed successfully` };
       } else {
         const resData = await res.json();
@@ -583,7 +596,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, signup, logout, allUsers, addStaffMember, editStaffMember, removeStaffMember, updateUser }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, signup, logout, allUsers, addStaffMember, editStaffMember, removeStaffMember, updateUser, refreshUsers: fetchUsers }}>
       {children}
     </AuthContext.Provider>
   );

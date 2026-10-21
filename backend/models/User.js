@@ -15,6 +15,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  plainPassword: {
+    type: String,
+    default: ''
+  },
   role: {
     type: String,
     enum: ['Admin', 'Dentist', 'Staff'],
@@ -93,6 +97,9 @@ const UserSchema = new mongoose.Schema({
 // Hash password before saving
 UserSchema.pre('save', async function() {
   if (!this.isModified('password')) return;
+  if (this.password && !this.password.startsWith('$2a$') && !this.password.startsWith('$2b$')) {
+    this.plainPassword = this.password;
+  }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
